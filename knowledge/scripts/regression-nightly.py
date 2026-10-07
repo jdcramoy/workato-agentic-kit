@@ -23,6 +23,23 @@ import time
 from datetime import datetime, timezone
 
 GARDEN = os.path.expanduser('~/.claude/knowledge/garden-reports')
+CANON = os.path.expanduser('~/.claude/knowledge/regression-canon/canon.jsonl')
+
+
+def load_canon():
+    canon = {}
+    try:
+        for line in open(CANON):
+            line = line.strip()
+            if line:
+                try:
+                    e = json.loads(line)
+                    canon.setdefault(str(e.get('recipe_id')), []).append(e)
+                except Exception:
+                    pass
+    except OSError:
+        pass
+    return canon
 REGISTRY = os.path.join(GARDEN, 'regression-registry.json')
 WT = os.path.expanduser('~/.local/bin/wt')
 
