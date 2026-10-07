@@ -153,6 +153,14 @@ case ":$PATH:" in
 esac
 echo "wt auth: set WORKATO_API_TOKEN or store a token via workato-platform-cli (keychain)."
 
+# --- 4c. brain MCP server (read-only knowledge access for any agent) ---------
+cp bin/brain-mcp "${KIT_HOME}/.local/bin/brain-mcp"
+chmod +x "${KIT_HOME}/.local/bin/brain-mcp"
+if [ "${KIT_SKIP_INSTALL:-0}" != "1" ]; then
+  claude mcp add brain --scope user -- "${KIT_HOME}/.local/bin/brain-mcp" >/dev/null 2>&1 \
+    && echo "mcp registered: brain (read-only)" || echo "mcp: brain — register later with: claude mcp add brain -- ~/.local/bin/brain-mcp"
+fi
+
 # --- 5. done -----------------------------------------------------------------
 cat << 'NEXT'
 
