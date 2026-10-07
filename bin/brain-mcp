@@ -139,6 +139,29 @@ def _tool_dreams(_a):
     return "\n".join(lines)
 
 
+def _tool_estate(a):
+    q = (a.get("query") or "").strip()
+    if not q:
+        return "error: pass a query, e.g. {'query': 'snowflake'}"
+    out = []
+    rs = os.path.join(K, "scripts", "recipes-search.py")
+    if os.path.exists(rs):
+        r = subprocess.run(["python3", rs, q], capture_output=True, text=True, timeout=60)
+        hits = (r.stdout or "").strip()
+        out.append("## recipe corpus matches\n" + (hits[:3000] if hits else "(none)"))
+    canon = os.path.join(K, "regression-canon", "canon.jsonl")
+    if os.path.exists(canon):
+        bugs = [l.strip()[:220] for l in open(canon) if l.strip() and q.lower() in l.lower()]
+        out.append("## canon bugs matching\n" + ("\n".join(bugs) if bugs else "(none)"))
+    wd = sorted(glob.glob(os.path.join(K, "watchdog-reports", "*.md")) +
+                glob.glob(os.path.join(K, "garden-reports", "watchdog-*.md")))
+    if wd:
+        latest = open(wd[-1], errors="replace").read()
+        lines = [l for l in latest.splitlines() if q.lower() in l.lower()]
+        out.append("## latest watchdog hits\n" + ("\n".join(lines[:15]) if lines else "(none)"))
+    return "\n\n".join(out)
+
+
 TOOLS = {
     "brain_index": ({"description": "The knowledge-tree routing table (INDEX.md): one line per domain/project file.",
                      "inputSchema": {"type": "object", "properties": {}}}, _tool_index),
@@ -159,6 +182,9 @@ TOOLS = {
                                                   "json": {"type": "boolean"}}}}, _tool_bus),
     "brain_dreams": ({"description": "Recent dream reports (with verdicts) and vision pieces.",
                       "inputSchema": {"type": "object", "properties": {}}}, _tool_dreams),
+    "brain_estate": ({"description": "Query the Workato estate as the brain knows it: recipe corpus matches + canon bugs + latest watchdog hits for a term (e.g. 'snowflake', 'unmasked', a recipe name).",
+                      "inputSchema": {"type": "object", "required": ["query"],
+                                      "properties": {"query": {"type": "string"}}}}, _tool_estate),
 }
 
 

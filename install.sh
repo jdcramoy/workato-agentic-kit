@@ -98,7 +98,9 @@ touch "${K}/claims/claims.jsonl"
 # --- 2b. dreams scaffold (dreamer + gossip bus) ------------------------------
 D="${K}/dreams"
 mkdir -p "${D}/bus" "${D}/proposals" "${D}/data" "${D}/visions"
-for a in docs-watch brain-gardener workato-watchdog harness-dreamer estate-architect promotion-orchestrator; do
+mkdir -p "${KIT_HOME}/.claude/knowledge/cortex" "${KIT_HOME}/.claude/knowledge/regression-canon"
+touch "${KIT_HOME}/.claude/knowledge/cortex/questions.jsonl" "${KIT_HOME}/.claude/knowledge/regression-canon/canon.jsonl"
+for a in docs-watch brain-gardener workato-watchdog harness-dreamer estate-architect promotion-orchestrator cortex; do
   touch "${D}/bus/${a}.jsonl"
 done
 [ -f "${D}/config.json" ] || cp "$(pwd)/knowledge/dreams/config.example.json" "${D}/config.json"

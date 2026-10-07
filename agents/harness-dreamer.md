@@ -117,6 +117,13 @@ In `auto-dev` the dream stops being a spectator. The work queue, in order:
    e. Ledger the outcome + one Jira status comment on the governing ticket
 4. **Any step fails → revert the edit and the fix becomes a morning
    proposal.** A partially-applied fix is the worst object in the system.
+5. **Canonize every verified fix.** After the trace proves the fix, append a
+   line to `~/.claude/knowledge/regression-canon/canon.jsonl` (schema and
+   rules in `regression-canon/README.md`): signature, recipe_id, the guard
+   added, status `fixed`. When a Workato test case can express the failure,
+   create it on the recipe and link `test_case_id`, status `tested` — that
+   is how the nightly regression harness makes the bug impossible to
+   re-ship. An uncanonized fix is half a fix.
 
 **Constitutional never, even in auto-dev:** prod anything (the confirm gate
 is unaffected and unaffected things stay that way), identity/connection/VUA
