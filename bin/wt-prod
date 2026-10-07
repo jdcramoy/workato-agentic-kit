@@ -1,0 +1,23 @@
+#!/bin/sh
+# wt-prod — PRODUCTION instance of wt.
+#
+# Mirrors the AIRO MCP split: `wt` targets dev (profile {{PROFILE_DEV}}),
+# `wt-prod` targets Workato PRODUCTION (profile {{PROFILE_PROD}}).
+#
+# The prod token is read from the macOS keychain (service workato-platform-cli,
+# account {{PROFILE_PROD}}) and exported for this invocation only, so it never
+# lands in a shell profile or the ambient environment. Every write through this
+# wrapper is gated by the workato-guardrails prod-write confirm hook.
+#
+# Token store (one-time): security add-generic-password -s workato-platform-cli \
+#   -a {{PROFILE_PROD}} -w <prod-api-token> -U
+set -e
+
+TOKEN=$(security find-generic-password -s workato-platform-cli -a {{PROFILE_PROD}} -w 2>/dev/null) || {
+  echo "wt-prod: no keychain token for profile '{{PROFILE_PROD}}'." >&2
+  echo "         store one: security add-generic-password -s workato-platform-cli -a {{PROFILE_PROD}} -w <token> -U" >&2
+  exit 1
+}
+
+WORKATO_API_TOKEN="$TOKEN" WORKATO_PROFILE={{PROFILE_PROD}} \
+  exec "$HOME/.local/bin/wt" "$@"

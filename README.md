@@ -44,7 +44,7 @@ luck, and no knowledge should live only in one session's context.
 
 ### Mods (plugins, always loaded)
 
-`workato-guardrails` registers 12 hooks on tool calls, prompts, and UI
+`workato-guardrails` registers 13 hooks on tool calls, prompts, and UI
 renders. Each hook is a few lines; `claude plugin validate` lists exactly
 what each touches before you load anything.
 
@@ -62,6 +62,7 @@ what each touches before you load anything.
 | 10 | Build ledger (CLI and browser) | Bash commands using the Workato CLI or Orca | Ledgers the paths that bypass AIRO. A successful CLI start also triggers a read-back that verifies the start actually took, refreshing the relevant platform claim. |
 | 11 | Slash commands | user | `/guardrails` (hook status), `/builds` (ledger summary for today, week, or all), `/promotion-ready` (dev edits newer than their last promotion mark), `/promoted` (mark recipes shipped), `/diff` (recipe snapshot history). |
 | 12 | Snapshot history and cockpit | every push; on demand | After each push, pulls the fresh DSL from the matching server and commits it to a local git repo, so "what changed in this recipe" is a diff. `/cockpit` opens a pane with session counters and the ledger tail. |
+| 13 | Prod-write confirm gate | Bash commands that target production via ANY surface: `workato-prod`, `wt-prod`, `WORKATO_PROFILE`/`--profile` set to the prod profile, raw HTTP carrying the prod credential, Orca on prod URLs | Holds WRITES for an explicit confirm dialog, fail-closed on dismissal. Reads pass through. This is the door-closer that makes the prod CLI/wt wrappers safe to hand an agent. |
 
 `brain-guard` registers 5 hooks for the knowledge system itself:
 
@@ -220,6 +221,32 @@ the exact prompts.
 4. Restart Claude Code, then run `/guardrails` to confirm the hooks loaded.
 5. Set up schedules from `schedules/README.md`.
 
+## The self-improvement loop (dreamer + gossip bus)
+
+Two nightly jobs close the loop (schedules/ has the prompts):
+
+- **harness backup (23:33)** — snapshots skills, agents, knowledge, mods, and
+  settings into a git repo with secrets redacted. This is what makes it safe
+  to let agents modify the system they run in.
+- **harness dreamer (23:43)** — mines the last N days of session transcripts
+  for four signals: what you work on, what you repeat, what you correct, what
+  errors recur. Writes a daily dream report with two mandates: PRAGMATIC
+  (evidence-cited findings) and INVENTIVE (2-3 forward-looking ideas, evidence
+  optional, value argument required).
+
+**Trust ladder** (knowledge/dreams/config.json, upgrade is one line via
+scripts/dream-config.py): report → report only; propose → + proposal files,
+nothing applied; auto-safe → + auto-apply ONLY knowledge-file deltas, INDEX
+lines, memory pointers, claim verifications. `never_auto` is constitutional
+in every mode: skills, hooks, mods, agents, settings, crons, MCP config are
+proposal-only forever.
+
+**Gossip bus** — the six agents (docs-watch, gardener, watchdog, dreamer,
+architect, promotion-orchestrator) each append only to their own outbox
+(`knowledge/dreams/bus/<agent>.jsonl`, single-writer, race-free). The dreamer
+runs last each night as reader-in-chief and synthesizes the merged view
+(`scripts/gossip-read.py`). Corroboration is the confidence unit: 1 witness =
+observation, 2 = pattern, 3+ = act on it. Handoffs route work between agents.
 ## Trust model
 
 The mods run with your permissions and are not sandboxed. Every hook
@@ -241,7 +268,10 @@ skills/               airo-mcp-playbook, workato-development-playbook,
                       jira-story-standards (adapt to your team)
 bin/wt                Workato Toolbox: Developer API wrapper (manifests,
                       packages, lifecycle, jobs, properties, lookups)
+bin/wt-prod           PRODUCTION wrappers (keychain token, confirm gate);
+bin/workato-prod      mirror the dev/prod AIRO MCP split
 knowledge/            INDEX template + scripts + claim-ledger schema
+knowledge/dreams/     dreamer trust-ladder config + gossip-bus scaffold
 schedules/            cron prompt templates + launchd plist
 ```
 

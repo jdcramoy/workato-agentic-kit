@@ -1,0 +1,5 @@
+cron: 33 23 * * *
+durable: true
+recurring: true
+prompt:
+[harness-backup-nightly] FIRST: self-rearm — read {{HOME}}/Documents/workbench/.claude/scheduled_tasks.json (project-scoped); find the task whose prompt starts with "[harness-backup-nightly]"; if createdAt is older than 5 days, CronDelete it and CronCreate an identical one (cron 33 23 * * *, durable, recurring, same prompt) so the 7-day auto-expiry never lapses. THEN: run bash {{HOME}}/.claude/knowledge/scripts/harness-backup.sh (syncs ~/.claude skills/agents/knowledge + mods into the backup repo with secrets redacted, commits, pushes if BACKUP_REPO_URL is set). Relay the outcome in one line (pushed / local-only / no changes / error with the verbatim failure). Never round a failure to success. LAST STEP (never skip): Bash-append one line {"ts":"<now ISO>","job":"harness-backup"} to {{HOME}}/.claude/knowledge/garden-reports/heartbeat.jsonl.

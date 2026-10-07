@@ -26,3 +26,12 @@ export FIELD_POINTS="customfield_10057"        # story points (number)
 # The Claude Code project directory this kit's agents operate from by default
 # (the brain-gardener's cron + memory live per-project).
 export PROJECT_PATH="${HOME}/Documents/workbench"
+
+# Prod CLI/WT (workato-prod, wt-prod wrappers): keychain account = profile name.
+export PROFILE_DEV="josh-us"
+export PROFILE_PROD="josh-prod"
+
+# Harness backup (harness-backup.sh): local clone of YOUR backup repo + its
+# origin. Leave URL empty to commit locally without pushing.
+export BACKUP_REPO_LOCAL="${HOME}/Documents/josh-orca"
+export BACKUP_REPO_URL="https://github.com/Workato-All/josh-orca.git"

@@ -1,0 +1,28 @@
+#!/bin/sh
+# workato-prod — PRODUCTION instance of the Workato Developer CLI.
+#
+# Mirrors the AIRO MCP split: `workato` targets dev (profile {{PROFILE_DEV}}),
+# `workato-prod` targets Workato PRODUCTION (profile {{PROFILE_PROD}}).
+#
+# The CLI prefers WORKATO_API_TOKEN over any keychain entry, and the ambient
+# shell usually exports the DEV token, so this wrapper overrides it
+# per-invocation. The token is read from the macOS keychain (service
+# workato-platform-cli, account {{PROFILE_PROD}}) and never written to a shell
+# profile.
+#
+# Every write through this wrapper is gated by the workato-guardrails
+# prod-write confirm hook.
+#
+# Token store (one-time): security add-generic-password -s workato-platform-cli \
+#   -a {{PROFILE_PROD}} -w <prod-api-token> -U
+set -e
+
+TOKEN=$(security find-generic-password -s workato-platform-cli -a {{PROFILE_PROD}} -w 2>/dev/null) || {
+  echo "workato-prod: no keychain token for profile '{{PROFILE_PROD}}'." >&2
+  echo "              store one: security add-generic-password -s workato-platform-cli -a {{PROFILE_PROD}} -w <token> -U" >&2
+  exit 1
+}
+
+printf '\033[1;31m⚠️  PROD\033[0m  Workato PRODUCTION — writes require confirmation\n' >&2
+
+WORKATO_API_TOKEN="$TOKEN" exec "$HOME/.local/bin/workato" --profile {{PROFILE_PROD}} "$@"

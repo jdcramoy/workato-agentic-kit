@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "mode": "report",
+  "_mode_ladder": {
+    "report": "Write the dream report ONLY. No proposal files, no edits outside knowledge/dreams/. Zero risk.",
+    "propose": "Report + write proposal files to knowledge/dreams/proposals/ with status:proposed. Nothing is applied; Josh reviews.",
+    "auto-safe": "Report + proposals, PLUS auto-apply ONLY the actions listed in auto_safe_allow. Everything in never_auto still requires approval, always."
+  },
+  "never_auto": [
+    "skills",
+    "hooks",
+    "mods",
+    "agents",
+    "settings",
+    "crons",
+    "mcp",
+    "commands"
+  ],
+  "auto_safe_allow": [
+    "knowledge-file-append",
+    "knowledge-file-update",
+    "index-line-update",
+    "memory-pointer",
+    "claim-verification"
+  ],
+  "mine_days_back": 3,
+  "max_proposals_per_night": 5,
+  "transcript_max_bytes_per_file": 30000000,
+  "ladder_rules": [
+    "The dreamer reads this file FIRST and obeys its mode. If the file is missing or invalid, behave as mode=report and say so in the report.",
+    "never_auto is a constitutional limit: NO mode, including auto-safe, ever auto-applies skills/hooks/mods/agents/settings/crons/mcp/commands. Those are proposal-only forever unless Josh edits this file.",
+    "Upgrading the ladder is a one-line change: python3 ~/.claude/knowledge/scripts/dream-config.py set-mode propose (or auto-safe). Josh does this himself after reviewing a week of reports.",
+    "Every auto-applied change must be recorded in the dream report and is rolled back by the nightly harness backup if it goes wrong."
+  ]
+}

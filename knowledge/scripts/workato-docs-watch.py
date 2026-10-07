@@ -93,10 +93,46 @@ def main():
         with open(DELTA_LOG, 'a') as fh:
             for e in events:
                 fh.write(json.dumps(e) + '\n')
+        # gossip bus: docs-watch is the network's first poster each night
+        # (22:15); the gardener (22:43) reads these deltas off the bus.
+        post_to_gossip(today, events)
     baselines = sum(1 for e in events if e['kind'] == 'baseline')
     changed = sum(1 for e in events if e['kind'] == 'changed')
     errors = sum(1 for e in events if e['kind'] == 'error')
     print(f'docs-watch: {len(sources)} sources — {changed} changed, {baselines} new baseline, {errors} error(s)')
+
+
+GOSSIP_OUTBOX = os.path.expanduser(
+    '~/.claude/knowledge/dreams/bus/docs-watch.jsonl')
+
+
+def post_to_gossip(today, events):
+    """Append platform deltas to the docs-watch gossip outbox.
+
+    Single-writer file (maildir pattern); append-only, one event per line.
+    Never throws: bus failure must not break the docs-watch run.
+    """
+    try:
+        os.makedirs(os.path.dirname(GOSSIP_OUTBOX), exist_ok=True)
+        with open(GOSSIP_OUTBOX, 'a') as fh:
+            for e in events:
+                if e.get('kind') == 'error':
+                    continue  # transient fetch errors are not network findings
+                slug = 'platform-delta-' + re.sub(
+                    r'[^a-z0-9]+', '-', e.get('label', 'source').lower()).strip('-')
+                fh.write(json.dumps({
+                    'ts': today + 'T22:15:00Z',
+                    'agent': 'docs-watch',
+                    'kind': 'finding',
+                    'subject': slug,
+                    'line': f"Workato platform docs changed: {e.get('label')} — {e.get('added_excerpt', '')[:120]}",
+                    'refs': [e.get('url', '')],
+                    'thread_id': slug,
+                    'corroborations': 0,
+                    'ttl_days': 14,
+                }) + '\n')
+    except Exception as ex:
+        print(f'docs-watch: gossip post failed (non-fatal): {ex}')
 
 
 if __name__ == '__main__':

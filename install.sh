@@ -44,6 +44,8 @@ repl = {
     '{{WORKSPACE_PROD}}': os.environ.get('WORKSPACE_PROD', ''),
     '{{ENV_DEV_NAME}}': os.environ.get('ENV_DEV_NAME', ''),
     '{{ENV_PROD_NAME}}': os.environ.get('ENV_PROD_NAME', ''),
+    '{{PROFILE_DEV}}': os.environ.get('PROFILE_DEV', 'josh-us'),
+    '{{PROFILE_PROD}}': os.environ.get('PROFILE_PROD', 'josh-prod'),
     '{{JIRA_CLOUD_ID}}': os.environ.get('JIRA_CLOUD_ID', ''),
     '{{JIRA_PROJECT}}': os.environ.get('JIRA_PROJECT', ''),
     '{{GOVERNING_EPIC}}': os.environ.get('GOVERNING_EPIC', ''),
@@ -78,6 +80,15 @@ chmod +x "${K}/scripts/"*.py 2>/dev/null || true
 [ -f "${K}/claims/claims.jsonl" ] || echo '[]' > /dev/null # claims seeded empty
 touch "${K}/claims/claims.jsonl"
 [ -f "${K}/INDEX.md" ] || render "knowledge/INDEX.template.md" "${K}/INDEX.md"
+
+# --- 2b. dreams scaffold (dreamer + gossip bus) ------------------------------
+D="${K}/dreams"
+mkdir -p "${D}/bus" "${D}/proposals" "${D}/data"
+for a in docs-watch brain-gardener workato-watchdog harness-dreamer estate-architect promotion-orchestrator; do
+  touch "${D}/bus/${a}.jsonl"
+done
+[ -f "${D}/config.json" ] || cp "$(pwd)/knowledge/dreams/config.example.json" "${D}/config.json"
+echo "dreams scaffold: trust ladder + gossip outboxes ready (mode: $(python3 -c "import json;print(json.load(open('${D}/config.json'))['mode'])" 2>/dev/null || echo report))"
 
 # git the knowledge tree (proposals-as-branches need it)
 if [ ! -d "${K}/.git" ]; then
@@ -117,6 +128,11 @@ echo "skills installed: airo-mcp-playbook, workato-development-playbook, jira-st
 mkdir -p "${KIT_HOME}/.local/bin"
 cp bin/wt "${KIT_HOME}/.local/bin/wt"
 chmod +x "${KIT_HOME}/.local/bin/wt"
+for w in wt-prod workato-prod; do
+  render "bin/$w" "${KIT_HOME}/.local/bin/$w"
+  chmod +x "${KIT_HOME}/.local/bin/$w"
+done
+echo "prod wrappers installed: wt-prod, workato-prod (keychain account: ${PROFILE_PROD:-josh-prod})"
 case ":$PATH:" in
   *":${KIT_HOME}/.local/bin:"*) echo "wt installed: ${KIT_HOME}/.local/bin/wt (on PATH)" ;;
   *) echo "wt installed: ${KIT_HOME}/.local/bin/wt — add ~/.local/bin to your PATH" ;;
@@ -133,8 +149,14 @@ cat << 'NEXT'
 3. Fill config.sh if you skipped it, re-run ./install.sh, restart again.
 4. Smoke test: /guardrails (lists the hooks), /builds (ledger, starts empty),
    then ask for a "watchdog run" for your workspaces.
-Schedules (brain gardener 22:43, docs-watch 22:31 + launchd 22:15, watchdog
-23:13, corpus Mon 06:07, estate architect Mon 06:37) are per-project cron
-tasks — create them from your default work project; the prompts live in
-schedules/ in this kit.
+Schedules (docs-watch 22:31 + launchd 22:15, brain gardener 22:43, watchdog
+23:13, harness backup 23:33, harness dreamer 23:43, corpus Mon 06:07, estate
+architect Mon 06:37) are per-project cron tasks — create them from your
+default work project; the prompts live in schedules/ in this kit. The
+nightly order matters: docs-watch feeds the gossip bus first, the dreamer
+runs last as reader-in-chief.
+5. Prod CLI access: store the prod API token in the keychain
+   (security add-generic-password -s workato-platform-cli -a ${PROFILE_PROD:-josh-prod}
+   -w <token> -U), then workato-prod / wt-prod target production; every prod
+   write is held for confirmation by guardrails hook 13.
 NEXT

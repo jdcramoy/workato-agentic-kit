@@ -305,7 +305,9 @@ export function register(on) {
         '9. push risk scorer (tracker lookup; risky PROD pushes held for confirm)\n' +
         '10. build ledger — AIRO mutations (dev+prod) with ticket tracking\n' +
         '11. build ledger — CLI/Orca via Bash sniffing + CLI-start claim verification\n' +
-        '12. recipe snapshot history → ~/.claude/recipe-history (git) on every push',
+        '12. recipe snapshot history → ~/.claude/recipe-history (git) on every push\n' +
+        '13. prod-write confirm gate — EVERY surface (workato-prod, wt-prod, ' +
+        'WORKATO_PROFILE=josh-prod, raw http w/ prod credential, Orca on prod urls)',
     }
   })
 
@@ -565,6 +567,119 @@ export function register(on) {
     return result
   })
 
+  // 13. PROD-WRITE CONFIRM GATE — EVERY surface, not just AIRO MCP.
+  //     The prod AIRO server is already gated (permissions.ask + hook 1).
+  //     This closes the other doors into production: the Workato CLI
+  //     (workato-prod), wt (wt-prod / WORKATO_PROFILE=josh-prod), raw HTTP
+  //     carrying the prod credential, and Orca browser actions aimed at prod.
+  //     Reads pass through untouched; only mutations hold for confirmation,
+  //     and a dismissed dialog fails closed (deny).
+  const PROD_WORKSPACE = '3535598'
+  // Stable identifier embedded in the prod JWT (not the secret itself) — lets
+  // the gate recognise the prod credential when it appears in a raw command.
+  const PROD_TOKEN_MARK = 'd42cc899-694d-474e-80ef-c4eb3d43cf9f'
+  const PROD_URL_RE = new RegExp(
+    '(environments?|workspaces?)/' + PROD_WORKSPACE + '\\b|env=Production|environment_name=Production')
+  const HTTP_WRITE_RE = /(-X\s*|--request[= ])(POST|PUT|PATCH|DELETE)\b|(^|\s)(-d|--data|--data-raw|--data-binary)\b/i
+  const ORCA_WRITE_RE = /\b(click|fill|type|press|submit|eval|run)\b/i
+  const WT_READ_OPS = /^(list|get|show|health|health-scan|versions|job-counts|export)$/i
+  const WT_WRITE_OPS =
+    /^(start|stop|delete|copy|force-run|poll-now|reset-trigger|connect|repeat|cancel|create|update|add-row|upsert|import|enable|POST|PUT|PATCH|DELETE)$/i
+  const WORKATO_READ_SUBS = /^(pull|workspace|assets|guide|profiles|init)$/
+  const WORKATO_WRITE_OPS = /^(create|update|delete|upsert|set|enable|disable|add|remove|start|stop|push)$/i
+
+  // Which prod surface does this command target? null = not prod.
+  function prodSurface(cmd) {
+    if (/\bwt-prod\b/.test(cmd)) return 'wt-prod'
+    if (/\bworkato-prod\b/.test(cmd)) return 'workato-prod'
+    if (/WORKATO_PROFILE=["']?josh-prod/.test(cmd)) return 'wt (WORKATO_PROFILE)'
+    if (/\b(wt|workato)\b[^\n]*--profile[= ]+["']?josh-prod/.test(cmd)) return 'cli (--profile josh-prod)'
+    if (cmd.includes(PROD_TOKEN_MARK)) return 'raw http (prod credential)'
+    if (/\borca\b/i.test(cmd) && PROD_URL_RE.test(cmd)) return 'orca browser (prod url)'
+    return null
+  }
+
+  function splitArgs(rest) {
+    return rest
+      .replace(/--profile[= ]+\S+/g, '')
+      .replace(/--(raw|restart-recipes|force)\b/g, '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+  }
+
+  function wtIsWrite(cmd) {
+    if (HTTP_WRITE_RE.test(cmd)) return true
+    // Longest wrapper name first, or `\bwt\b` would match inside `wt-prod`
+    // and leave "-prod" as the parsed group.
+    const m = cmd.match(/\b(?:wt-prod|wt)\b([^\n]*)/)
+    if (!m) return false
+    const parts = splitArgs(m[1])
+    const group = parts[0]
+    const op = parts[1]
+    if (!group) return false
+    if (group === 'api') return /^(POST|PUT|PATCH|DELETE)$/i.test(op || '')
+    if (group === 'discover' || group === 'folders' || group === 'projects') return false
+    if (op && WT_READ_OPS.test(op)) return false
+    return WT_WRITE_OPS.test(op || '')
+  }
+
+  function workatoIsWrite(cmd) {
+    const m = cmd.match(/\b(?:workato-prod|workato)\b([^\n]*)/)
+    if (!m) return false
+    const parts = splitArgs(m[1])
+    const sub = parts[0]
+    const op = parts[1]
+    if (!sub) return false
+    if (WORKATO_READ_SUBS.test(sub)) return false
+    if (sub === 'push') return true
+    if (sub === 'recipes') return /^(start|stop)$/i.test(op || '')
+    return WORKATO_WRITE_OPS.test(op || '')
+  }
+
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const cmd = String(e.command ?? '')
+    const surface = prodSurface(cmd)
+    if (surface) {
+      const isWrite =
+        surface === 'workato-prod'
+          ? workatoIsWrite(cmd)
+          : surface.startsWith('wt')
+            ? wtIsWrite(cmd)
+            : surface.startsWith('orca')
+              ? ORCA_WRITE_RE.test(cmd)
+              : HTTP_WRITE_RE.test(cmd)
+      if (isWrite) {
+        let answer = 'Cancel'
+        try {
+          answer = await $.ui.ask(
+            '⚠️  PROD WRITE via ' + surface + ' — workspace ' + PROD_WORKSPACE +
+              ' (Environment Production).\n\n' + cmd.slice(0, 400) +
+              '\n\nThis modifies LIVE PRODUCTION Workato. Proceed?',
+            ['Proceed', 'Cancel'],
+          )
+        } catch {
+          answer = 'Cancel' // fail closed
+        }
+        if (answer !== 'Proceed') {
+          return {
+            deny:
+              'workato-guardrails prod-write gate: BLOCKED ' + surface +
+              ' write to PRODUCTION (workspace ' + PROD_WORKSPACE + '). ' +
+              'Josh must confirm explicitly. Command: ' + cmd.slice(0, 200),
+          }
+        }
+        prodWrites += 1
+        await $.store.set('prodWrites', prodWrites)
+        await $.process.run(['sh', '-c', 'mkdir -p ' + AUDIT_DIR + ' && cat >> ' + AUDIT_FILE], {
+          stdin: new Date().toISOString() + ' PROD-WRITE(' + surface + ') ' + cmd.slice(0, 200) + '\n',
+        })
+        $.ui.log('PROD WRITE · ' + surface + ' · ' + cmd.slice(0, 80))
+      }
+    }
+    return next(e)
+  })
+
   // 11. CLI / ORCA LEDGER — Workato CLI and Orca browser automation bypass
   //     AIRO, so they ledger via Bash command sniffing. A successful CLI
   //     START doubles as opportunistic verification of the silent-noop
@@ -575,7 +690,7 @@ export function register(on) {
     const cmd = String(e.command ?? '')
     const kind = /\borca\b/.test(cmd)
       ? 'orca-browser'
-      : /\bwt\s|workato (push|pull|start|stop)/.test(cmd)
+      : /\bwt(-prod)?\s|workato(-prod)? (push|pull|start|stop)/.test(cmd)
         ? 'workato-cli'
         : null
     if (kind) {
@@ -609,7 +724,7 @@ export function register(on) {
   on('command.run', { command: 'builds' }, async ($, e) => {
     let text = ''
     try {
-      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', '{{HOME}}'))
+      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
       text = file.text ?? file
     } catch {
       return { text: 'Build ledger is empty — nothing recorded yet.' }
@@ -693,7 +808,7 @@ export function register(on) {
     } else {
       let tail = '(ledger empty)'
       try {
-        const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', '{{HOME}}'))
+        const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
         const lines = String(file.text ?? file).split('\n').filter((l) => l.trim())
         tail = lines.slice(-8).map((l) => {
           try {
@@ -777,7 +892,7 @@ export function register(on) {
   on('command.run', { command: 'promotion-ready' }, async ($) => {
     let text = ''
     try {
-      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', '{{HOME}}'))
+      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
       text = file.text ?? file
     } catch {
       return { text: 'Build ledger is empty — nothing recorded yet.' }
