@@ -431,7 +431,7 @@ movements, and repo commits from the last 24h. Empty sections say
   heuristics, not verified claims; the claim ledger is the source of truth.
   File the correction as a new line on the thread, never an edit.
 
-## Trust model## Trust model
+## Trust model
 
 The mods run with your permissions and are not sandboxed. Every hook
 declares the events it handles, and `claude plugin validate <dir>` prints
