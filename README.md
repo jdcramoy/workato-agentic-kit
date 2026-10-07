@@ -132,6 +132,41 @@ go.
 - **Garden reports** (`garden-reports/`): dated reports from every agent
   run, plus the proposal-outcomes log the gardener uses to grade itself.
 
+### Playbook skills (installed to `~/.claude/skills/`)
+
+**airo-mcp-playbook**. The trap catalog for the AIRO MCP: confirmed
+silent-failure platform bugs (data table column updates that wipe rows,
+dynamic table IDs that drop payloads, datapill exports that render as sample
+values, session ID collisions, VUA reverts after push), Ruby DSL
+restrictions inside recipes, Jira formatting traps, token-efficiency
+practices, and delegation guidance. A skill-load of this playbook is what
+keeps an AI-assisted build from rediscovering these failures the expensive
+way. Five reference files under `references/` carry the full catalog.
+
+**workato-development-playbook**. The delivery lifecycle for governed
+Workato work: the actor model (human authority, agent coordination,
+execution surfaces), the orient-and-contract phase, implementation and
+whole-graph audit, acceptance and regression, evidence standards, and
+promotion readiness. Reference files cover app and MCP surfaces,
+reliability and observability, testing and release assurance, delivery and
+release, and MCP server delivery. This is the process the watchdog and
+promotion orchestrator assume.
+
+Both skills are team knowledge: they load into every session and compound
+as traps get confirmed. If a reference points at a document your team does
+not have (one narrative file), delete the pointer or supply your own.
+
+### Workato Toolbox (`wt`, installed to `~/.local/bin/`)
+
+A python CLI over the Workato Developer API for the operations AIRO MCP and
+the Dev CLI do not expose: manifest creation and asset listing, package
+export and import with recipe restart, recipe start, stop, and force-run,
+job rerun and cancel, lookup-table row writes, connections CRUD, and
+project property upserts. The promotion orchestrator uses it for manifests
+and packages; the recipe-control path uses it for lifecycle. Authentication
+comes from `WORKATO_API_TOKEN` or the keychain entry the Workato platform
+CLI stores; no token ships in this kit and none should.
+
 ### Schedules
 
 All agent schedules are self-rearming: each run re-creates its task before
@@ -168,6 +203,21 @@ against Workato: production import steps run only on explicit approval, one
 stage at a time, and knowledge mutations land as proposal branches. Rollback
 for the whole kit is two commands: `claude plugin uninstall <mod>` and
 deleting `~/.claude/agents` entries.
+
+## Layout
+
+```
+config.example.sh     per-person settings (workspaces, Jira fields)
+install.sh            renders templates + installs everything
+mods/                 the two plugins (hook modules + tests)
+agents/               the four agent SOPs
+skills/               airo-mcp-playbook, workato-development-playbook,
+                      jira-story-standards (adapt to your team)
+bin/wt                Workato Toolbox: Developer API wrapper (manifests,
+                      packages, lifecycle, jobs, properties, lookups)
+knowledge/            INDEX template + scripts + claim-ledger schema
+schedules/            cron prompt templates + launchd plist
+```
 
 ## Tested with
 

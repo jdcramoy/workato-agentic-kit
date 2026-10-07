@@ -104,10 +104,24 @@ for m in workato-guardrails brain-guard; do
   fi
 done
 
-# --- 4. skills (optional, template) -----------------------------------------
+# --- 4. skills (playbooks + conventions) ------------------------------------
 mkdir -p "${KIT_HOME}/.claude/skills"
-cp -R skills/* "${KIT_HOME}/.claude/skills/" 2>/dev/null || true
-echo "skills installed (adapt to your team's conventions)"
+# render skill files too (they reference home paths)
+find skills -type f \( -name "*.md" -o -name "*.yaml" \) | while read -r f; do
+  dest="${KIT_HOME}/.claude/skills/${f#skills/}"
+  render "$f" "$dest"
+done
+echo "skills installed: airo-mcp-playbook, workato-development-playbook, jira-story-standards"
+
+# --- 4b. wt — Workato Toolbox (Developer API wrapper) ------------------------
+mkdir -p "${KIT_HOME}/.local/bin"
+cp bin/wt "${KIT_HOME}/.local/bin/wt"
+chmod +x "${KIT_HOME}/.local/bin/wt"
+case ":$PATH:" in
+  *":${KIT_HOME}/.local/bin:"*) echo "wt installed: ${KIT_HOME}/.local/bin/wt (on PATH)" ;;
+  *) echo "wt installed: ${KIT_HOME}/.local/bin/wt — add ~/.local/bin to your PATH" ;;
+esac
+echo "wt auth: set WORKATO_API_TOKEN or store a token via workato-platform-cli (keychain)."
 
 # --- 5. done -----------------------------------------------------------------
 cat << 'NEXT'

@@ -1,0 +1,693 @@
+#!/usr/bin/env python3
+"""wt — Workato Toolbox: Developer API capabilities that AIRO MCP and the
+Workato Dev CLI don't expose (manifests, packages, recipe lifecycle, job
+rerun/cancel, lookup-table row writes, connections CRUD, project properties).
+
+Auth: WORKATO_API_TOKEN env var, else the macOS keychain entry the
+workato-platform-cli stores (service `workato-platform-cli`, account =
+profile name). Profile/region from ~/.workato/profiles.
+
+Examples:
+  wt api GET /api/users/me
+  wt recipes start 74094657
+  wt recipes force-run 74094657
+  wt jobs repeat 74094657 --ids job1,job2
+  wt manifests assets 30275122
+  wt manifests create --name "HR batch" --folder 30275122 --assets-file m.json
+  wt packages export 356201 --out hr.zip
+  wt packages import hr.zip 30275122 --restart-recipes
+  wt properties upsert --file props.json
+  wt lookup add-row <table_id> --data '{"Name":"x"}'
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+PROFILES_PATH = os.path.expanduser("~/.workato/profiles")
+KEYCHAIN_SERVICE = "workato-platform-cli"
+
+
+def load_profile(name):
+    with open(PROFILES_PATH) as f:
+        cfg = json.load(f)
+    profiles = cfg.get("profiles", {})
+    if not name:
+        name = cfg.get("current_profile")
+    p = profiles.get(name)
+    if not p:
+        die(f"profile '{name}' not found in {PROFILES_PATH}")
+    return name, p
+
+
+def keychain_token(profile):
+    try:
+        out = subprocess.run(
+            ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE,
+             "-a", profile, "-w"],
+            capture_output=True, text=True, check=True)
+        return out.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def die(msg, code=1):
+    print(f"wt: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def client(args):
+    profile, p = load_profile(args.profile)
+    host = p.get("region_url", "https://www.workato.com").rstrip("/")
+    token = os.environ.get("WORKATO_API_TOKEN") or keychain_token(profile)
+    if not token:
+        die(f"no API token: set WORKATO_API_TOKEN or store one via "
+            f"'workato profiles' (keychain service '{KEYCHAIN_SERVICE}')")
+    return host, token
+
+
+def request(host, token, method, path, query=None, data=None, headers=None,
+            raw_body=None, content_type=None):
+    url = f"{host}{path}"
+    if query:
+        url += "?" + urllib.parse.urlencode(query, doseq=True)
+    hdrs = {"Authorization": f"Bearer {token}"}
+    if headers:
+        hdrs.update(headers)
+    body = None
+    if raw_body is not None:
+        body = raw_body
+        if content_type:
+            hdrs["Content-Type"] = content_type
+    elif data is not None:
+        body = json.dumps(data).encode()
+        hdrs["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            payload = resp.read()
+            ct = resp.headers.get("Content-Type", "")
+            status = resp.status
+    except urllib.error.HTTPError as e:
+        payload = e.read()
+        status = e.code
+        try:
+            err = json.dumps(json.loads(payload), indent=2)
+        except Exception:
+            err = payload.decode(errors="replace")
+        print(f"HTTP {status}\n{err}", file=sys.stderr)
+        sys.exit(1)
+    if content_type == "application/octet-stream" or (
+            "application/zip" in ct or "octet-stream" in ct):
+        return status, payload
+    if not payload:
+        return status, {}
+    try:
+        return status, json.loads(payload)
+    except json.JSONDecodeError:
+        return status, payload.decode(errors="replace")
+
+
+def emit(result, raw=False):
+    if raw:
+        print(json.dumps(result, separators=(",", ":")))
+    else:
+        print(json.dumps(result, indent=2, default=str))
+
+
+def ids_arg(s):
+    return [x for x in s.split(",") if x.strip()]
+
+
+# ---------------------------------------------------------------- recipes ---
+
+def cmd_recipes(a):
+    host, token = client(a)
+    rid = a.recipe_id
+    r = {"start": ("PUT", f"/api/recipes/{rid}/start"),
+         "stop": ("PUT", f"/api/recipes/{rid}/stop"),
+         "get": ("GET", f"/api/recipes/{rid}"),
+         "delete": ("DELETE", f"/api/recipes/{rid}"),
+         "copy": ("POST", f"/api/recipes/{rid}/copy"),
+         "force-run": ("POST", f"/api/recipes/{rid}/force_run"),
+         "poll-now": ("POST", f"/api/recipes/{rid}/poll_now"),
+         "reset-trigger": ("POST", f"/api/recipes/{rid}/reset_trigger"),
+         "versions": ("GET", f"/api/recipes/{rid}/versions"),
+         "health": ("GET", f"/api/recipes/{rid}/health"),
+         "health-scan": ("POST", f"/api/recipes/{rid}/health"),
+         "job-counts": ("GET", "/api/recipes/job_counts"),
+         "connect": ("PUT", f"/api/recipes/{rid}/connect")}[a.op]
+    method, path = r
+    query = {}
+    data = None
+    if a.op == "job-counts":
+        query["recipe_ids[]"] = ids_arg(a.ids) if a.ids else []
+        if a.updated_after:
+            query["updated_after"] = a.updated_after
+    elif a.op == "copy":
+        data = a.body or {}
+        if a.name:
+            data["recipe"] = {"name": a.name}
+    elif a.op in ("connect", "delete", "force-run"):
+        data = a.body or None
+    status, result = request(host, token, method, path, query=query, data=data)
+    emit(result, a.raw)
+
+
+# -------------------------------------------------------------------- jobs ---
+
+def cmd_jobs(a):
+    host, token = client(a)
+    if a.op in ("repeat", "cancel"):
+        path = (f"/api/recipes/{a.recipe_id}/repeat_jobs" if a.op == "repeat"
+                else f"/api/recipes/{a.recipe_id}/cancel_jobs")
+        status, result = request(host, token, "POST", path,
+                                 data={"job_ids": ids_arg(a.ids)})
+    elif a.op == "get":
+        status, result = request(
+            host, token, "GET",
+            f"/api/recipes/{a.recipe_id}/jobs/{a.job_id}")
+    else:  # list
+        query = {}
+        if a.status:
+            query["status"] = a.status
+        if a.offset:
+            query["offset_job_id"] = a.offset
+        if a.prev:
+            query["prev"] = "true"
+        if a.rerun_only:
+            query["rerun_only"] = "true"
+        status, result = request(host, token, "GET",
+                                 f"/api/recipes/{a.recipe_id}/jobs",
+                                 query=query)
+    emit(result, a.raw)
+
+
+# ------------------------------------------------------------- connections ---
+
+def cmd_connections(a):
+    host, token = client(a)
+    if a.op == "list":
+        query = {}
+        if a.folder:
+            query["folder_id"] = a.folder
+        if a.project:
+            query["project_id"] = a.project
+        if a.runtime:
+            query["include_runtime_connections"] = "true"
+        if a.updated_after:
+            query["updated_after"] = a.updated_after
+        status, result = request(host, token, "GET", "/api/connections",
+                                 query=query)
+    elif a.op == "create":
+        status, result = request(host, token, "POST", "/api/connections",
+                                 data=a.body)
+    elif a.op == "update":
+        status, result = request(host, token, "PUT",
+                                 f"/api/connections/{a.connection_id}",
+                                 data=a.body)
+    elif a.op == "delete":
+        status, result = request(host, token, "DELETE",
+                                 f"/api/connections/{a.connection_id}")
+    elif a.op == "disconnect":
+        status, result = request(host, token, "POST",
+                                 f"/api/connections/{a.connection_id}/disconnect")
+    elif a.op == "picklist":
+        data = {"pick_list_name": a.pick_list_name}
+        if a.params:
+            data["pick_list_params"] = a.params
+        status, result = request(host, token, "POST",
+                                 f"/api/connections/{a.connection_id}/pick_list",
+                                 data=data)
+    emit(result, a.raw)
+
+
+# ------------------------------------------------------------ lookup tables ---
+
+def cmd_lookup(a):
+    host, token = client(a)
+    tid = a.table_id
+    if a.op == "list":
+        status, result = request(host, token, "GET", "/api/lookup_tables")
+    elif a.op == "create":
+        data = {"name": a.name, "schema": a.schema}
+        if a.project:
+            data["project_id"] = a.project
+        status, result = request(host, token, "POST", "/api/lookup_tables",
+                                 data=data)
+    elif a.op == "delete":
+        status, result = request(host, token, "POST",
+                                 "/api/lookup_tables/batch_delete",
+                                 data={"lookup_table_ids": ids_arg(tid)})
+    elif a.op == "rows":
+        query = {}
+        if a.page:
+            query["page"] = a.page
+        if a.per_page:
+            query["per_page"] = a.per_page
+        status, result = request(host, token, "GET",
+                                 f"/api/lookup_tables/{tid}/rows", query=query)
+    elif a.op == "get-row":
+        status, result = request(host, token, "GET",
+                                 f"/api/lookup_tables/{tid}/rows/{a.row_id}")
+    elif a.op == "add-row":
+        status, result = request(host, token, "POST",
+                                 f"/api/lookup_tables/{tid}/rows", data=a.body)
+    elif a.op == "update-row":
+        status, result = request(host, token, "PUT",
+                                 f"/api/lookup_tables/{tid}/rows/{a.row_id}",
+                                 data=a.body)
+    elif a.op == "delete-row":
+        status, result = request(host, token, "DELETE",
+                                 f"/api/lookup_tables/{tid}/rows/{a.row_id}")
+    elif a.op == "find":
+        query = {f"by[{k}]": v for k, v in (a.by or {}).items()}
+        status, result = request(host, token, "GET",
+                                 f"/api/lookup_tables/{tid}/lookup",
+                                 query=query)
+    emit(result, a.raw)
+
+
+# -------------------------------------------------------------- properties ---
+
+def cmd_properties(a):
+    host, token = client(a)
+    if a.op == "list":
+        query = {"prefix": a.prefix if a.prefix is not None else ""}
+        if a.project:
+            query["project_id"] = a.project
+        status, result = request(host, token, "GET", "/api/properties",
+                                 query=query)
+    else:  # upsert
+        data = a.body
+        if a.file:
+            with open(a.file) as f:
+                data = json.load(f)
+        if not data:
+            die("upsert requires --file or --data JSON")
+        status, result = request(host, token, "POST", "/api/properties",
+                                 data=data)
+    emit(result, a.raw)
+
+
+# --------------------------------------------------------- folders/projects ---
+
+def cmd_folders(a):
+    host, token = client(a)
+    if a.op == "list":
+        status, result = request(host, token, "GET", "/api/folders")
+    elif a.op == "get":
+        status, result = request(host, token, "GET",
+                                 f"/api/folders/{a.folder_id}")
+    elif a.op == "create":
+        data = {"name": a.name}
+        if a.parent:
+            data["parent_id"] = a.parent
+        status, result = request(host, token, "POST", "/api/folders",
+                                 data=data)
+    elif a.op == "update":
+        data = {}
+        if a.name:
+            data["name"] = a.name
+        if a.parent:
+            data["parent_id"] = a.parent
+        status, result = request(host, token, "PUT",
+                                 f"/api/folders/{a.folder_id}", data=data)
+    elif a.op == "delete":
+        status, result = request(host, token, "DELETE",
+                                 f"/api/folders/{a.folder_id}")
+    emit(result, a.raw)
+
+
+def cmd_projects(a):
+    host, token = client(a)
+    if a.op == "list":
+        status, result = request(host, token, "GET", "/api/projects")
+    elif a.op == "update":
+        data = {}
+        if a.name:
+            data["name"] = a.name
+        status, result = request(host, token, "PUT",
+                                 f"/api/projects/{a.project_id}", data=data)
+    elif a.op == "delete":
+        status, result = request(host, token, "DELETE",
+                                 f"/api/projects/{a.project_id}")
+    emit(result, a.raw)
+
+
+# --------------------------------------------- manifests & packages (RM) ---
+
+def cmd_manifests(a):
+    host, token = client(a)
+    if a.op == "assets":
+        query = {}
+        if a.include_all:
+            query["include_all"] = "true"
+        status, result = request(host, token, "GET",
+                                 "/api/export_manifests/folder_assets",
+                                 query=query)
+    elif a.op == "list":
+        status, result = request(host, token, "GET", "/api/export_manifests")
+    elif a.op == "get":
+        status, result = request(host, token, "GET",
+                                 f"/api/export_manifests/{a.manifest_id}")
+    elif a.op == "create":
+        data = a.body
+        if a.file:
+            with open(a.file) as f:
+                data = json.load(f)
+        if not data:
+            die("create requires --file or --data JSON")
+        status, result = request(host, token, "POST", "/api/export_manifests",
+                                 data=data)
+    elif a.op == "update":
+        data = a.body
+        if a.file:
+            with open(a.file) as f:
+                data = json.load(f)
+        status, result = request(host, token, "PUT",
+                                 f"/api/export_manifests/{a.manifest_id}",
+                                 data=data)
+    elif a.op == "delete":
+        status, result = request(host, token, "DELETE",
+                                 f"/api/export_manifests/{a.manifest_id}")
+    emit(result, a.raw)
+
+
+def cmd_packages(a):
+    host, token = client(a)
+    if a.op == "export":
+        data = a.body or {}
+        status, result = request(
+            host, token, "POST", f"/api/packages/export/{a.manifest_id}",
+            data=data)
+        emit(result, a.raw)
+    elif a.op == "import":
+        query = {}
+        if a.restart_recipes:
+            query["restart_recipes"] = "true"
+        if a.include_tags:
+            query["include_tags"] = "true"
+        with open(a.zipfile, "rb") as f:
+            payload = f.read()
+        status, result = request(host, token, "POST",
+                                 f"/api/packages/import/{a.folder_id}",
+                                 query=query, raw_body=payload,
+                                 content_type="application/octet-stream")
+        emit(result, a.raw)
+    elif a.op == "get":
+        status, result = request(host, token, "GET",
+                                 f"/api/packages/{a.package_id}")
+        emit(result, a.raw)
+    elif a.op == "download":
+        status, payload = request(host, token, "GET",
+                                  f"/api/packages/{a.package_id}/download")
+        dest = a.out or f"package-{a.package_id}.zip"
+        with open(dest, "wb") as f:
+            f.write(payload)
+        print(f"saved {dest} ({len(payload)} bytes)")
+
+
+# --------------------------------------------------------------- data tables ---
+# Record manipulation APIs live on a separate host: data-tables.workato.com.
+# Neither AIRO (its data_table_query route 404s here) nor the dev CLI nor
+# www.workato.com/api expose row access.
+
+DT_HOST = "https://data-tables.workato.com"
+
+
+def cmd_dt(a):
+    host, token = client(a)
+    tid = a.table_id
+    if a.op == "query":
+        body = {"limit": a.limit}
+        if a.where:
+            body["where"] = dict(kv.split("=", 1) for kv in a.where.split(","))
+        if a.order:
+            body["order"] = a.order
+        if a.select:
+            body["select"] = ids_arg(a.select)
+        if a.timezone_offset is not None:
+            body["timezone_offset_secs"] = a.timezone_offset
+        if a.continuation:
+            body["continuation_token"] = a.continuation
+        status, result = request(
+            DT_HOST, token, "POST", f"/api/v1/tables/{tid}/query", data=body)
+        schema = result.get("schema") or []
+        names = [f["name"] for f in (schema[1] if len(schema) > 1 else [])]
+        sysnames = ["$record_id", "$created_at", "$updated_at"]
+        data = result.get("data") or []
+        if a.raw or not data:
+            emit(result, a.raw)
+            return
+        mapped = [dict(zip(sysnames, row[0])) | dict(zip(names, row[1]))
+                  for row in data]
+        out = {"count": result.get("count"), "rows": mapped}
+        if result.get("continuation_token"):
+            out["continuation_token"] = result["continuation_token"]
+        emit(out, a.raw)
+    elif a.op == "get":
+        status, result = request(host, token, "GET", f"/api/data_tables/{tid}")
+        emit(result, a.raw)
+    elif a.op == "list":
+        query = {}
+        if a.page:
+            query["page"] = a.page
+        if a.per_page:
+            query["per_page"] = a.per_page
+        status, result = request(host, token, "GET", "/api/data_tables",
+                                 query=query)
+        emit(result, a.raw)
+    elif a.op == "get-record":
+        status, result = request(DT_HOST, token, "GET",
+                                 f"/api/v1/tables/{tid}/records/{a.record_id}")
+        emit(result, a.raw)
+    elif a.op == "create-record":
+        status, result = request(DT_HOST, token, "POST",
+                                 f"/api/v1/tables/{tid}/records", data=a.body)
+        emit(result, a.raw)
+    elif a.op == "update-record":
+        status, result = request(DT_HOST, token, "PUT",
+                                 f"/api/v1/tables/{tid}/records/{a.record_id}",
+                                 data=a.body)
+        emit(result, a.raw)
+    elif a.op == "delete-record":
+        status, result = request(DT_HOST, token, "DELETE",
+                                 f"/api/v1/tables/{tid}/records/{a.record_id}")
+        emit(result, a.raw)
+    elif a.op == "truncate":
+        status, result = request(host, token, "POST",
+                                 f"/api/data_tables/{tid}/truncate", data={})
+        emit(result, a.raw)
+
+
+# ---------------------------------------------------------- API platform ---
+
+def cmd_apic(a):
+    host, token = client(a)
+    if a.op == "collections":
+        status, result = request(host, token, "GET", "/api/api_collections")
+    elif a.op == "endpoints":
+        status, result = request(host, token, "GET", "/api/api_endpoints")
+    else:  # enable
+        data = a.body or {}
+        if a.collection:
+            data["collection_id"] = a.collection
+        status, result = request(host, token, "POST",
+                                 "/api/api_endpoints/enable", data=data)
+    emit(result, a.raw)
+
+
+# ------------------------------------------------------------ passthrough ---
+
+def cmd_api(a):
+    host, token = client(a)
+    query = {}
+    for kv in a.query or []:
+        k, _, v = kv.partition("=")
+        query[k] = v
+    data = None
+    if a.data:
+        data = json.loads(a.data)
+    status, result = request(host, token, a.method.upper(), a.path,
+                             query=query, data=data)
+    emit(result, a.raw)
+
+
+# ------------------------------------------------------------------ parser ---
+
+def add_common(p):
+    p.add_argument("--profile", help="Workato CLI profile (default: current)")
+    p.add_argument("--raw", action="store_true",
+                   help="compact JSON output")
+
+
+def add_json_body(p):
+    p.add_argument("--data", dest="body", help="JSON request body (string)")
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="wt", description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="group", required=True)
+
+    # raw passthrough
+    p = sub.add_parser("api", help="raw Developer API passthrough")
+    add_common(p)
+    p.add_argument("method", help="HTTP method")
+    p.add_argument("path", help="resource path, e.g. /api/users/me")
+    p.add_argument("--query", nargs="*", help="k=v query params")
+    p.add_argument("--data", dest="data", help="JSON request body")
+    p.set_defaults(fn=cmd_api)
+
+    p = sub.add_parser("recipes", help="recipe lifecycle")
+    add_common(p)
+    p.add_argument("op", choices=["start", "stop", "get", "delete", "copy",
+                                  "force-run", "poll-now", "reset-trigger",
+                                  "versions", "health", "health-scan",
+                                  "job-counts", "connect"])
+    p.add_argument("recipe_id", nargs="?", help="recipe ID")
+    p.add_argument("--ids", help="comma-separated IDs (job-counts)")
+    p.add_argument("--updated-after")
+    p.add_argument("--name", help="name for copy")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_recipes)
+
+    p = sub.add_parser("jobs", help="job list / repeat / cancel")
+    add_common(p)
+    p.add_argument("op", choices=["list", "get", "repeat", "cancel"])
+    p.add_argument("recipe_id", nargs="?", type=int)
+    p.add_argument("job_id", nargs="?", help="job handle (get)")
+    p.add_argument("--ids", help="comma-separated job IDs (repeat/cancel)")
+    p.add_argument("--status", choices=["succeeded", "failed", "pending"])
+    p.add_argument("--offset")
+    p.add_argument("--prev", action="store_true")
+    p.add_argument("--rerun-only", action="store_true")
+    p.set_defaults(fn=cmd_jobs)
+
+    p = sub.add_parser("connections", help="connection CRUD")
+    add_common(p)
+    p.add_argument("op", choices=["list", "create", "update", "delete",
+                                  "disconnect", "picklist"])
+    p.add_argument("connection_id", nargs="?", help="connection ID")
+    p.add_argument("--folder", "--folder-id", dest="folder")
+    p.add_argument("--project", "--project-id", dest="project")
+    p.add_argument("--runtime", action="store_true",
+                   help="include runtime user connections")
+    p.add_argument("--updated-after")
+    p.add_argument("--pick-list-name")
+    p.add_argument("--params", help="JSON pick_list_params")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_connections)
+
+    p = sub.add_parser("lookup", help="lookup-table row CRUD")
+    add_common(p)
+    p.add_argument("op", choices=["list", "create", "delete", "rows",
+                                  "get-row", "add-row", "update-row",
+                                  "delete-row", "find"])
+    p.add_argument("table_id", nargs="?", help="lookup table ID")
+    p.add_argument("row_id", nargs="?")
+    p.add_argument("--name", help="table name (create)")
+    p.add_argument("--schema", help="JSON schema (create)")
+    p.add_argument("--project", type=int)
+    p.add_argument("--page", type=int)
+    p.add_argument("--per-page", type=int)
+    p.add_argument("--by", help="k=v lookup criteria (find), comma-separated")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_lookup)
+
+    p = sub.add_parser("properties", help="project properties list/upsert")
+    add_common(p)
+    p.add_argument("op", choices=["list", "upsert"])
+    p.add_argument("--prefix")
+    p.add_argument("--project", type=int)
+    p.add_argument("--file", help="JSON file with property payload")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_properties)
+
+    p = sub.add_parser("folders", help="folder CRUD")
+    add_common(p)
+    p.add_argument("op", choices=["list", "get", "create", "update", "delete"])
+    p.add_argument("folder_id", nargs="?", type=int)
+    p.add_argument("--name")
+    p.add_argument("--parent", type=int)
+    p.set_defaults(fn=cmd_folders)
+
+    p = sub.add_parser("projects", help="project list/update/delete")
+    add_common(p)
+    p.add_argument("op", choices=["list", "update", "delete"])
+    p.add_argument("project_id", nargs="?", type=int)
+    p.add_argument("--name")
+    p.set_defaults(fn=cmd_projects)
+
+    p = sub.add_parser("manifests", help="export manifest management")
+    add_common(p)
+    p.add_argument("op", choices=["assets", "list", "get", "create",
+                                  "update", "delete"])
+    p.add_argument("manifest_id", nargs="?", type=int)
+    p.add_argument("--folder", type=int,
+                   help="folder ID (assets: view folder's assets)")
+    p.add_argument("--include-all", action="store_true")
+    p.add_argument("--file", help="JSON file with manifest payload")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_manifests)
+
+    p = sub.add_parser("packages", help="package export / import")
+    add_common(p)
+    p.add_argument("op", choices=["export", "import", "get", "download"])
+    p.add_argument("id", nargs="?", type=int,
+                   help="manifest ID (export) / folder ID (import) / package ID")
+    p.add_argument("--zipfile", help="zip file path (import)")
+    p.add_argument("--out", help="destination path (download)")
+    p.add_argument("--restart-recipes", action="store_true",
+                   help="allow restarting running recipes on import")
+    p.add_argument("--include-tags", action="store_true")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_packages)
+
+    p = sub.add_parser("dt", help="data-table records: query/CRUD (records API)")
+    add_common(p)
+    p.add_argument("op", choices=["query", "list", "get", "get-record",
+                                  "create-record", "update-record",
+                                  "delete-record", "truncate"])
+    p.add_argument("table_id", help="table UUID or numeric ID (list/get ops)")
+    p.add_argument("record_id", nargs="?")
+    p.add_argument("--where", help="col=val,col2=val2 (equality filters)")
+    p.add_argument("--order", help="column to sort by, e.g. $created_at")
+    p.add_argument("--select", help="comma-separated columns to return")
+    p.add_argument("--limit", type=int, default=20, help="max rows (max 200)")
+    p.add_argument("--timezone-offset", type=int, default=0,
+                   dest="timezone_offset",
+                   help="offset secs for date-time filters (required on date cols)")
+    p.add_argument("--continuation", help="continuation token from prior page")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_dt)
+
+    p = sub.add_parser("apic", help="API platform collections/endpoints")
+    add_common(p)
+    p.add_argument("op", choices=["collections", "endpoints", "enable"])
+    p.add_argument("--collection", type=int)
+    add_json_body(p)
+    p.set_defaults(fn=cmd_apic)
+
+    args = ap.parse_args()
+    # small post-parse normalizations
+    if getattr(args, "by", None):
+        args.by = dict(kv.split("=", 1) for kv in args.by.split(","))
+    if getattr(args, "params", None):
+        args.params = json.loads(args.params)
+    if getattr(args, "schema", None):
+        args.schema = json.loads(args.schema)
+    if args.group == "connections" and args.op == "create" and not args.body \
+            and not args.data:
+        die("create requires --data JSON body")
+    args.fn(args)
+
+
+if __name__ == "__main__":
+    main()
