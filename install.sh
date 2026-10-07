@@ -97,7 +97,7 @@ touch "${K}/claims/claims.jsonl"
 
 # --- 2b. dreams scaffold (dreamer + gossip bus) ------------------------------
 D="${K}/dreams"
-mkdir -p "${D}/bus" "${D}/proposals" "${D}/data"
+mkdir -p "${D}/bus" "${D}/proposals" "${D}/data" "${D}/visions"
 for a in docs-watch brain-gardener workato-watchdog harness-dreamer estate-architect promotion-orchestrator; do
   touch "${D}/bus/${a}.jsonl"
 done

@@ -384,10 +384,13 @@ The daily dream report (`knowledge/dreams/<date>.md`) carries two mandates:
   working on, what is he repeating, what are the frequent mistakes or
   misses, what would have made yesterday faster. Every finding cites a
   transcript ref, ledger line, or count.
-- **INVENTIVE** — 2-3 forward-looking ideas with no evidence requirement,
-  each with a one-sentence value argument and its smallest first step. This
-  mandate is deliberately unanchored from the data: creative problem-solving
-  about what the harness could and should become.
+- **THE VISION** — the richest man among us is a dreamer who sits back and
+  dreams, writes, or sings about what is to come. Every night leaves a seed
+  of pure speculation in the report; when a vision is substantial the
+  dreamer writes it whole to `knowledge/dreams/visions/` — essay, letter
+  from the future, manifesto, or song. No evidence requirement; the quality
+  bar is "would this make Josh think differently". Visions mature down the
+  pipeline: vision → invention → proposal → skill.
 
 Below the mandates: a proposal queue table. Proposals (when the ladder
 allows) land in `knowledge/dreams/proposals/` with frontmatter

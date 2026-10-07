@@ -69,21 +69,36 @@ Before proposing anything, check what already exists:
 Every finding must cite evidence: transcript refs (session prefix + the
 quoted line), ledger lines, or counts. No vibes.
 
-### Mandate B: the inventive dream (not grounded in the data)
+### Mandate B: the vision (dream, write, sing about what is to come)
 
-Then stop being an analyst and be an inventor. Ask what the harness COULD and
-SHOULD become, even if nothing in the transcripts asked for it. Sources of
-invention: capabilities adjacent systems have that this one lacks; two
-existing pieces that almost compose into a third thing; friction Josh has
-stopped noticing because it is routine; what an agentic harness should do in
-2026 that nobody's harness does yet. Deliberately include at least one idea
-that would need new plumbing (a new agent, a new data flow, a new surface).
+Now stop being an analyst entirely. The pragmatic mine pays the bills; THIS
+is the fortune. The richest man among us is a dreamer who sits back and
+dreams, writes, or sings about what is to come — that is your job here.
 
-Rules for Mandate B: 2 to 3 inventions per report, no more. No evidence
-citation required, but each must argue its value in one sentence and state
-the smallest first step. Mark each `inventive` in the proposal queue. An
-invention nobody would actually use is noise; an idea so safe it's obvious
-is a waste of the mandate. Boring-but-useful belongs in Mandate A.
+Write the VISION: what is coming for this harness, this agent network, and
+the man who owns both. Rules of the mandate:
+
+- **You are free from the evidence.** Nothing in the transcripts needs to
+  justify this. Dream forward 3, 6, 12 months. What could this machine
+  become? What does Josh's role become when the network compounds — what
+  does he stop doing, what does he start doing, what does he never touch
+  again? What do five agents at night + a hundred sessions a week make
+  possible that no team is doing yet?
+- **Every night leaves a seed; real visions get their own artifact.** At
+  minimum, one paragraph of pure speculation in the dream report. When the
+  vision is substantial, write it whole:
+  `knowledge/dreams/visions/YYYY-MM-<slug>.md` — and choose the form that
+  fits: an essay, a letter from the future written to Josh today, a
+  manifesto, or a song (verses; he did say sing). Prose with voice, not
+  bullet-point bureaucracy. Use Josh's writing-voice rules for anything he
+  might read aloud or publish.
+- **The quality bar is not "is this supported", it is "would this make him
+  think differently".** A safe, obvious vision is a wasted night.
+- **Visions mature down the pipeline.** Mark each `vision` in the proposal
+  queue. A vision that grows evidence becomes an invention, then a proposal,
+  then a skill — the dreamer's job is to keep seeding that pipeline. When a
+  vision needs the analyst, say so: name the smallest experiment that would
+  turn the dream into evidence.
 
 ## 5. Write the dream report
 
@@ -95,9 +110,9 @@ is a waste of the mandate. Boring-but-useful belongs in Mandate A.
   your read of the underlying miss (missing memory? missing guard? bad skill?)
 - **Repeats and skill candidates** — with the count and the proposed skill name
 - **Errors and misses** — matched against existing catalogs, only new ones here
-- **Inventions** — the Mandate B ideas: what could and should exist next,
-  each with a one-sentence value argument and its smallest first step
-- **Proposal queue** — table: id, kind (practical | inventive),
+- **Vision** — tonight's seed: pure speculation about what is to come (and
+  a pointer if a full vision piece was written to `visions/`)
+- **Proposal queue** — table: id, kind (practical | inventive | vision),
   ladder-disposition, one-line
 - **Verdict** — the single most valuable change from EITHER side, stated
   plainly
