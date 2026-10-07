@@ -111,6 +111,19 @@ build tracking):
   unmarked /promoted, or build activity on tickets with no open story, are
   governance flags (propose; cite ledger line + Jira key).
 
+### Phase 2.8 — API dictionary + terminology (weekly)
+
+- Run `python3 ~/.claude/knowledge/scripts/workato-api-discover.py --refresh`
+  then `wt discover`: report new/removed Developer API endpoints (302
+  harvested across 32 groups as of 2026-10-07). New endpoint groups with no
+  dedicated wt subcommands → propose them (the self-improvement loop).
+- Glossary: read `workato-terms/terms.jsonl` via glossary.py. Harvest new
+  Workato terms from (a) docs-watch platform deltas, (b) session
+  transcripts (unfamiliar capitalized product names, feature words), (c)
+  the API index itself (group names). `glossary.py add` each with source;
+  supersede redefinitions. Flag terms used in playbooks but absent from the
+  glossary.
+
 ### Phase 3 — Dreaming + harvest rate
 
 - Run `python3 ~/.claude/knowledge/scripts/harvest-rate.py` (today, nightly;

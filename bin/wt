@@ -531,6 +531,21 @@ def add_json_body(p):
     p.add_argument("--data", dest="body", help="JSON request body (string)")
 
 
+def cmd_discover(a):
+    """Self-discover the Workato Developer API surface and report coverage."""
+    script = os.path.expanduser(
+        "~/.claude/knowledge/scripts/workato-api-discover.py")
+    if not os.path.exists(script):
+        die(f"discovery script not found: {script}")
+    args = ["python3", script]
+    if a.refresh:
+        args.append("--refresh")
+    r = subprocess.run(args, capture_output=True, text=True)
+    if r.stdout:
+        print(r.stdout, end="" if r.stdout.endswith("\n") else "\n")
+    if r.returncode != 0:
+        print(r.stderr, file=sys.stderr)
+
 def main():
     ap = argparse.ArgumentParser(prog="wt", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -674,6 +689,11 @@ def main():
     p.add_argument("--collection", type=int)
     add_json_body(p)
     p.set_defaults(fn=cmd_apic)
+
+    p = sub.add_parser("discover", help="self-discover the Developer API surface; coverage + gap report")
+    p.add_argument("--refresh", action="store_true",
+                   help="re-harvest the endpoint index from Workato docs")
+    p.set_defaults(fn=cmd_discover)
 
     args = ap.parse_args()
     # small post-parse normalizations
