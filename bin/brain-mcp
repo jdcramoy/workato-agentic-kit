@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+"""brain-mcp — Josh's agentic-kit brain, exposed as a read-only MCP server.
+
+Turns the knowledge tree from "files one session reads" into "a service any
+agent can ask." Stdio transport, JSON-RPC 2.0, stdlib only. READ-ONLY by
+design: the brain's write paths stay governed (gardener proposals, dreamer
+modes); this server answers questions.
+
+Tools:
+  brain_index      the INDEX.md routing table
+  brain_read       one knowledge file by path (sandboxed to knowledge/)
+  brain_search     substring search across domains/projects/claims (bounded)
+  brain_claims     claim ledger, optional subject filter
+  brain_bus        gossip bus merged read (since/thread/agent)
+  brain_dreams     recent dream reports + visions list
+
+Register: claude mcp add brain -- ~/.local/bin/brain-mcp
+"""
+
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+K = os.path.expanduser("~/.claude/knowledge")
+BUS = os.path.join(K, "dreams", "bus")
+GOSSIP_READ = os.path.join(K, "scripts", "gossip-read.py")
+
+PROTOCOL = "2024-11-05"
+SERVER = {"name": "brain-mcp", "version": "1.0.0"}
+
+MAX_READ_BYTES = 40_000
+MAX_SEARCH_HITS = 30
+
+
+def _safe_path(relpath):
+    p = os.path.realpath(os.path.join(K, relpath))
+    if not (p.startswith(os.path.realpath(K) + os.sep)):
+        return None
+    return p
+
+
+def _read_file(relpath, cap=MAX_READ_BYTES):
+    p = _safe_path(relpath)
+    if not p or not os.path.isfile(p):
+        return None
+    if os.path.getsize(p) > cap:
+        return f"[file too large to serve ({os.path.getsize(p)} bytes); use brain_search for slices]"
+    with open(p, errors="replace") as fh:
+        return fh.read()
+
+
+def _tool_index(_a):
+    return _read_file("INDEX.md") or "(no INDEX.md)"
+
+
+def _tool_read(a):
+    rel = a.get("path", "")
+    if not rel or ".." in rel:
+        return "error: pass a path relative to the knowledge tree (e.g. 'domains/dream-loop.md')"
+    return _read_file(rel) or f"error: not found or not readable: {rel}"
+
+
+def _tool_search(a):
+    q = a.get("query", "")
+    if len(q) < 2:
+        return "error: query too short"
+    hits = []
+    for pat in ("domains/*.md", "projects/*.md", "claims/claims.jsonl",
+                "dreams/*.md", "dreams/visions/*.md"):
+        for f in sorted(glob.glob(os.path.join(K, pat))):
+            try:
+                for n, line in enumerate(open(f, errors="replace"), 1):
+                    if q.lower() in line.lower():
+                        hits.append(f"{os.path.relpath(f, K)}:{n}: {line.strip()[:160]}")
+                        if len(hits) >= MAX_SEARCH_HITS:
+                            raise StopIteration
+            except (OSError, StopIteration):
+                pass
+    return "\n".join(hits) if hits else f"no hits for: {q}"
+
+
+def _tool_claims(a):
+    subj = (a.get("subject") or "").lower()
+    path = os.path.join(K, "claims", "claims.jsonl")
+    out = []
+    try:
+        for line in open(path):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                c = json.loads(line)
+            except Exception:
+                continue
+            if subj and subj not in c.get("subject", "").lower() \
+                    and subj not in c.get("claim", "").lower():
+                continue
+            out.append(f"[{c.get('id')}] ({c.get('status')}, {c.get('confidence')}, "
+                       f"verified {c.get('last_verified')}) {c.get('subject')}: "
+                       f"{c.get('claim','')[:300]}")
+    except OSError as e:
+        return f"error: {e}"
+    return "\n\n".join(out) if out else "no matching claims"
+
+
+def _tool_bus(a):
+    cmd = ["python3", GOSSIP_READ, "--since", str(a.get("since", "24h"))]
+    if a.get("thread"):
+        cmd += ["--thread", str(a["thread"])]
+    if a.get("agent"):
+        cmd += ["--agent", str(a["agent"])]
+    if a.get("json"):
+        cmd += ["--json"]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return r.stdout.strip() or r.stderr.strip() or "(bus quiet)"
+    except Exception as e:
+        return f"error reading bus: {e}"
+
+
+def _tool_dreams(_a):
+    dreams = sorted(glob.glob(os.path.join(K, "dreams", "20*-*-*".replace("*", "*") + "*.md")))
+    visions = sorted(glob.glob(os.path.join(K, "dreams", "visions", "*.md")))
+    lines = ["dream reports:"]
+    for d in dreams[-7:]:
+        try:
+            head = open(d, errors="replace").read(400)
+            verdict = re.search(r"one_line_verdict:\s*(.+)", head)
+            lines.append(f"  {os.path.basename(d)} — {verdict.group(1) if verdict else '(no verdict line)'}")
+        except OSError:
+            continue
+    lines.append("visions:")
+    for v in visions[-7:]:
+        lines.append(f"  {os.path.basename(v)}")
+    return "\n".join(lines)
+
+
+TOOLS = {
+    "brain_index": ({"description": "The knowledge-tree routing table (INDEX.md): one line per domain/project file.",
+                     "inputSchema": {"type": "object", "properties": {}}}, _tool_index),
+    "brain_read": ({"description": "Read one knowledge file by path relative to the knowledge tree, e.g. 'domains/workato-platform.md'. Read-only, size-capped.",
+                    "inputSchema": {"type": "object", "required": ["path"],
+                                    "properties": {"path": {"type": "string"}}}}, _tool_read),
+    "brain_search": ({"description": "Substring search across knowledge domains, projects, claims, and dream reports. Returns file:line hits.",
+                      "inputSchema": {"type": "object", "required": ["query"],
+                                      "properties": {"query": {"type": "string"}}}}, _tool_search),
+    "brain_claims": ({"description": "The claim ledger: durable verified/unverified knowledge with evidence, confidence, last-verified dates. Optional subject filter.",
+                      "inputSchema": {"type": "object",
+                                      "properties": {"subject": {"type": "string"}}}}, _tool_claims),
+    "brain_bus": ({"description": "The agent gossip bus: merged timeline + corroboration tallies. since (24h/7d/all), thread, agent, json flags.",
+                   "inputSchema": {"type": "object",
+                                   "properties": {"since": {"type": "string"},
+                                                  "thread": {"type": "string"},
+                                                  "agent": {"type": "string"},
+                                                  "json": {"type": "boolean"}}}}, _tool_bus),
+    "brain_dreams": ({"description": "Recent dream reports (with verdicts) and vision pieces.",
+                      "inputSchema": {"type": "object", "properties": {}}}, _tool_dreams),
+}
+
+
+def respond(rid, result=None, error=None):
+    msg = {"jsonrpc": "2.0", "id": rid}
+    if error:
+        msg["error"] = error
+    else:
+        msg["result"] = result
+    sys.stdout.write(json.dumps(msg) + "\n")
+    sys.stdout.flush()
+
+
+def main():
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            req = json.loads(line)
+        except Exception:
+            continue
+        rid = req.get("id")
+        method = req.get("method", "")
+        if method == "initialize":
+            respond(rid, {"protocolVersion": PROTOCOL, "capabilities": {"tools": {}},
+                          "serverInfo": SERVER})
+        elif method == "notifications/initialized" or method.startswith("notifications/"):
+            continue
+        elif method == "ping":
+            respond(rid, {})
+        elif method == "tools/list":
+            respond(rid, {"tools": [{"name": n, **t[0]} for n, t in TOOLS.items()]})
+        elif method == "tools/call":
+            name = req.get("params", {}).get("name")
+            args = req.get("params", {}).get("arguments", {}) or {}
+            fn = TOOLS.get(name)
+            if not fn:
+                respond(rid, error={"code": -32601, "message": f"unknown tool: {name}"})
+                continue
+            try:
+                text = fn[1](args)
+            except Exception as e:
+                text = f"error: {e}"
+            respond(rid, {"content": [{"type": "text", "text": str(text)}]})
+        else:
+            if rid is not None:
+                respond(rid, error={"code": -32601, "message": f"unknown method: {method}"})
+
+
+if __name__ == "__main__":
+    main()
