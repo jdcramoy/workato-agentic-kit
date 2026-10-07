@@ -30,6 +30,29 @@ sanitization pass (untrack config.sh, genericize the org identifiers).
 
 Then restart Claude Code and run `/guardrails`. Details below.
 
+## The brain, as anatomy
+
+Every agent is an organ. The roster:
+
+| Organ | Agent | Function |
+|---|---|---|
+| memory consolidation | brain-gardener | curates, dedups, harvests knowledge; proposals as branches |
+| proprioception | workato-watchdog | the body's status: connections, stalls, failures, canon checks |
+| surveying | estate-architect | weekly estate review: cost, zombies, parity, lineage |
+| motor planning | promotion-orchestrator | batches dev work into governed production releases |
+| imagination | harness-dreamer | dreams (pragmatic + visionary); fixes at auto-dev |
+| **the brain** | **cortex** | **attention, coherence, curiosity — reads everything, asks the questions nobody is asking, and directs the whole network's focus** |
+
+The cortex is the difference between a bundle of scheduled jobs and a
+nervous system: it reads the bus, the dreams, the claims, the canon, the
+ledgers, and the briefs, and answers the question the rest of the machine
+can't — what should we be attending to right now, and what is nobody
+asking? Its outputs: the attention queue (the morning brief's top 3),
+contradiction alerts (the highest-value signal in the system), and the
+questions ledger that feeds the dreamer's mining targets and the gardener's
+verification queue. It pulses hourly inside the hidden lane, bounded: read,
+attend, max 3 bus lines, sleep.
+
 ## Architecture
 
 ```mermaid
