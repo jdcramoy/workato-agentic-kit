@@ -95,7 +95,7 @@ build tracking):
 
 - **Tool failure rates**: count mcp-error vs mcp-call per tool; flag any tool
   family whose failure rate jumped week-over-week → propose a playbook entry
-  or an investigation ticket ({{JIRA_PROJECT}}, with points).
+  or an investigation ticket (BSYS, with points).
 - **Context economics**: bytes per MCP server this week; flag any single tool
   dominating context cost → propose a bounded-mode or projection fix.
 - **Fallback frequency**: workato-cli / orca-browser events in the build

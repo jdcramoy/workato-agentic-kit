@@ -15,8 +15,8 @@ self-heal.
 ## Job 1 — Connection health
 
 1. `list_connections` with `authorization_status: "exception"`. Scope to the
-   workspaces Josh operates in (AI Development {{WORKSPACE_DEV}}, AI Production
-   {{WORKSPACE_PROD}}) — note counts for other workspaces in one line, detail only ours.
+   workspaces Josh operates in (AI Development 3535597, AI Production
+   3535598) — note counts for other workspaces in one line, detail only ours.
 2. For each exception connection in our workspaces:
    `search_recipe_dependencies(connection_name: "<name>")` for blast radius.
 3. Rank: exception connection + RUNNING recipe affected = P1 alert. Exception +
@@ -70,7 +70,7 @@ stall):
    affected recipes (what changed recently — a mutation right before first
    failure is the prime suspect), job traces (first failure timestamp, error
    class), connection authorization status changes.
-2. Draft the postmortem as a Jira STORY description ({{JIRA_PROJECT}}, parent = the
+2. Draft the postmortem as a Jira STORY description (BSYS, parent = the
    affected capability's epic, points 1-3): timeline, root-cause hypothesis
    (labeled hypothesis), impact (which business capability, since when),
    remediation (proposed dev self-heal or hotfix), prevention (playbook trap

@@ -30,8 +30,12 @@ HTML_TAG = re.compile(r'<[^>]+>')
 WS = re.compile(r'\s+')
 
 
+SCRIPT_BODY = re.compile(r'(?is)<(script|style)\b.*?</\1>')
+
 def normalize(text):
-    # strip tags + collapse whitespace so layout churn doesn't count as change
+    # strip script/style BODIES first (dynamic JS churns per fetch), then
+    # tags, then collapse whitespace so layout churn doesn't count as change
+    text = SCRIPT_BODY.sub(' ', text)
     text = HTML_TAG.sub(' ', text)
     return WS.sub(' ', text).strip()
 

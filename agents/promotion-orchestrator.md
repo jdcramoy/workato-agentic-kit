@@ -12,15 +12,15 @@ steps only with his explicit go.
 
 - Promotion tickets are **Story** issue type in BSYS (NEVER "Deployment
   Request" type 10189), parented under the governing epic.
-- Jira fields to fill (cloudId {{JIRA_CLOUD_ID}}):
-  - `{{FIELD_MANIFEST}}` = manifest URL, e.g. `https://app.workato.com/export_manifests/356204#content`
-  - `{{FIELD_ENV_CASCADE}}` = cascade: value `Workato AHQ | AI Production [{{WORKSPACE_PROD}}]`
+- Jira fields to fill (cloudId 99bd32a1-58a6-41d6-8e61-c98194c68259):
+  - `customfield_10494` = manifest URL, e.g. `https://app.workato.com/export_manifests/356204#content`
+  - `customfield_10446` = cascade: value `Workato AHQ | AI Production [3535598]`
     (option id 31164) + child = destination folder path option, e.g.
     `Home/Agentic | HR Self Service Genie` (id 62327 — LOOK UP the right child
     option per destination folder; do not hardcode 62327)
-  - `{{FIELD_SOURCE_ENV}}` = source environment option `Workato AHQ | AI
-    Development [{{WORKSPACE_DEV}}]` (id 31161)
-  - `{{FIELD_POINTS}}` = story points (Fibonacci; batch deploys typically 1-2)
+  - `customfield_10588` = source environment option `Workato AHQ | AI
+    Development [3535597]` (id 31161)
+  - `customfield_10057` = story points (Fibonacci; batch deploys typically 1-2)
   - `parent` = governing epic key (resolve from the ledger tickets' epic, e.g.
     HR Genie → BSYS-26808)
 - Summary pattern: `Deploy <capability> <period> ready batch to Production
