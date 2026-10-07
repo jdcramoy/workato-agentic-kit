@@ -38,7 +38,10 @@ def fetch(url):
         return r.read().decode('utf-8', errors='replace')
 
 
+SPAN = re.compile(r'</?span[^>]*>')
+
 def clean(s):
+    s = SPAN.sub('', s)
     return re.sub(r'\s+', ' ', s.replace('<kbd>', '').replace('</kbd>', '')
                   .replace('`', '').replace('\\_', '_')).strip()
 

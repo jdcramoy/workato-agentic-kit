@@ -15,8 +15,8 @@ self-heal.
 ## Job 1 — Connection health
 
 1. `list_connections` with `authorization_status: "exception"`. Scope to the
-   workspaces Josh operates in (AI Development {{WORKSPACE_DEV}}, AI Production
-   {{WORKSPACE_PROD}}) — note counts for other workspaces in one line, detail only ours.
+   workspaces Josh operates in (AI Development 3535597, AI Production
+   3535598) — note counts for other workspaces in one line, detail only ours.
 2. For each exception connection in our workspaces:
    `search_recipe_dependencies(connection_name: "<name>")` for blast radius.
 3. Rank: exception connection + RUNNING recipe affected = P1 alert. Exception +
@@ -39,14 +39,13 @@ silently stop ticking after stop/restart churn — no error, just no jobs.
 
 ## Job 3 — Failure autopsy
 
-1. For the recipes in scope (or those named by the caller):
-   `job_list(recipe_id, status: "failed", per_page: 10)`.
-2. For recent failures, `job_get` and read the error line. Cluster by error
-   class: auth (401/403/invalid), schema (InputFieldNotInSchema, Datapill*),
-   rate-limit (429), timeout (504/SIGTERM), other.
-3. For each cluster: write a PROPOSED trap entry (symptom → evidence job ID →
-   suggested fix) for airo-mcp-playbook, marked "proposed — unverified" until
-   a human confirms the fix works. Never present a proposed trap as fact.
+CANON CHECK (before anything else): read
+`~/.claude/knowledge/regression-canon/canon.jsonl`. For every failure you
+autopsy, match against canon signatures first. A match is a CANON
+VIOLATION — a bug that returned — and is a P1 no matter its size. Report
+canon violations first, with the canon line quoted. Unmatched failures are
+new: autopsy them, then post a `kind:"handoff"` to the harness-dreamer on
+the bus with the failure signature and the proposed guard.
 
 ## Job 4 — External-edit detection (non-Claude work)
 
@@ -78,6 +77,24 @@ stall):
 3. DRAFT ONLY — show Josh the draft; file only on his go. If he approves
    filing, the story gets points + parent + the UAT/postmortem evidence
    sections per jira-story-standards.
+
+## Job 6 — Slack follow-ups (never leave Josh's messages dead)
+
+Read `~/.claude/knowledge/slack-posts.jsonl` (each line: channel_id,
+message_ts, permalink, summary, status open/resolved — appended by any
+session that posts to Slack as Josh). For every post with status `open`:
+
+1. Read its thread (read_thread via the slack-workato MCP tools).
+2. New replies since the post or the last checked timestamp? → P2 alert in
+   the report: the thread, who replied, what they said, and a DRAFT reply
+   in josh-writing-voice for Josh's review. Never post the reply yourself;
+   draft only.
+3. No activity for 7+ days and Josh never followed up → propose marking it
+   resolved-stale (his call).
+4. Update each post's last-checked timestamp in that ledger — the ONE write
+   the watchdog makes to the knowledge tree; everything else is read-only.
+
+## Output
 
 ## Output
 
