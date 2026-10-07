@@ -51,7 +51,7 @@ function logEvent($, kind, target) {
     JSON.stringify({ ts: new Date().toISOString(), kind: kind, target: target }) + '\n'
   // $.fs.write overwrites; append via shell like workato-guardrails' audit log.
   return $.process
-    .run(['sh', '-c', 'mkdir -p ' + LEDGER_DIR + ' && cat >> ' + LEDGER], { input: line })
+    .run(['sh', '-c', 'mkdir -p ' + LEDGER_DIR + ' && cat >> ' + LEDGER], { stdin: line })
     .catch(() => {})
 }
 

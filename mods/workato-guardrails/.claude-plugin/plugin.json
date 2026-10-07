@@ -1,6 +1,6 @@
 {
   "name": "workato-guardrails",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Mechanical enforcement of Josh's Workato rules: prod-write audit + visibility, Jira story-points enforcement, Workato asset URL linking. Built for Claude Code 2.1.289.",
   "author": {
     "name": "Josh Cramoy"

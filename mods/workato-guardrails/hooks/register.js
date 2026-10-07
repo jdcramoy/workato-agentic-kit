@@ -32,7 +32,7 @@ const TICKET_KEY = /\b([A-Z]{2,6}-\d{3,5})\b/
 function ledgerAppend($, event) {
   const line = JSON.stringify({ ts: new Date().toISOString(), ...event }) + '\n'
   return $.process
-    .run(['sh', '-c', 'mkdir -p ' + BUILD_LEDGER_DIR + ' && cat >> ' + BUILD_LEDGER], { input: line })
+    .run(['sh', '-c', 'mkdir -p ' + BUILD_LEDGER_DIR + ' && cat >> ' + BUILD_LEDGER], { stdin: line })
     .catch(() => {})
 }
 
@@ -48,7 +48,7 @@ function verifyClaim($, subject, observation, evidence) {
   }) + '\n'
   const dir = '$HOME/.claude/knowledge/claims'
   return $.process
-    .run(['sh', '-c', 'mkdir -p ' + dir + ' && cat >> ' + dir + '/verifications.jsonl'], { input: line })
+    .run(['sh', '-c', 'mkdir -p ' + dir + ' && cat >> ' + dir + '/verifications.jsonl'], { stdin: line })
     .catch(() => {})
 }
 
@@ -330,7 +330,7 @@ export function register(on) {
       const stamp = new Date().toISOString()
       const line = stamp + ' PROD-WRITE ' + e.tool + '\n'
       // Append via shell: $.fs.write overwrites, and the audit log must grow.
-      await $.process.run(['sh', '-c', 'mkdir -p ' + AUDIT_DIR + ' && cat >> ' + AUDIT_FILE], { input: line })
+      await $.process.run(['sh', '-c', 'mkdir -p ' + AUDIT_DIR + ' && cat >> ' + AUDIT_FILE], { stdin: line })
       // Visible to Josh in the transcript; Claude does not read ui.log lines.
       $.ui.log('PROD WRITE · ' + e.tool)
     }
