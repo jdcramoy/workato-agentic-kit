@@ -2,8 +2,10 @@
 
 A self-teaching, self-learning, and self-healing development harness for
 agentic Workato work in Claude Code. It wraps an AI-assisted Workato
-developer (human or agent) in four layers: enforcement mods that make the
-standing rules mechanical, watcher agents that inspect the estate on a
+developer (human or agent) in six layers: enforcement mods that make the
+standing rules mechanical, playbook skills that pass everything already
+learned to every session, a Developer API wrapper for the operations the
+platform tools do not expose, watcher agents that inspect the estate on a
 schedule, a curated knowledge system that captures lessons and verifies them
 against live behavior, and a promotion pipeline that turns tracked dev work
 into governed production releases.
@@ -17,16 +19,24 @@ luck, and no knowledge should live only in one session's context.
    secrets, audit production writes, score push risk, gate Jira ticket
    quality, record every mutation, and snapshot every pushed recipe. Rules
    that used to live in instruction files are now code.
-2. **Watch (nightly).** Scheduled agents inspect the estate: broken
+2. **Know (every session).** Two playbook skills ship with the kit: the
+   AIRO MCP trap catalog and the governed-delivery lifecycle. A session
+   that loads them starts with years of confirmed platform behavior
+   instead of a blank slate; the enforced rules and the playbooks say the
+   same thing.
+3. **Watch (nightly).** Scheduled agents inspect the estate: broken
    connections with blast radius, stalled schedulers, failed-job autopsies,
    platform release notes. Each run leaves a heartbeat; the last job of the
    night checks the others and reports a skipped machine.
-3. **Learn (nightly + weekly).** A curator agent ("brain gardener") reviews
-   the knowledge base for drift, conflicts, and rot, mines session
-   transcripts for unrecorded lessons, measures the harvest rate, and files
-   proposals as git branches. Behavioral claims about the platform get
-   re-verified as a side effect of real work.
-4. **Promote (on demand).** A promotion orchestrator assembles batches from
+4. **Learn (nightly + weekly).** A curator agent reviews the knowledge base
+   for drift, conflicts, and rot, mines session transcripts for unrecorded
+   lessons, measures the harvest rate, and files proposals as git branches.
+   Behavioral claims about the platform get re-verified as a side effect of
+   real work.
+5. **Operate (any time).** The `wt` CLI wraps the Workato Developer API for
+   what AIRO MCP and the Dev CLI do not expose: manifests, packages, recipe
+   lifecycle, job reruns, connection CRUD, property upserts.
+6. **Promote (on demand).** A promotion orchestrator assembles batches from
    the build ledger, files the deployment story with your site's real field
    IDs, and stages production execution behind explicit approval.
 
