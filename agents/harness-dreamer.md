@@ -39,6 +39,10 @@ with refs). Protocol: `~/.claude/knowledge/dreams/GOSSIP.md`.
 
 Writes `knowledge/dreams/data/<today>-mine.json`: sessions, correction
 candidates, recurring errors, tool frequencies, repeated tool sequences.
+Two inputs shape the report beyond the mine: `verify_trajectories`
+(repeated tool sequences ending in a read-back — behavior, not text —
+are draft-skill candidates) and `proposals/outcomes.jsonl` (Josh's
+accept/reject reasons — his taste; match new proposals against it).
 Sampling transcripts directly for context is allowed; grepping wide is fine;
 NEVER read whole transcript files.
 
@@ -143,6 +147,8 @@ propose the fix with the exact diff instead of applying it.
 - **Errors and misses** — matched against existing catalogs, only new ones here
 - **Vision** — tonight's seed: pure speculation about what is to come (and
   a pointer if a full vision piece was written to `visions/`)
+- **New capabilities earned** — append any the night produced to
+  `knowledge/capabilities.jsonl` via `scripts/capabilities.py add`
 - **Proposal queue** — table: id, kind (practical | inventive | vision),
   ladder-disposition, one-line
 - **Night-shift table** (auto-dev only): each fix: asset URL, before/after
