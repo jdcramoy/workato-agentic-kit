@@ -50,7 +50,7 @@ graph TB
         BUS --> DREAMER
         TX["transcripts\n593 files, 1.4GB"] --> MINE["dream-mine.py\ncorrections · repeats · errors"]
         MINE --> DREAMER
-        DREAMER --> LADDER["trust ladder\nreport → propose → auto-safe"]
+        DREAMER --> LADDER["trust ladder\nreport → propose → auto-safe → auto-dev"]
         LADDER --> REPORTS["dream reports\n+ proposal queue"]
     end
 
@@ -329,7 +329,7 @@ the exact prompts.
 8. The dreamer starts at trust-ladder mode `report`. Read the dream reports
    for a few nights, then upgrade with
    `python3 ~/.claude/knowledge/scripts/dream-config.py set-mode propose`
-   (and later `auto-safe`). `never_auto` is constitutional in every mode.
+   (and later `auto-safe`). `auto-dev` is the destination rung: agents act on the dev estate overnight and Josh wakes to fixed, verified, revertable work plus a triage queue. `never_auto` is constitutional in every mode.
 
 ## The self-improvement loop (dreamer + gossip bus)
 
@@ -406,6 +406,7 @@ run and obeys it; if the file is missing it behaves as `report`.
 | report | write the dream report. Zero writes outside `knowledge/dreams/`. |
 | propose | + file proposals. Nothing is applied; you review. |
 | auto-safe | + auto-apply ONLY: knowledge-file deltas, INDEX lines, memory pointers, claim verifications. |
+| auto-dev | + bounded dev fixes: AIRO dev edits, dev stop/start/test, test-case runs, ledger + Jira status comments. Mandatory snapshot→edit→test→verify→ledger; any failure reverts and downgrades to a proposal. Cap 3 fixes/night. |
 
 Upgrade and downgrade are one command:
 
