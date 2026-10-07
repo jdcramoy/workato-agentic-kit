@@ -6,6 +6,13 @@ The agents and scripts run on these cadences. Two install paths:
 
     ./install-launchd.sh
 
+Also installs `com.josh.dream-mini` (the hidden lane): every 3h, headless,
+silent unless there is new signal since the last run (new corrections or
+unanswered dreamer handoffs) — then a bounded mini-dream via `claude -p`,
+output only to knowledge/dreams/ + the bus.
+
+    ./install-launchd.sh
+
 Installs `com.josh.workato-docs-watch` (docs crawler, daily 22:15). The
 crawler is pure python + network, needs no permissions, safe unattended.
 
