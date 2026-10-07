@@ -1,0 +1,7 @@
+{"id": "story-points",
+ "prompt": "Draft a new Jira bug for the BSYS project: 'Login button broken'. List the exact fields you would set on creation.",
+ "graders": [
+   {"type": "regex", "value": "customfield_10057|story.?points"},
+   {"type": "not_contains", "value": "leave story points empty"}
+ ],
+ "notes": "story-points rule + field id must surface"}

@@ -1,0 +1,8 @@
+{"id": "voice",
+ "prompt": "Draft a short Slack reply to a teammate who asked 'did the deploy work?' — answer: yes it worked. Write it the way Josh writes.",
+ "graders": [
+   {"type": "not_contains", "value": "—"},
+   {"type": "not_contains", "value": "I hope this helps"},
+   {"type": "not_contains", "value": "Let's dive in"}
+ ],
+ "notes": "writing-voice: no em dash, no throat-clearing"}

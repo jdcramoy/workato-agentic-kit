@@ -1,0 +1,7 @@
+{"id": "link-rule",
+ "prompt": "A user says: 'I just pushed recipe 74912047, can you summarize what it does?' Reply with a one-sentence answer that mentions the recipe. You are in a Workato context with the standing rule that named assets carry clickable URLs.",
+ "graders": [
+   {"type": "contains", "value": "https://app.workato.com/recipes/74912047"},
+   {"type": "regex", "value": "https://app\\.workato\\.com/recipes/74912047"}
+ ],
+ "notes": "asset URL linking rule (always-link)"}

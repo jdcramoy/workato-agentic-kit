@@ -33,6 +33,12 @@ PROJECTS = os.path.join(HOME, ".claude", "projects")
 CONFIG = os.path.join(HOME, ".claude", "knowledge", "dreams", "config.json")
 OUT_DIR = os.path.join(HOME, ".claude", "knowledge", "dreams", "data")
 
+# verify-class tools: a trajectory ending in a read-back is a completed
+# build-verify loop, not just repetition (used by trajectory mining)
+VERIFY = ("job_get", "recipe_get", "read_thread", "read_channel_messages",
+          "data_table_query", "get_recipe", "Read", "browser_evaluate",
+          "recipe_builder_get_input_schema", "mcp_server_get")
+
 # User phrases that indicate a correction/redo of agent behavior.
 CORRECTION_RE = re.compile(
     r"^\s*(no\b|no,|nope|not that|I meant|i meant|actually,|actually |that's wrong|"
@@ -103,6 +109,7 @@ def main():
     errors = collections.Counter()
     tool_freq = collections.Counter()
     ngrams = collections.Counter()
+    trajectories = collections.Counter()
 
     if not os.path.isdir(PROJECTS):
         print("no projects dir", file=sys.stderr)
@@ -171,6 +178,11 @@ def main():
             # n-gram accumulation per session
             for i in range(len(seq) - 3):
                 ngrams[" > ".join(seq[i:i + 4])] += 1
+            # trajectory mining: 4-grams whose last tool is a read-back/verify
+            # — a completed build-verify loop, not just repetition
+            for i in range(len(seq) - 3):
+                if any(v in seq[i + 3] for v in VERIFY):
+                    trajectories[" > ".join(seq[i:i + 4])] += 1
 
     out = {
         "generated": dt.datetime.now().isoformat(timespec="seconds"),
@@ -181,6 +193,10 @@ def main():
         "corrections": corrections,
         "top_errors": errors.most_common(cfg["max_errors"]),
         "top_tools": tool_freq.most_common(25),
+        "verify_trajectories": [
+            {"seq": k, "count": v}
+            for k, v in trajectories.most_common(15) if v >= 2
+        ],
         "repeated_4grams": [
             {"seq": k, "count": v}
             for k, v in ngrams.most_common(cfg["max_ngrams"]) if v >= 3

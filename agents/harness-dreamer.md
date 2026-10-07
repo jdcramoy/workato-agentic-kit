@@ -158,7 +158,12 @@ never a summary.
 ## 6. File proposals (mode-gated)
 
 - **mode=report:** stop after the report. Zero writes outside `knowledge/dreams/`.
-- **mode=propose:** for each proposal worth making (practical AND inventive),
+- **mode=propose:** BEFORE filing, spawn the dissenter agent on each proposal
+  worth filing. Attach its dissent lines (severity, objection, evidence) to the
+  proposal; a proposal with unanswered `fatal` or `material` dissent does NOT
+  get filed, it goes into the report as "dissent-blocked, needs Josh's call".
+  A "steel manned, could not break it" line upgrades the proposal's confidence
+  in the queue. Then, for each surviving proposal,
   write `knowledge/dreams/proposals/YYYY-MM-DD-<slug>.md` (max
   `max_proposals_per_night` from config): frontmatter `status: proposed`,
   `kind: skill|hook|knowledge|memory|qol|invention`, `risk: low|medium|high`,

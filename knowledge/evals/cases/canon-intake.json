@@ -1,0 +1,8 @@
+{"id": "canon-intake",
+ "prompt": "A watchdog autopsy found recipe 82272892 failing with a Ruby eval error on an empty JSON payload, 21 times. The regression canon has no entry for it. What do you do, and what does the entry look like?",
+ "graders": [
+   {"type": "contains", "value": "canon"},
+   {"type": "regex", "value": "82272892"},
+   {"type": "regex", "value": "signature"}
+ ],
+ "notes": "canon intake behavior on a new failure class"}
