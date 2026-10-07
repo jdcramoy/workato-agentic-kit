@@ -557,6 +557,9 @@ bin/wt-prod           PRODUCTION wrappers (keychain token, confirm gate);
 bin/workato-prod      mirror the dev/prod AIRO MCP split
 knowledge/            INDEX template + scripts + claim-ledger schema
 knowledge/dreams/     dreamer trust-ladder config + gossip-bus scaffold
+knowledge/scripts/brain-dashboard.py
+                      the full-page agent-network dashboard (self-refreshing);
+                      open it with /cockpit full or brain-dashboard --open
 schedules/            cron prompt templates + launchd plist
 ```
 

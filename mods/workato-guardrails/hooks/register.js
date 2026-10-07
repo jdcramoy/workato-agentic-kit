@@ -188,7 +188,7 @@ function isJiraWritePrompt(text) {
 
 // Score a push from the dependency tracker's per-step rows: dedupe to the
 // row carrying real job stats (running and/or non-zero counts), then weigh.
-function scoreRisk(mcpResult) {
+function scoreRisk(mcpResult, churn) {
   let rows = []
   try {
     const blocks = mcpResult?.content ?? []
@@ -235,8 +235,55 @@ function scoreRisk(mcpResult) {
       }
     }
   }
+  if (live.stopped_at) {
+    score += 1
+    reasons.push('recipe is STOPPED (' + (live.stop_cause || 'unknown cause') + ') — push ok, remember to start it back')
+  }
+  if (lifetime >= 500) {
+    reasons.push('high-traffic recipe (' + lifetime + ' lifetime tasks) — many downstream consumers')
+  }
+  // Ledger churn: real edit frequency from the build ledger (passed in).
+  if (churn && churn.count > 0) {
+    if (churn.count >= 4) {
+      score += 2
+      reasons.push('churn: edited ' + churn.count + 'x this week across ' +
+        churn.sessions + ' session(s) — destabilized asset')
+    } else if (churn.count >= 2) {
+      score += 1
+      reasons.push('edited ' + churn.count + 'x this week')
+    }
+    if (churn.lastTs && live.updated_at && Date.parse(live.updated_at) > Date.parse(churn.lastTs) + 120000) {
+      score += 1
+      reasons.push('external drift: updated_at is newer than the last ledgered edit — someone else touched it')
+    }
+  }
   const label = score >= 5 ? 'high' : score >= 3 ? 'medium' : 'low'
   return { score: score, label: label, reasons: reasons.length ? reasons : ['healthy: running history looks clean'], running: running }
+}
+
+// Count this week's ledgered mutations of a recipe + distinct sessions.
+async function ledgerChurn($, recipeId) {
+  try {
+    const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
+    const text = file.text ?? file
+    const cutoff = Date.now() - 7 * 86400000
+    let count = 0
+    const sessions = new Set()
+    let lastTs = null
+    for (const line of String(text).split('\n')) {
+      if (!line.trim()) continue
+      let ev
+      try { ev = JSON.parse(line) } catch { continue }
+      if (ev.recipe_id !== recipeId) continue
+      if (Date.parse(ev.ts) < cutoff) continue
+      count += 1
+      if (ev.session) sessions.add(ev.session)
+      lastTs = ev.ts
+    }
+    return { count, sessions: sessions.size, lastTs }
+  } catch {
+    return null
+  }
 }
 
 // ---- registration ---------------------------------------------------------
@@ -269,7 +316,7 @@ export function register(on) {
     })
     await $.command.register({
       name: 'cockpit',
-      description: 'Open the Workato cockpit pane: session counters + build ledger',
+      description: 'Cockpit: terminal pane (bare) or full-page dashboard (/cockpit full)',
     })
     // Recipe-history repo: init once, snapshot pushes forever.
     await $.process.run(['sh', '-c',
@@ -373,7 +420,8 @@ export function register(on) {
       if (rid != null) {
         try {
           const res = await $.mcp.call('workato-dependency-tracker', 'search_recipe_dependencies', { recipe_id: String(rid) })
-          risk = scoreRisk(res)
+          const churn = await ledgerChurn($, rid)
+          risk = scoreRisk(res, churn)
         } catch {
           risk = { error: 'risk lookup unavailable' }
         }
@@ -829,7 +877,17 @@ export function register(on) {
   let cockpitTab = 'session'
   let mutationCount = 0
 
-  on('command.run', { command: 'cockpit' }, async ($) => {
+  on('command.run', { command: 'cockpit' }, async ($, e) => {
+    // /cockpit full (or /cockpit dash): regenerate the full-page dashboard and
+    // open it in the browser. Bare /cockpit keeps the terminal pane.
+    const wantsFull = /\b(full|dash|page)\b/i.test(String(e?.args ?? ''))
+    if (wantsFull) {
+      const out = await $.process.run(
+        ['python3', process.env.HOME + '/.claude/knowledge/scripts/brain-dashboard.py'])
+      const page = String((out && (out.stdout ?? out.result ?? out)) || '').trim()
+      await $.process.run(['open', page || process.env.HOME + '/.claude/knowledge/dashboard.html'])
+      return { text: 'Dashboard: ' + page }
+    }
     try {
       await $.ui.open({ id: 'wg-cockpit', title: 'Workato cockpit', focus: true, closeOnEscape: true })
       return {} // pane opened; the ui.render hook draws it

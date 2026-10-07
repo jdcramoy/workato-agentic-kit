@@ -135,4 +135,6 @@ path, c, ts, mode, idx = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
 json.dump({"corrections": c, "updated": ts,
            "workshop_i": idx + 1 if mode in ("workshop", "cortex") else idx}, open(path, "w"))
 PY
+# dashboard stays fresh: every lane run regenerates it (page self-refreshes)
+python3 "$K/scripts/brain-dashboard.py" >/dev/null 2>&1 || true
 echo "done ($MODE)"
