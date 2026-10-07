@@ -15,6 +15,11 @@ improve the harness itself.
 The design goal: no rule should depend on memory, no failure should depend on
 luck, and no knowledge should live only in one session's context.
 
+Audience: internal, Workato-All org. Examples and config may reference our
+real workspaces, Jira project, and field IDs by design; they give a new
+teammate a working starting point. Do not publish externally without a
+sanitization pass (untrack config.sh, genericize the org identifiers).
+
 ## How the layers fit together
 
 1. **Enforce (always on).** Two mods hook every tool call. They redact
