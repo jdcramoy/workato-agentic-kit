@@ -269,37 +269,169 @@ the exact prompts.
 
 ## The self-improvement loop (dreamer + gossip bus)
 
-Two nightly jobs close the loop (schedules/ has the prompts):
+This is the layer that makes the kit compound instead of decay: the harness
+watches itself, learns from every session, and proposes its own improvements
+under human control. Two nightly jobs plus a communication layer.
 
-- **harness backup (23:33)** — snapshots skills, agents, knowledge, mods, and
-  settings into a git repo with secrets redacted. This is what makes it safe
-  to let agents modify the system they run in.
-- **harness dreamer (23:43)** — mines the last N days of session transcripts
-  for four signals: what you work on, what you repeat, what you correct, what
-  errors recur. Writes a daily dream report with two mandates: PRAGMATIC
-  (evidence-cited findings) and INVENTIVE (2-3 forward-looking ideas, evidence
-  optional, value argument required).
+### Nightly timeline
 
-**Trust ladder** (knowledge/dreams/config.json, upgrade is one line via
-scripts/dream-config.py): report → report only; propose → + proposal files,
-nothing applied; auto-safe → + auto-apply ONLY knowledge-file deltas, INDEX
-lines, memory pointers, claim verifications. `never_auto` is constitutional
-in every mode: skills, hooks, mods, agents, settings, crons, MCP config are
-proposal-only forever.
+| Time (local) | Job | Role on the bus |
+|---|---|---|
+| 22:15 (launchd) + 22:31 | docs-watch | first poster: platform doc deltas |
+| 22:43 | brain gardener | curates knowledge, posts stale-claim findings |
+| 23:13 | workato watchdog | posts connection health, stalls, autopsies |
+| 23:33 | harness backup | snapshots the whole harness (secrets redacted) |
+| 23:43 | harness dreamer | reader-in-chief: merges the night, writes the dream |
+| 07:13 | morning brief | one digest: machine + bus + dream + Jira + repos |
 
-**Gossip bus** — the six agents (docs-watch, gardener, watchdog, dreamer,
-architect, promotion-orchestrator) each append only to their own outbox
-(`knowledge/dreams/bus/<agent>.jsonl`, single-writer, race-free). The dreamer
-runs last each night as reader-in-chief and synthesizes the merged view
-(`scripts/gossip-read.py`). Corroboration is the confidence unit: 1 witness =
-observation, 2 = pattern, 3+ = act on it. Handoffs route work between agents.
+Order is load-bearing: each agent can read what the previous one posted, and
+the dreamer runs last so the dream synthesizes the whole night.
 
-**Morning read**: one command tells you what the whole network found and how
-strongly: `python3 ~/.claude/knowledge/scripts/gossip-read.py --since 24h`.
-The dream report (`knowledge/dreams/<date>.md`) carries the analysis and the
-proposal queue.
+### Harness backup (23:33)
 
-## Trust model
+`harness-backup.sh` copies skills, agents, the knowledge tree, mods,
+scheduled tasks, and settings into a git repo, with secrets redacted
+(token/key/secret values become `[REDACTED-BACKUP]`). This is what makes it
+safe to let agents modify the system they run in: any applied change is
+reversible with `git revert` on the backup repo.
+
+- Configure via `BACKUP_REPO_LOCAL` (local clone) and `BACKUP_REPO_URL`
+  (origin) in config.sh. Empty URL = local commits only.
+- Never copied: session transcripts (they contain verbatim secrets),
+  keychain entries, credential files, audit logs.
+- Restore: clone the repo, copy trees back to `~/.claude` / `~/mods`,
+  re-enter keychain tokens, reinstall plugins, reload LaunchAgents.
+
+### The dreamer (23:43)
+
+Mines the last N days of Claude Code session transcripts
+(`~/.claude/projects/**/*.jsonl`) via `scripts/dream-mine.py` (stdlib,
+read-only, bounded): session counts, correction candidates (user messages
+matching correction heuristics, with noise guards for system-injected
+lines), recurring error strings, tool frequencies, and repeated 4-gram tool
+sequences.
+
+The daily dream report (`knowledge/dreams/<date>.md`) carries two mandates:
+
+- **PRAGMATIC** — evidence-cited findings for four questions: what is Josh
+  working on, what is he repeating, what are the frequent mistakes or
+  misses, what would have made yesterday faster. Every finding cites a
+  transcript ref, ledger line, or count.
+- **INVENTIVE** — 2-3 forward-looking ideas with no evidence requirement,
+  each with a one-sentence value argument and its smallest first step. This
+  mandate is deliberately unanchored from the data: creative problem-solving
+  about what the harness could and should become.
+
+Below the mandates: a proposal queue table. Proposals (when the ladder
+allows) land in `knowledge/dreams/proposals/` with frontmatter
+`status: proposed` and are reviewed by you, never applied unseen.
+
+### Trust ladder
+
+Enforced by `knowledge/dreams/config.json`. The dreamer reads it FIRST each
+run and obeys it; if the file is missing it behaves as `report`.
+
+| mode | what the dreamer may do |
+|---|---|
+| report | write the dream report. Zero writes outside `knowledge/dreams/`. |
+| propose | + file proposals. Nothing is applied; you review. |
+| auto-safe | + auto-apply ONLY: knowledge-file deltas, INDEX lines, memory pointers, claim verifications. |
+
+Upgrade and downgrade are one command:
+
+    python3 ~/.claude/knowledge/scripts/dream-config.py set-mode propose
+    python3 ~/.claude/knowledge/scripts/dream-config.py set-mode auto-safe
+    python3 ~/.claude/knowledge/scripts/dream-config.py show
+
+**`never_auto` is constitutional in every mode**: skills, hooks, mods,
+agents, settings, crons, MCP config, and commands are proposal-only forever,
+regardless of how safe an individual change looks. The only way to change
+that list is editing `config.json` yourself.
+
+Suggested cadence: run `report` for a week, read the reports, upgrade to
+`propose`, review proposals for another week, then decide on `auto-safe`.
+
+### Gossip bus (agent-to-agent communication)
+
+Six agents (docs-watch, brain-gardener, workato-watchdog, harness-dreamer,
+estate-architect, promotion-orchestrator) communicate over per-agent outbox
+files — the maildir pattern:
+
+```
+knowledge/dreams/bus/
+  docs-watch.jsonl            <- only docs-watch appends here
+  brain-gardener.jsonl        <- only the gardener appends here
+  workato-watchdog.jsonl
+  harness-dreamer.jsonl
+  estate-architect.jsonl
+  promotion-orchestrator.jsonl
+```
+
+Every file has exactly one writer, so there are no locks, no races, and no
+overwrites at any level of parallelism. The merged view is computed on read,
+not on write: `scripts/gossip-read.py` merges all outboxes, sorts by time,
+tallies corroborations per thread, and applies TTL expiry.
+
+Event schema (one JSON object per line, append-only):
+
+```json
+{"ts":"2026-10-07T23:15:00Z","agent":"watchdog","kind":"finding",
+ "subject":"broken-snowflake-conn","line":"one sentence with specifics",
+ "refs":["https://app.workato.com/connections"],
+ "thread_id":"broken-snowflake-conn","corroborations":0,"ttl_days":14}
+```
+
+- `kind`: **finding** (new observation) | **verify** (corroboration of an
+  existing thread) | **handoff** (route work to another agent) |
+  **proposal-ref** (pointer to a dream proposal)
+- `subject`/`thread_id`: same kebab-slug for every event about the same
+  underlying thing — this is how corroboration is counted
+
+**Protocol, every agent:** read the bus at start (`gossip-read.py --since
+24h`; if your finding already has a thread, append `verify` to YOUR outbox
+on that thread instead of duplicating it), post your top findings at end
+(max 3, terse, with refs — nothing on the bus without a reference), and use
+handoffs to route work: watchdog finds it, the dreamer proposes a guard, the
+gardener verifies the claim, Josh approves.
+
+**Corroboration is the confidence unit:** 1 witness = observation, 2
+witnesses = pattern, 3+ = act on it. Independent agents corroborating is the
+strongest evidence class the harness has, and the dreamer leads its report
+with corroborated threads.
+
+**Reading it:**
+
+    python3 ~/.claude/knowledge/scripts/gossip-read.py --since 24h        # timeline + tallies
+    python3 ~/.claude/knowledge/scripts/gossip-read.py --thread <slug>    # one thread
+    python3 ~/.claude/knowledge/scripts/gossip-read.py --since 7d --json  # machine-readable
+
+**Adding a new agent to the network:** create
+`knowledge/dreams/bus/<name>.jsonl`, add a "Gossip bus" section to its brief
+(copy it from any existing agent SOP, changing the outbox path and the
+"what you post" line), and pick a slot in the nightly order. Nothing else to
+wire.
+
+### Morning brief (07:13)
+
+One digest under 40 lines (`knowledge/morning-brief/<date>.md`): machine
+heartbeat first (a skipped nightly job is the headline), bus threads with
+patterns before solo findings, dream verdict, watchdog P1s, your Jira
+movements, and repo commits from the last 24h. Empty sections say
+"nothing" — no padding. If you read one thing in the morning, read this.
+
+### Troubleshooting
+
+- **The bus is quiet** — the nightly agents only fire while a Claude Code
+  session is open and idle at their fire time. No session, no run. Check
+  `knowledge/garden-reports/heartbeat.jsonl` for who last ran.
+- **A job skipped last night** — the morning brief leads with it. The
+  self-rearm instructions re-create crons before the 7-day expiry, but only
+  from within a session.
+- **A dream report contradicts the platform** — dream findings are mined
+  heuristics, not verified claims; the claim ledger is the source of truth.
+  File the correction as a new line on the thread, never an edit.
+
+## Trust model## Trust model
 
 The mods run with your permissions and are not sandboxed. Every hook
 declares the events it handles, and `claude plugin validate <dir>` prints
