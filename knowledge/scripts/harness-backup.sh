@@ -14,6 +14,11 @@ set -euo pipefail
 # Config (env overrides): BACKUP_REPO_LOCAL = local clone of the backup repo;
 # BACKUP_REPO_URL = its origin. With no URL, backup commits locally and skips
 # the push (safe default; set both in config.sh).
+# Pull repo config from the kit's config.sh when present (the nightly cron
+# runs bare, with no env), then allow explicit env overrides on top.
+for __cfg in "$HOME/Documents/agentic-workato-kit/config.sh"; do
+  [ -f "$__cfg" ] && . "$__cfg"
+done 2>/dev/null || true
 REPO="${BACKUP_REPO_LOCAL:-$HOME/Documents/josh-orca}"
 CLAUDE="$HOME/.claude"
 STAMP="$(date '+%Y-%m-%d %H:%M:%S')"

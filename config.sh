@@ -30,3 +30,7 @@ export PROJECT_PATH="${HOME}/Documents/workbench"
 # CLI profiles (keychain accounts) used by wt-prod / workato-prod
 export PROFILE_DEV="josh-us"
 export PROFILE_PROD="josh-prod"
+
+# Harness backup (harness-backup.sh): local clone + origin. Empty URL = local-only.
+export BACKUP_REPO_LOCAL="${HOME}/Documents/josh-orca"
+export BACKUP_REPO_URL="https://github.com/Workato-All/josh-orca.git"
