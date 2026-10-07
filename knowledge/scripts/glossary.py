@@ -18,7 +18,7 @@ import os
 import sys
 from datetime import datetime, timezone
 
-STORE = os.path.expanduser('~/.claude/knowledge/workato-terms/terms.jsonl')
+STORE = os.path.expanduser('~/.claude/knowledge/workato-terms/terms.jsonl')  # overridden by --store
 
 
 def load():
@@ -41,8 +41,11 @@ def main():
     ap.add_argument('definition', nargs='?', default=None)
     ap.add_argument('--source', default=None)
     ap.add_argument('--tags', default='')
+    ap.add_argument('--store', default=None, help='alternate store, e.g. formulas.jsonl')
     args = ap.parse_args()
 
+    if args.store:
+        globals()['STORE'] = os.path.expanduser(args.store)
     rows = load()
     now = datetime.now(timezone.utc).date().isoformat()
 
@@ -59,18 +62,19 @@ def main():
     q = (args.term or '').lower()
     if args.op == 'lookup':
         for r in rows:
-            if r['term'] == q:
+            if (r.get('term') or r.get('name', '')).lower() == q:
                 print(json.dumps(r, indent=1)); return
-        partial = [r for r in rows if q and q in r['term']]
+        partial = [r for r in rows if q and q in (r.get('term') or r.get('name', ''))]
         if partial:
-            print('exact term not found; partial matches:', ', '.join(r['term'] for r in partial))
+            print('exact term not found; partial matches:', ', '.join((r.get('term') or r.get('name','')) for r in partial))
         else:
             print(f"not in glossary: {q!r} — add it: glossary.py add '{q}' '<definition>'")
         return
     # search
     hits = [r for r in rows if q in json.dumps(r).lower()]
     for r in hits:
-        print(f"{r['term']}: {r['definition'][:140]}")
+        name = r.get('term') or r.get('name', '')
+        print(f"{name}: {(r.get('definition') or '')[:140]}")
     if not hits:
         print(f"no terms mention {q!r}")
 
