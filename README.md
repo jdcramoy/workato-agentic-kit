@@ -528,6 +528,18 @@ movements, and repo commits from the last 24h. Empty sections say
   heuristics, not verified claims; the claim ledger is the source of truth.
   File the correction as a new line on the thread, never an edit.
 
+## Install troubleshooting
+
+**`zsh: not enough directory stack entries` after clone/onboard** — that error
+is from YOUR zsh config, not the kit: the zsh dirstack error comes from a
+command alias/function loop or a broken precmd/prompt hook (per the zsh-users
+list), and it prints after every command when a hook fires it. Nothing in the
+kit touches the directory stack, and every kit script runs under
+`#!/usr/bin/env bash` in a subprocess that cannot affect your parent zsh.
+Triage on the affected machine: `whence -v ls cd pushd` (look for looping
+aliases/functions), `precmd_functions`, and `setopt | grep -i pushd`. Usual
+fix: remove/repair the looping alias or hook, or `unsetopt AUTO_PUSHD`.
+
 ## Trust model
 
 The mods run with your permissions and are not sandboxed. Every hook
