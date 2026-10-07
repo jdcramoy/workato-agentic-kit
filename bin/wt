@@ -93,7 +93,12 @@ def request(host, token, method, path, query=None, data=None, headers=None,
     url = f"{host}{path}"
     if query:
         url += "?" + urllib.parse.urlencode(query, doseq=True)
-    hdrs = {"Authorization": f"Bearer {token}"}
+    # Workato's WAF redirects python-urllib-looking requests (default UA +
+    # Accept-Encoding: identity + no Accept) to the sign-in page on newer
+    # API routes — even with a valid bearer token. Always send real headers.
+    hdrs = {"Authorization": f"Bearer {token}",
+            "User-Agent": "wt/1.0 (Workato Toolbox)",
+            "Accept": "application/json"}
     if headers:
         hdrs.update(headers)
     body = None

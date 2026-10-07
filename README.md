@@ -215,11 +215,16 @@ project property upserts. Three discovery and testing capabilities on top:
   client needs that permission granted in Workspace admin). This is the
   self-discovery loop: Workato ships a new API group, the next `wt
   discover` sees it, and the gardener proposes the new subcommand.
+  NOTE: `wt` sends browser-normal headers on every request because
+  Workato's edge redirects python-urllib default headers (that User-Agent,
+  `Accept-Encoding: identity`, no Accept) to the sign-in page on newer API
+  routes, even with a valid token. If you script the API yourself with
+  urllib, set a real User-Agent and Accept header or you will chase
+  phantom scope gaps.
 - `wt testcases run|status|cases`: the Test Automation API, programmatically.
   Run test cases by manifest, project, folder, recipe, or explicit IDs, then
   poll the run request. This is the regression-harness primitive: nightly
-  test runs across the estate without opening the UI. Requires the Test
-  Automation scope on your API client.
+  test runs across the estate without opening the UI.
 - `wt api METHOD <path>`: raw passthrough, so every discovered endpoint is
   callable even before a dedicated subcommand exists.
 
