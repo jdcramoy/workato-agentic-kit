@@ -70,9 +70,10 @@ N_OUT=$(ls "${K}/dreams/bus/"*.jsonl 2>/dev/null | wc -l | tr -d ' ')
 for a in brain-gardener workato-watchdog estate-architect promotion-orchestrator; do
   [ -f "${HOME}/.claude/agents/$a.md" ] && row PASS "agent: $a" "installed" || row FAIL "agent: $a" "missing"
 done
-for sk in airo-mcp-playbook workato-development-playbook harness-dreamer; do
+for sk in airo-mcp-playbook workato-development-playbook; do
   [ -f "${HOME}/.claude/skills/$sk/SKILL.md" ] && row PASS "skill: $sk" "installed" || row FAIL "skill: $sk" "missing"
 done
+[ -f "${HOME}/.claude/agents/harness-dreamer.md" ] && row PASS "agent: harness-dreamer" "installed" || row FAIL "agent: harness-dreamer" "missing"
 
 # --- 8. MCP servers -----------------------------------------------------------
 # health checks are occasionally flaky right after other CLI calls: one retry
