@@ -306,6 +306,7 @@ export function register(on) {
         '10. build ledger — AIRO mutations (dev+prod) with ticket tracking\n' +
         '11. build ledger — CLI/Orca via Bash sniffing + CLI-start claim verification\n' +
         '12. recipe snapshot history → ~/.claude/recipe-history (git) on every push\n' +
+        '14. remote-identity guard (git push to non-org remote held for confirm)\n' +
         '13. prod-write confirm gate — EVERY surface (workato-prod, wt-prod, ' +
         'WORKATO_PROFILE=josh-prod, raw http w/ prod credential, Orca on prod urls)',
     }
@@ -675,6 +676,72 @@ export function register(on) {
           stdin: new Date().toISOString() + ' PROD-WRITE(' + surface + ') ' + cmd.slice(0, 200) + '\n',
         })
         $.ui.log('PROD WRITE · ' + surface + ' · ' + cmd.slice(0, 80))
+      }
+    }
+    return next(e)
+  })
+
+  // 14. REMOTE-IDENTITY GUARD — the 2026-10-07 incident: org work pushed to
+  //     a personal remote because the origin was misconfigured. On any Bash
+  //     `git push`, resolve where it actually points and hold non-org
+  //     destinations for an explicit confirm. Unresolvable = allow (never
+  //     block unrelated commands); URL-in-command mismatch = ask, fail-closed.
+  const ORG_REMOTE = /github\.com[/:]Workato-All\//i
+
+  function pushTargets(cmd) {
+    const urls = []
+    const urlRe = /https?:\/\/[^\s'"<>]*github\.com[/:][\w.-]+\/[\w.-]+|git@github\.com:[\w.-]+\/[\w.-]+/gi
+    let m
+    while ((m = urlRe.exec(cmd)) !== null) urls.push(m[0])
+    return urls
+  }
+
+  async function originIn(cmd, e) {
+    // best-effort cwd: the event may carry it, else fall back to process cwd
+    const cwd = String(e.cwd || e.workingDir || process.cwd())
+    try {
+      const res = await $.process.run(
+        ['sh', '-c', 'git -C "' + cwd + '" remote get-url origin 2>/dev/null'])
+      return String((res && (res.stdout ?? res.result ?? res)) || '').trim() || null
+    } catch {
+      return null
+    }
+  }
+
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const cmd = String(e.command ?? '')
+    if (/\bgit\b[^\n]*\bpush\b/.test(cmd) && !/\b(--dry-run|--delete)\b/.test(cmd)) {
+      // path 1: a literal non-org URL inside the command
+      const urls = pushTargets(cmd)
+      const badUrl = urls.find((u) => !ORG_REMOTE.test(u))
+      if (badUrl) {
+        let answer = 'Cancel'
+        try {
+          answer = await $.ui.ask(
+            '⚠️  git push targets a NON-ORG remote:\n  ' + badUrl +
+            '\nOrg work in a personal repo is how work gets lost. Push anyway?',
+            ['Push anyway', 'Cancel'])
+        } catch { answer = 'Cancel' }
+        if (answer !== 'Push anyway') {
+          return { deny: 'workato-guardrails remote-identity guard: push to non-org remote "' +
+            badUrl + '" not confirmed. Fix the remote (git remote set-url origin …) or confirm explicitly.' }
+        }
+        return next(e)
+      }
+      // path 2: bare push — check the origin remote of the resolved cwd
+      const origin = await originIn(cmd, e)
+      if (origin && !ORG_REMOTE.test(origin)) {
+        let answer = 'Cancel'
+        try {
+          answer = await $.ui.ask(
+            '⚠️  this repo\'s origin is NON-ORG:\n  ' + origin +
+            '\nPushing org work here? Confirm:',
+            ['Push anyway', 'Cancel'])
+        } catch { answer = 'Cancel' }
+        if (answer !== 'Push anyway') {
+          return { deny: 'workato-guardrails remote-identity guard: origin "' +
+            origin + '" is not an org remote; push not confirmed.' }
+        }
       }
     }
     return next(e)

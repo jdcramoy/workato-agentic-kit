@@ -44,7 +44,9 @@ CORRECTION_RE = re.compile(
 # Noise guards: short acks and injected/system lines aren't corrections.
 NOT_CORRECTION_RE = re.compile(
     r"^\s*(no problem|no worries|not now|note that|stop hook feedback|"
-    r"caveat:|<command|<local-command|system-reminder)\b", re.I)
+    r"caveat:|<command|<local-command|system-reminder|"
+    r"no[,,]?\s*(that'?s|this is|you'?re)\s*(perfect|great|good|exactly|"
+    r"right|fine|awesome|amazing|it|the one)\b)\b", re.I)
 ERROR_RE = re.compile(
     r"(?i)\b(error|exception|traceback|failed to|failure|denied|refused|"
     r"ECONNRESET|ETIMEDOUT|EPIPE|429|500 Internal|502|503|504|"
@@ -150,7 +152,12 @@ def main():
                                     errors[m.group(0).lower()] += 1
                     if txt and not txt.startswith(("<", "[{")):
                         line1 = txt.strip().splitlines()[0][:200]
-                        if (CORRECTION_RE.search(line1)
+                        # Josh's rule: a bare connective ("NO", "However",
+                        # "ok") resolves to nothing — a correction candidate
+                        # needs substantive text around the signal word.
+                        words = line1.split()
+                        if (len(line1) >= 15 and len(words) >= 3
+                                and CORRECTION_RE.search(line1)
                                 and not NOT_CORRECTION_RE.search(line1)
                                 and len(corrections) < cfg["max_correction_lines"]):
                             corrections.append({

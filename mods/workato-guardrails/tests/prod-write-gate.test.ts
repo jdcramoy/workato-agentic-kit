@@ -90,3 +90,34 @@ test('unrelated bash is untouched', async ($, on) => {
   expect(answer.deny).toBeUndefined()
   expect(String(answer.result)).toContain('files')
 })
+
+// ---- hook 14: remote-identity guard -----------------------------------------
+
+test('git push with a non-org URL in the command is blocked', async ($, on) => {
+  on('tool.call', () => ({ result: 'pushed' }))
+  const answer = await $.tool.call({
+    tool: 'Bash',
+    command: 'git push https://github.com/someone-else/some-repo.git main',
+  })
+  expect(answer.deny).toBeDefined()
+  expect(String(answer.deny)).toContain('remote-identity')
+})
+
+test('git push to an org URL passes through', async ($, on) => {
+  on('tool.call', () => ({ result: 'pushed' }))
+  const answer = await $.tool.call({
+    tool: 'Bash',
+    command: 'git push https://github.com/Workato-All/workato-agentic-kit.git main',
+  })
+  expect(answer.deny).toBeUndefined()
+})
+
+test('non-push git commands are untouched', async ($, on) => {
+  on('tool.call', () => ({ result: 'ok' }))
+  const answer = await $.tool.call({
+    tool: 'Bash',
+    command: 'git status && git log --oneline -1',
+  })
+  expect(answer.deny).toBeUndefined()
+  expect(String(answer.result)).toContain('ok')
+})
