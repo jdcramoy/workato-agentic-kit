@@ -30,6 +30,49 @@ sanitization pass (untrack config.sh, genericize the org identifiers).
 
 Then restart Claude Code and run `/guardrails`. Details below.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph SESSIONS[" daytime — every session "]
+        CC["Claude Code sessions"] --> MODS["🛡 enforcement mods\n13 guardrails hooks + 5 brain-guard hooks\nredact · gate · ledger · snapshot"]
+        CC --> SKILLS["playbook skills\nAIRO traps · delivery lifecycle"]
+        MODS --> LEDGERS["ledgers\nbuild ledger · claims · audit · telemetry"]
+    end
+
+    subgraph NIGHT[" nightly — the machines "]
+        DW["docs-watch\n22:15"] --> BUS
+        BG["brain gardener\n22:43"] --> BUS
+        WD["watchdog\n23:13"] --> BUS
+        BUS["📮 gossip bus\nper-agent outboxes — single writer\ncorroborate, never duplicate"]
+        HB["harness backup\n23:33"] --> REPO[("backup repo\nsecrets redacted")]
+        DREAMER["🌙 harness dreamer\n23:43 — reader-in-chief"]
+        BUS --> DREAMER
+        TX["transcripts\n593 files, 1.4GB"] --> MINE["dream-mine.py\ncorrections · repeats · errors"]
+        MINE --> DREAMER
+        DREAMER --> LADDER["trust ladder\nreport → propose → auto-safe"]
+        LADDER --> REPORTS["dream reports\n+ proposal queue"]
+    end
+
+    subgraph MORNING[" morning — the human "]
+        MB["morning brief\n07:13"] --> JOSH["Josh\napproves · upgrades · steers"]
+        REPORTS --> MB
+        BUS --> MB
+    end
+
+    REPO -.->|"git revert = rollback"| DREAMER
+    JOSH -->|"'set-mode propose'"| LADDER
+    JOSH -->|"'run the watchdog'"| WD
+```
+
+The dream is a first-class organ: during the day the harness records itself
+(mods ledger every mutation, telemetry logs every call, transcripts capture
+every session); at night the dreamer reads all of that plus what the other
+agents learned over the bus, and writes a report proposing what the harness
+should become; in the morning one brief hands Josh the whole night with
+corroboration counts as the trust signal. Nothing the dreamer proposes
+applies without Josh, and anything applied is one git revert away.
+
 ## How the layers fit together
 
 1. **Enforce (always on).** Two mods hook every tool call. They redact
@@ -323,7 +366,10 @@ reversible with `git revert` on the backup repo.
 - Restore: clone the repo, copy trees back to `~/.claude` / `~/mods`,
   re-enter keychain tokens, reinstall plugins, reload LaunchAgents.
 
-### The dreamer (23:43)
+### The dreamer (23:43) — agent type `harness-dreamer`
+
+The fifth agent SOP, and the only one that reads the harness instead of the
+estate. The nightly cron spawns it; it returns the report path + verdict.
 
 Mines the last N days of Claude Code session transcripts
 (`~/.claude/projects/**/*.jsonl`) via `scripts/dream-mine.py` (stdlib,
@@ -472,7 +518,7 @@ be auto-applied in any mode. Rollback for the whole kit is three commands:
 config.example.sh     per-person settings (workspaces, Jira fields)
 install.sh            renders templates + installs everything
 mods/                 the two plugins (hook modules + tests)
-agents/               the four agent SOPs
+agents/               the five agent SOPs (four watchers + the dreamer)
 skills/               airo-mcp-playbook, workato-development-playbook,
                       jira-story-standards (adapt to your team)
 bin/wt                Workato Toolbox: Developer API wrapper (manifests,
