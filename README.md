@@ -343,6 +343,9 @@ the exact prompts.
    health, crons, and backup. Exits non-zero on hard failures.
 5. Restart Claude Code, then run `/guardrails` to confirm the hooks loaded
    (13 hooks in workato-guardrails).
+9. Uninstall any time: `./uninstall.sh` — removes everything the kit
+   installed, preserves your accumulated knowledge (add `--purge` to delete
+   that too).
 5. Prod CLI access (only if you gate production through this kit): store the
    prod API token in the keychain for the `PROFILE_PROD` account, then
    `workato-prod` / `wt-prod` target production and every write confirms
