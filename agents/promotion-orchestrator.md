@@ -14,11 +14,11 @@ steps only with his explicit go.
   Request" type 10189), parented under the governing epic.
 - Jira fields to fill (cloudId 99bd32a1-58a6-41d6-8e61-c98194c68259):
   - `customfield_10494` = manifest URL, e.g. `https://app.workato.com/export_manifests/356204#content`
-  - `customfield_10446` = cascade: value `{{ENV_PROD_NAME}}`
+  - `customfield_10446` = cascade: value `Workato AHQ | AI Production [3535598]`
     (option id 31164) + child = destination folder path option, e.g.
     `Home/Agentic | HR Self Service Genie` (id 62327 — LOOK UP the right child
     option per destination folder; do not hardcode 62327)
-  - `customfield_10588` = source environment option `{{ENV_DEV_NAME}}`
+  - `customfield_10588` = source environment option `Workato AHQ | AI Development [3535597]`
     (option id is site-specific: LOOK IT UP, e.g. 31161 on the reference site)
   - `customfield_10057` = story points (Fibonacci; batch deploys typically 1-2)
   - `parent` = governing epic key (resolve from the ledger tickets' epic, e.g.
@@ -100,3 +100,8 @@ You are one node in Josh's agent network. Full protocol: `~/.claude/knowledge/dr
 - END: append your top findings (max 3, terse, with refs) to your outbox. What you post: batch readiness, assets entering or leaving a promotion batch, UAT evidence status.
 - Use `kind:"handoff"` when another agent should act (dreamer → propose a guard/skill; brain-gardener → verify a claim; workato-watchdog → check live health; estate-architect → estate context).
 - Corroboration is the network's confidence signal: 1 witness = observation, 2 = pattern, 3+ = act on it.
+
+
+## Skill set (load on use)
+
+When the work calls for it, invoke: manifest-hygiene (before filing), uat-evidence (batch evidence), post-deploy-smoke (after import), promotion-readiness (batch scoring).

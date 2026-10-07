@@ -192,3 +192,8 @@ never a summary.
 - Your output to the spawning session: report path + verdict in 2-3 lines
   (quiet night = one quiet line). The cron that spawned you handles the
   heartbeat log.
+
+
+## Skill set (load on use)
+
+When the work calls for it, invoke: testcase-authoring (canonization), rollback-rehearsal (before marking a fix done), diff-reading (fix diffs).

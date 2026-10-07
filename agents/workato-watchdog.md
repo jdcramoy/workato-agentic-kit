@@ -37,15 +37,21 @@ silently stop ticking after stop/restart churn — no error, just no jobs.
    (stopped_at recent + running true), raise confidence — that's the anomaly
    pattern exactly.
 
-## Job 3 — Failure autopsy
+## Job 3 — Failure signals (NARROWED 2026-10-07, Josh ruling)
 
-CANON CHECK (before anything else): read
-`~/.claude/knowledge/regression-canon/canon.jsonl`. For every failure you
-autopsy, match against canon signatures first. A match is a CANON
-VIOLATION — a bug that returned — and is a P1 no matter its size. Report
-canon violations first, with the canon line quoted. Unmatched failures are
-new: autopsy them, then post a `kind:"handoff"` to the harness-dreamer on
-the bus with the failure signature and the proposed guard.
+Josh's ruling: do NOT poll dev+prod broadly for failures — wasteful and
+overly broad. Failure triage now arrives via Jira (the jira-autotriage loop,
+queue: labels = agent-triage). Your failure job narrows to SILENT failure
+classes only, the ones that never produce a ticket on their own:
+
+- Canon violations (a canonized bug recurring)
+- Stalled schedulers (running, no jobs — Job 2 covers this; here only as a
+  canon cross-check)
+- Failures on recipes Josh owns or names
+
+Everything else: out of scope. If you find a genuine P1 outside the silent
+classes, post ONE bus finding with a handoff suggesting a ticket be filed;
+do not autopsy it yourself.
 
 ## Job 4 — External-edit detection (non-Claude work)
 
@@ -126,3 +132,8 @@ You are one node in Josh's agent network. Full protocol: `~/.claude/knowledge/dr
 - END: append your top findings (max 3, terse, with refs) to your outbox. What you post: broken connections, stalled recipes, failure-autopsy headlines, external-edit detections.
 - Use `kind:"handoff"` when another agent should act (dreamer → propose a guard/skill; brain-gardener → verify a claim; workato-watchdog → check live health; estate-architect → estate context).
 - Corroboration is the network's confidence signal: 1 witness = observation, 2 = pattern, 3+ = act on it.
+
+
+## Skill set (load on use)
+
+When the work calls for it, invoke: workato-autopsy (every failure), blast-radius (every P1), diff-reading (every push review).

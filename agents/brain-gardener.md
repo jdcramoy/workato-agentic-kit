@@ -172,3 +172,8 @@ You are one node in Josh's agent network. Full protocol: `~/.claude/knowledge/dr
 - END: append your top findings (max 3, terse, with refs) to your outbox. What you post: stale claims found, harvest completions, knowledge conflicts needing a second opinion.
 - Use `kind:"handoff"` when another agent should act (dreamer → propose a guard/skill; brain-gardener → verify a claim; workato-watchdog → check live health; estate-architect → estate context).
 - Corroboration is the network's confidence signal: 1 witness = observation, 2 = pattern, 3+ = act on it.
+
+
+## Skill set (load on use)
+
+When the work calls for it, invoke: claim-verification (every stale/low-confidence claim).
