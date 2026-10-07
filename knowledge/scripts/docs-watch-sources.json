@@ -1,0 +1,5 @@
+[
+  { "label": "Workato changelog (product hub)", "url": "https://www.workato.com/product-hub/changelog/" },
+  { "label": "Workato docs product-updates (markdown)", "url": "https://docs.workato.com/en/product-updates.md" },
+  { "label": "Workato platform status", "url": "https://status.workato.com/history.rss" }
+]

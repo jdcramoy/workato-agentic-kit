@@ -1,0 +1,5 @@
+cron: 31 22 * * *
+durable: true
+recurring: true
+prompt:
+[docs-watch-nightly] Run the Workato docs crawler: Bash `python3 ~/.claude/knowledge/scripts/workato-docs-watch.py`. If it reports 1+ "changed" sources, read the changed entries in ~/.claude/knowledge/garden-reports/platform-delta.jsonl (today's rows only) and summarize for Josh in 2-4 bullets: what shipped/changed and whether any skill/playbook (airo-mcp-playbook, workato-development-playbook, workato-skill-builder) or mod likely needs an update — propose, don't apply. If 0 changed, reply with a single quiet line. LAST STEP (never skip): Bash-append one line {"ts":"<now ISO>","job":"docs-watch"} to ~/.claude/knowledge/garden-reports/heartbeat.jsonl.

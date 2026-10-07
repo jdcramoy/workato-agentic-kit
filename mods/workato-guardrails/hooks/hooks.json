@@ -1,0 +1,4 @@
+{
+  "description": "workato-guardrails hooks module",
+  "modules": ["./register.js"]
+}
