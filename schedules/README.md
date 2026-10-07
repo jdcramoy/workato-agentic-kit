@@ -30,6 +30,7 @@ appends to the heartbeat log the watchdog checks.
 | Mon 06:07 | corpus indexer | corpus-indexer-weekly.txt |
 | 23:33 daily | harness backup (git, secrets redacted) | harness-backup-nightly.txt |
 | 23:43 daily | harness dreamer (mine + report + proposals; trust ladder) | harness-dreamer-nightly.txt |
+| 07:13 daily | morning brief (machine + bus + dream + Jira + repos, one digest) | morning-brief-daily.txt |
 | Mon 06:37 | estate architect | estate-architect-weekly.txt |
 
 Promotion prep is ON-DEMAND (batches are inventory-driven, not
