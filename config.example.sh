@@ -3,13 +3,13 @@
 # Copy to config.sh, fill in your values, then run ./install.sh
 
 # Your macOS home (leave as $HOME unless you know better)
-export KIT_HOME="${HOME}"
+: "${KIT_HOME:=${HOME}}"   # only set if not already in the environment
 
 # Workato workspace IDs (Settings → Workspace). Dev first, prod second.
-export WORKSPACE_DEV="3535597"          # e.g. "Workato AHQ | AI Development"
-export WORKSPACE_PROD="3535598"         # e.g. "Workato AHQ | AI Production"
-export ENV_DEV_NAME="Workato AHQ | AI Development [3535597]"
-export ENV_PROD_NAME="Workato AHQ | AI Production [3535598]"
+export WORKSPACE_DEV=""                   # YOUR dev workspace id (digits) — run ./onboard.sh to be asked nicely
+export WORKSPACE_PROD=""                  # YOUR prod workspace id (blank = no prod wrappers)
+export ENV_DEV_NAME="Development [${WORKSPACE_DEV}]"
+export ENV_PROD_NAME="Production [${WORKSPACE_PROD}]"
 
 # Jira site + the promotion-story field IDs on YOUR site.
 # Find them: create/fetch one past promotion story with GET fields=*all and
@@ -28,8 +28,8 @@ export FIELD_POINTS="customfield_10057"        # story points (number)
 export PROJECT_PATH="${HOME}/Documents/workbench"
 
 # Prod CLI/WT (workato-prod, wt-prod wrappers): keychain account = profile name.
-export PROFILE_DEV="josh-us"
-export PROFILE_PROD="josh-prod"
+export PROFILE_DEV="dev"
+export PROFILE_PROD="prod"
 
 # Harness backup (harness-backup.sh): local clone of YOUR backup repo + its
 # origin. Leave URL empty to commit locally without pushing.

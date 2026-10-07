@@ -3,7 +3,7 @@
 # Copy to config.sh, fill in your values, then run ./install.sh
 
 # Your macOS home (leave as $HOME unless you know better)
-export KIT_HOME="${HOME}"
+: "${KIT_HOME:=${HOME}}"   # only set if not already in the environment
 
 # Workato workspace IDs (Settings → Workspace). Dev first, prod second.
 export WORKSPACE_DEV="3535597"          # e.g. "Workato AHQ | AI Development"
@@ -26,3 +26,7 @@ export FIELD_POINTS="customfield_10057"        # story points (number)
 # The Claude Code project directory this kit's agents operate from by default
 # (the brain-gardener's cron + memory live per-project).
 export PROJECT_PATH="${HOME}/Documents/workbench"
+
+# CLI profiles (keychain accounts) used by wt-prod / workato-prod
+export PROFILE_DEV="josh-us"
+export PROFILE_PROD="josh-prod"

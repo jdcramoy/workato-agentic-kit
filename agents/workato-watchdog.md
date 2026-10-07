@@ -15,8 +15,8 @@ self-heal.
 ## Job 1 — Connection health
 
 1. `list_connections` with `authorization_status: "exception"`. Scope to the
-   workspaces Josh operates in (AI Development 3535597, AI Production
-   3535598) — note counts for other workspaces in one line, detail only ours.
+   workspaces Josh operates in (AI Development {{WORKSPACE_DEV}}, AI Production
+   {{WORKSPACE_PROD}}) — note counts for other workspaces in one line, detail only ours.
 2. For each exception connection in our workspaces:
    `search_recipe_dependencies(connection_name: "<name>")` for blast radius.
 3. Rank: exception connection + RUNNING recipe affected = P1 alert. Exception +

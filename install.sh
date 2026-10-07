@@ -25,11 +25,25 @@ python3 -c "import sys; v=tuple(int(x) for x in '$CC_VERSION'.split('.')); sys.e
 
 # --- config ----------------------------------------------------------------
 if [ ! -f config.sh ]; then
-  cp config.example.sh config.sh
-  echo "NOTE: created config.sh from the example — EDIT IT (workspace IDs, Jira field IDs), then re-run ./install.sh"
-  echo "      (the kit is installed but agents will reference placeholder values until you do)"
+  if [ -t 0 ]; then
+    echo "No config.sh found — starting onboarding (answer ~14 questions, get config.sh):"
+    exec ./onboard.sh   # runs install.sh at the end
+  else
+    cp config.example.sh config.sh
+    echo "NOTE: no config.sh and stdin is not a terminal, so onboarding was skipped."
+    echo "      Installed from the example — either run ./onboard.sh (interactive) or"
+    echo "      edit config.sh by hand, then re-run ./install.sh"
+  fi
 fi
 source config.sh
+# placeholder guard: empty workspace IDs produce agents that point at nothing
+if [ -z "${WORKSPACE_DEV:-}" ]; then
+  echo "WARNING: WORKSPACE_DEV is empty — agents will reference blank workspace IDs."
+  echo "         Run ./onboard.sh to fix, then re-run ./install.sh"
+fi
+if [ "${WORKSPACE_DEV:-}" = "3535597" ] || [ "${WORKSPACE_PROD:-}" = "3535597" ]; then
+  echo "NOTE: workspace 3535597 is the kit author's dev workspace; make sure that is intended."
+fi
 
 render() {
   # render <src> <dest>: token substitution via python (config values may
