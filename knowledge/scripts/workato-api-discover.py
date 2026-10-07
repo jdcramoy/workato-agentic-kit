@@ -60,6 +60,46 @@ def parse(md_text):
     return endpoints
 
 
+
+# --- scope-gap probe: for API groups with no dedicated wt subcommand, hit
+# one endpoint; a login page or 401 missing_privilege = API client scope gap.
+def probe_scope_gaps(profile=None):
+    from importlib.machinery import SourceFileLoader
+    if not os.path.exists(WT):
+        return
+    try:
+        wt = SourceFileLoader('wtmod', WT).load_module()
+        host, token = wt.client(type('A', (), {'profile': profile})())
+    except Exception:
+        print('(scope probe unavailable: could not resolve wt client)')
+        return
+    eps = [json.loads(l) for l in open(INDEX) if l.strip()]
+    seen = {}
+    for ep in eps:
+        seen.setdefault(ep['group'], ep)
+    impl = set(re.findall(r'add_parser\("([a-z_]+)"', open(WT).read()))
+    gaps = []
+    for g, ep in sorted(seen.items()):
+        if any(i in g.lower().replace(' ', '') or g.lower().split()[0] in i
+               for i in impl):
+            continue
+        try:
+            rr = wt.request(host, token, 'GET', ep['path'])
+            body = rr if isinstance(rr, str) else json.dumps(rr)
+            if 'sign_in' in body or '<html' in body[:400]:
+                gaps.append((g, ep['path'], 'login-page (scope not granted)'))
+        except BaseException as ex:  # wt dies with SystemExit on 401s
+            msg = str(ex)
+            if '401' in msg or 'missing_privilege' in msg:
+                gaps.append((g, ep['path'], '401 missing_privilege'))
+            # other errors (404 on GET-only paths etc.) are not scope signals
+    if gaps:
+        print('SCOPE GAPS (grant these to your API client in Workspace admin):')
+        for g, path, why in gaps:
+            print(f'  {g}: {path} — {why}')
+    else:
+        print('scope probe: no gaps across unimplemented groups.')
+
 def key(ep):
     return ep['method'] + ' ' + ep['path']
 
@@ -120,6 +160,7 @@ def main():
         print(f"API groups: {len(by_group)} — {', '.join(sorted(by_group))}")
         print("everything is reachable via `wt api METHOD <path>`; dedicated")
         print("subcommands are an ergonomics upgrade the gardener proposes.")
+        probe_scope_gaps(os.environ.get('WT_PROFILE'))
 
     # rotate current -> previous for next diff
     if os.path.exists(INDEX):

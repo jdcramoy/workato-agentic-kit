@@ -21,6 +21,7 @@ Examples:
 """
 
 import argparse
+import re
 import json
 import os
 import subprocess
@@ -62,12 +63,28 @@ def die(msg, code=1):
 
 
 def client(args):
-    profile, p = load_profile(args.profile)
+    # Profile resolution: explicit --profile wins, then WORKATO_PROFILE (set by
+    # the wt-prod wrapper so every subcommand can target prod without worrying
+    # about per-subcommand flag placement), then current_profile from the file.
+    requested = getattr(args, "profile", None) or os.environ.get("WORKATO_PROFILE")
+    profile, p = load_profile(requested)
     host = p.get("region_url", "https://www.workato.com").rstrip("/")
-    token = os.environ.get("WORKATO_API_TOKEN") or keychain_token(profile)
+    # Safety: an explicitly targeted profile means the caller means THAT
+    # environment. The ambient WORKATO_API_TOKEN belongs to whatever profile is
+    # exported (usually dev), so the named profile's keychain token must win —
+    # otherwise a prod invocation would silently run as dev. Env is only a
+    # fallback when the profile has no keychain entry.
+    if requested:
+        token = keychain_token(profile) or os.environ.get("WORKATO_API_TOKEN")
+    else:
+        token = os.environ.get("WORKATO_API_TOKEN") or keychain_token(profile)
     if not token:
         die(f"no API token: set WORKATO_API_TOKEN or store one via "
             f"'workato profiles' (keychain service '{KEYCHAIN_SERVICE}')")
+    if str(p.get("environment", "")).lower() == "production":
+        print(f"⚠️  wt: PRODUCTION instance — {p.get('label', profile)} "
+              f"(workspace {p.get('workspace_id')}). Writes require confirmation.",
+              file=sys.stderr)
     return host, token
 
 
@@ -531,8 +548,34 @@ def add_json_body(p):
     p.add_argument("--data", dest="body", help="JSON request body (string)")
 
 
+def cmd_testcases(a):
+    """Test Automation API: run test cases by manifest/project/folder/recipe,
+    then poll the run request by id."""
+    host, token = client(a)
+    if a.op == "run":
+        body = {}
+        if a.manifest: body["manifest_id"] = a.manifest
+        if a.project: body["project_id"] = a.project
+        if a.folder: body["folder_id"] = a.folder
+        if a.recipe: body["recipe_id"] = a.recipe
+        if a.ids: body["test_case_ids"] = [x for x in a.ids.split(",") if x]
+        if len(body) != 1:
+            die("choose exactly one scope: --manifest | --project | --folder | --recipe | --ids")
+        out = request(host, token, "POST",
+                      "/api/test_cases/run_requests", data=json.dumps(body))
+        print(json.dumps(out, indent=2))
+    elif a.op == "status":
+        out = request(host, token, "GET",
+                      f"/api/test_cases/run_requests/{a.run_id}")
+        print(json.dumps(out, indent=2))
+    elif a.op == "cases":
+        out = request(host, token, "GET",
+                      f"/api/recipes/{a.recipe}/test_cases")
+        print(json.dumps(out, indent=2))
+
 def cmd_discover(a):
     """Self-discover the Workato Developer API surface and report coverage."""
+    host, token = client(a)
     script = os.path.expanduser(
         "~/.claude/knowledge/scripts/workato-api-discover.py")
     if not os.path.exists(script):
@@ -545,7 +588,6 @@ def cmd_discover(a):
         print(r.stdout, end="" if r.stdout.endswith("\n") else "\n")
     if r.returncode != 0:
         print(r.stderr, file=sys.stderr)
-
 def main():
     ap = argparse.ArgumentParser(prog="wt", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -694,6 +736,17 @@ def main():
     p.add_argument("--refresh", action="store_true",
                    help="re-harvest the endpoint index from Workato docs")
     p.set_defaults(fn=cmd_discover)
+
+    p = sub.add_parser("testcases", help="Test Automation API: run/poll recipe test cases")
+    add_common(p)
+    p.add_argument("op", choices=["run", "status", "cases"])
+    p.add_argument("--manifest", type=int)
+    p.add_argument("--project", type=int)
+    p.add_argument("--folder", type=int)
+    p.add_argument("--recipe", type=int)
+    p.add_argument("--ids", help="comma-separated test case ids")
+    p.add_argument("--run-id", help="run request id, for op=status")
+    p.set_defaults(fn=cmd_testcases)
 
     args = ap.parse_args()
     # small post-parse normalizations

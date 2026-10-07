@@ -172,10 +172,26 @@ A python CLI over the Workato Developer API for the operations AIRO MCP and
 the Dev CLI do not expose: manifest creation and asset listing, package
 export and import with recipe restart, recipe start, stop, and force-run,
 job rerun and cancel, lookup-table row writes, connections CRUD, and
-project property upserts. The promotion orchestrator uses it for manifests
-and packages; the recipe-control path uses it for lifecycle. Authentication
-comes from `WORKATO_API_TOKEN` or the keychain entry the Workato platform
-CLI stores; no token ships in this kit and none should.
+project property upserts. Three discovery and testing capabilities on top:
+
+- `wt discover` (+ `--refresh`): harvests the full Developer API reference
+  (302 endpoints across 32 groups) from the docs markdown into a local
+  index, reports new and removed endpoints since the last run, shows which
+  groups have dedicated `wt` subcommands, and probes unimplemented groups
+  for **scope gaps** (a login page or 401 missing-privilege means your API
+  client needs that permission granted in Workspace admin). This is the
+  self-discovery loop: Workato ships a new API group, the next `wt
+  discover` sees it, and the gardener proposes the new subcommand.
+- `wt testcases run|status|cases`: the Test Automation API, programmatically.
+  Run test cases by manifest, project, folder, recipe, or explicit IDs, then
+  poll the run request. This is the regression-harness primitive: nightly
+  test runs across the estate without opening the UI. Requires the Test
+  Automation scope on your API client.
+- `wt api METHOD <path>`: raw passthrough, so every discovered endpoint is
+  callable even before a dedicated subcommand exists.
+
+Authentication comes from `WORKATO_API_TOKEN` or the keychain entry the
+Workato platform CLI stores; no token ships in this kit and none should.
 
 ### Schedules
 
