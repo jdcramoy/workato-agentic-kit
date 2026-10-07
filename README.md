@@ -266,8 +266,10 @@ project property upserts. Three discovery and testing capabilities on top:
   phantom scope gaps.
 - `wt testcases run|status|cases`: the Test Automation API, programmatically.
   Run test cases by manifest, project, folder, recipe, or explicit IDs, then
-  poll the run request. This is the regression-harness primitive: nightly
-  test runs across the estate without opening the UI.
+  poll the run request. The shipped `regression-nightly.py` builds on this:
+  it scans the workspace for recipes with test cases, runs them all, and
+  writes a pass/fail report with job IDs for autopsy (first live run: 400
+  recipes scanned, 3 with cases, 2 real regressions caught).
 - `wt api METHOD <path>`: raw passthrough, so every discovered endpoint is
   callable even before a dedicated subcommand exists.
 
@@ -299,6 +301,7 @@ the exact prompts.
 | 23:43 daily | Harness dreamer (reader-in-chief of the bus; pragmatic + inventive report) |
 | Mon 06:07 | Corpus indexer (recipes + task counters, dev and prod) |
 | Mon 06:37 | Estate architect (full review) |
+| 00:13 daily | Regression harness: run every recipe's test cases via the Test Automation API, report failures with job IDs |
 
 ## Install
 

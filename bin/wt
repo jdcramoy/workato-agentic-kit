@@ -567,7 +567,7 @@ def cmd_testcases(a):
         if len(body) != 1:
             die("choose exactly one scope: --manifest | --project | --folder | --recipe | --ids")
         out = request(host, token, "POST",
-                      "/api/test_cases/run_requests", data=json.dumps(body))
+                      "/api/test_cases/run_requests", data=body)
         print(json.dumps(out, indent=2))
     elif a.op == "status":
         out = request(host, token, "GET",
