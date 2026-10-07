@@ -2,13 +2,15 @@
 
 A self-teaching, self-learning, and self-healing development harness for
 agentic Workato work in Claude Code. It wraps an AI-assisted Workato
-developer (human or agent) in six layers: enforcement mods that make the
+developer (human or agent) in seven layers: enforcement mods that make the
 standing rules mechanical, playbook skills that pass everything already
 learned to every session, a Developer API wrapper for the operations the
 platform tools do not expose, watcher agents that inspect the estate on a
-schedule, a curated knowledge system that captures lessons and verifies them
-against live behavior, and a promotion pipeline that turns tracked dev work
-into governed production releases.
+schedule and corroborate each other over a shared bus, a curated knowledge
+system that captures lessons and verifies them against live behavior, a
+promotion pipeline that turns tracked dev work into governed production
+releases, and a nightly dreamer that mines every session transcript to
+improve the harness itself.
 
 The design goal: no rule should depend on memory, no failure should depend on
 luck, and no knowledge should live only in one session's context.
@@ -39,6 +41,12 @@ luck, and no knowledge should live only in one session's context.
 6. **Promote (on demand).** A promotion orchestrator assembles batches from
    the build ledger, files the deployment story with your site's real field
    IDs, and stages production execution behind explicit approval.
+7. **Dream (nightly).** A backup job snapshots the whole harness (secrets
+   redacted) so agent-made changes are reversible, and a dreamer mines recent
+   session transcripts for corrections, repeats, and recurring errors, then
+   reports and proposes under a three-rung trust ladder. The agents talk over
+   a race-free gossip bus; the dreamer reads the whole night's bus and
+   synthesizes it last.
 
 ## The inventory in detail
 
@@ -80,6 +88,11 @@ Each agent is a markdown SOP in `~/.claude/agents/`. They are advisory: they
 report and propose, they never mutate the estate or the knowledge base
 without approval. The exception is proposal branches, which land only on
 `gardener/*` branches of the knowledge repo.
+
+Every agent is a node on the gossip bus: it reads the bus at start
+(corroborates existing threads instead of duplicating them), posts its top
+findings at end, and uses handoffs to route work to another agent. Protocol:
+`knowledge/dreams/GOSSIP.md`.
 
 **brain-gardener** (nightly 22:43, full review weekly). Reads its own
 acceptance-rate log first, then inventories the knowledge tree against its
@@ -138,8 +151,12 @@ go.
   feed the gardener and heatmap read. Build ledger lives at
   `~/.claude/knowledge/build-ledger.jsonl`.
 - **Scripts** (`knowledge/scripts/`): cost heatmap, recipe corpus search,
-  dedup shortlister, harvest-rate gauge, and the docs crawler. All stdlib
-  python.
+  dedup shortlister, harvest-rate gauge, docs crawler, dream miner
+  (`dream-mine.py`), trust-ladder control (`dream-config.py`), gossip-bus
+  reader (`gossip-read.py`), and the harness backup. All stdlib python.
+- **Dreams** (`knowledge/dreams/`): dated dream reports, the proposal queue
+  (`proposals/`, status: proposed → approved → applied / rejected), the
+  trust-ladder `config.json`, and the gossip bus (`bus/<agent>.jsonl`).
 - **Garden reports** (`garden-reports/`): dated reports from every agent
   run, plus the proposal-outcomes log the gardener uses to grade itself.
 
@@ -194,6 +211,15 @@ project property upserts. Three discovery and testing capabilities on top:
 Authentication comes from `WORKATO_API_TOKEN` or the keychain entry the
 Workato platform CLI stores; no token ships in this kit and none should.
 
+**Production instances** (`wt-prod`, `workato-prod`): mirror the dev/prod
+AIRO MCP split. Each wrapper reads the PRODUCTION token from the keychain
+(`security add-generic-password -s workato-platform-cli -a <prod-profile> -w
+<token> -U`) per invocation, so the prod credential never sits in a shell
+profile, and prints a PROD banner. Every write through them is held for
+confirmation by guardrails hook 13. `workato` (the Dev CLI) must be
+overridden per invocation because it prefers `WORKATO_API_TOKEN` over the
+keychain; the wrapper handles that.
+
 ### Schedules
 
 All agent schedules are self-rearming: each run re-creates its task before
@@ -206,6 +232,8 @@ the exact prompts.
 | 22:31 daily | Docs crawler summary in-session |
 | 22:43 daily | Brain gardener (incremental) |
 | 23:13 daily | Workato watchdog, including the heartbeat check |
+| 23:33 daily | Harness backup (git snapshot, secrets redacted, push if configured) |
+| 23:43 daily | Harness dreamer (reader-in-chief of the bus; pragmatic + inventive report) |
 | Mon 06:07 | Corpus indexer (recipes + task counters, dev and prod) |
 | Mon 06:37 | Estate architect (full review) |
 
@@ -218,8 +246,21 @@ the exact prompts.
    field IDs. The comments explain how to discover the field IDs from one
    of your past promotion stories.
 3. `./install.sh`
-4. Restart Claude Code, then run `/guardrails` to confirm the hooks loaded.
-5. Set up schedules from `schedules/README.md`.
+4. Restart Claude Code, then run `/guardrails` to confirm the hooks loaded
+   (13 hooks in workato-guardrails).
+5. Prod CLI access (only if you gate production through this kit): store the
+   prod API token in the keychain for the `PROFILE_PROD` account, then
+   `workato-prod` / `wt-prod` target production and every write confirms
+   first. Test with a read: `wt-prod api GET /api/users/me`.
+6. Harness backup: set `BACKUP_REPO_LOCAL` + `BACKUP_REPO_URL` in config.sh
+   (empty URL = local commits only), then run `harness-backup` once and check
+   the push.
+7. Set up schedules from `schedules/README.md`. Keep the nightly order:
+   docs-watch first (first bus poster), dreamer last (reader-in-chief).
+8. The dreamer starts at trust-ladder mode `report`. Read the dream reports
+   for a few nights, then upgrade with
+   `python3 ~/.claude/knowledge/scripts/dream-config.py set-mode propose`
+   (and later `auto-safe`). `never_auto` is constitutional in every mode.
 
 ## The self-improvement loop (dreamer + gossip bus)
 
@@ -247,15 +288,25 @@ architect, promotion-orchestrator) each append only to their own outbox
 runs last each night as reader-in-chief and synthesizes the merged view
 (`scripts/gossip-read.py`). Corroboration is the confidence unit: 1 witness =
 observation, 2 = pattern, 3+ = act on it. Handoffs route work between agents.
+
+**Morning read**: one command tells you what the whole network found and how
+strongly: `python3 ~/.claude/knowledge/scripts/gossip-read.py --since 24h`.
+The dream report (`knowledge/dreams/<date>.md`) carries the analysis and the
+proposal queue.
+
 ## Trust model
 
 The mods run with your permissions and are not sandboxed. Every hook
 declares the events it handles, and `claude plugin validate <dir>` prints
-every event and API call before you install. The agents are read-only
-against Workato: production import steps run only on explicit approval, one
-stage at a time, and knowledge mutations land as proposal branches. Rollback
-for the whole kit is two commands: `claude plugin uninstall <mod>` and
-deleting `~/.claude/agents` entries.
+every event and API call before you install. The prod-write confirm gate
+(hook 13) fails closed: a dismissed dialog blocks the command. The agents
+are read-only against Workato: production import steps run only on explicit
+approval, one stage at a time, and knowledge mutations land as proposal
+branches. The dreamer's trust ladder is enforced by config, and its
+`never_auto` list (skills, hooks, mods, agents, settings, crons, MCP) cannot
+be auto-applied in any mode. Rollback for the whole kit is three commands:
+`claude plugin uninstall <mod>`, deleting `~/.claude/agents` entries, and
+`git revert` on the backup repo for anything an agent applied.
 
 ## Layout
 
