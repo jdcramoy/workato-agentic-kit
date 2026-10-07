@@ -82,16 +82,25 @@ def main():
               if not isinstance(e.get("ts"), str)
               or _ts(e.get("ts")) >= cutoff]
 
-    # corroboration tally per thread
+    # corroboration tally per thread — INDEPENDENT witnesses only: an agent
+    # verifying its own finding is a self-check, not corroboration.
     tallies = {}
     for ev in events:
         tid = ev.get("thread_id") or ev.get("subject")
-        if tid:
-            tallies.setdefault(tid, {"corroborations": 0, "witnesses": set(),
-                                     "subject": ev.get("subject", tid)})
-            if ev.get("kind") == "verify":
-                tallies[tid]["corroborations"] += 1
-            tallies[tid]["witnesses"].add(ev.get("agent", "?"))
+        if not tid:
+            continue
+        t = tallies.setdefault(tid, {"corroborations": 0, "witnesses": set(),
+                                     "subject": ev.get("subject", tid),
+                                     "finder": None})
+        if ev.get("kind") == "finding" and t["finder"] is None:
+            t["finder"] = ev.get("agent")
+        if ev.get("kind") in ("verify", "corroboration"):
+            if t["finder"] and ev.get("agent") != t["finder"]:
+                t["corroborations"] += 1
+            else:
+                t.setdefault("self_verifies", 0)
+                t["self_verifies"] += 1
+        t["witnesses"].add(ev.get("agent", "?"))
     for tid, t in tallies.items():
         t["witness_count"] = len(t["witnesses"])
 
@@ -122,9 +131,12 @@ def main():
     for tid, t in sorted(tallies.items(),
                          key=lambda kv: (-kv[1]["corroborations"],
                                          -kv[1]["witness_count"]))[:10]:
-        tag = "PATTERN " if t["corroborations"] >= 1 or t["witness_count"] >= 2 else "solo    "
+        self_v = t.get("self_verifies", 0)
+        independent = len(t["witnesses"]) >= 2
+        tag = "PATTERN  " if t["corroborations"] >= 1 or independent else "solo     "
+        note = f'  (+{self_v} self-checks, not counted)' if self_v else ''
         print(f'  {tag} {t["corroborations"]}x  {t["witness_count"]} witnesses  '
-              f'{tid[:60]}')
+              f'{tid[:56]}{note}')
     return 0
 
 

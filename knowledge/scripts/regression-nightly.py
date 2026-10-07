@@ -16,6 +16,7 @@ Usage: python3 regression-nightly.py [--max-recipes 300] [--skip-scan]
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -143,6 +144,36 @@ def main():
     lines.insert(1, f'**{total_pass} passed, {total_fail} failed, {total_err} errors**')
     lines.append('')
     lines.append('_Dev-only test runs (is_test jobs). Failures carry job IDs for autopsy._')
+
+    # canon auto-seed: a failure with no canon entry becomes one (status open).
+    # Closes the intake lag — the canon grows itself instead of waiting for
+    # the watchdog to rediscover failures.
+    canon_path = CANON
+    canon_now = load_canon()
+    seeded = 0
+    for res in results:
+        if res.get('error'):
+            continue
+        data = res.get('data') or {}
+        fails = [c for c in data.get('results', []) if c.get('status') == 'failed']
+        rid = str(res['recipe_id'])
+        if fails and rid not in canon_now:
+            for c in fails:
+                sig = ('regression-fail-' + re.sub(r'[^a-z0-9]+', '-',
+                        c.get('test_case', {}).get('name', 'unknown').lower())[:48].strip('-'))
+                canon_now.setdefault(rid, []).append({
+                    'signature': sig, 'recipe_id': int(rid), 'kind': 'regression-failure',
+                    'found_by': 'regression-nightly', 'found': today, 'status': 'open',
+                    'test_case_id': c.get('test_case', {}).get('id'),
+                    'line': f"Auto-seeded: test case '{c.get('test_case', {}).get('name', '?')}' failing (run {res.get('run_id')}, job {c.get('job', {}).get('id', '?')})"})
+                seeded += 1
+    if seeded:
+        with open(canon_path, 'a') as fh:
+            for entries in canon_now.values():
+                for e in entries:
+                    if e.get('found_by') == 'regression-nightly' and e.get('found') == today:
+                        fh.write(json.dumps(e) + '\n')
+        lines.insert(2, f'**canon auto-seeded {seeded} new failure(s)**')
 
     report = '\n'.join(lines) + '\n'
     for path in (os.path.join(GARDEN, f'regression-{today}.md'),
