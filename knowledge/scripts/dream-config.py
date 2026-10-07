@@ -9,7 +9,7 @@ Upgrades are intentional: only Josh runs set-mode.
 import json, os, sys
 
 CONFIG = os.path.expanduser("~/.claude/knowledge/dreams/config.json")
-VALID = ("report", "propose", "auto-safe")
+VALID = ("report", "propose", "auto-safe", "auto-dev")
 
 def main():
     if len(sys.argv) < 2:
@@ -26,6 +26,9 @@ def main():
         json.dump(cfg, open(CONFIG, "w"), indent=2)
         print(f"dreamer mode -> {mode}")
         print(f"never_auto (constitutional): {', '.join(cfg['never_auto'])}")
+        if mode == "auto-dev":
+            print(f"auto-dev allow: {', '.join(cfg.get('auto_dev_allow', []))}")
+            print(f"auto-dev NEVER: {', '.join(cfg.get('auto_dev_never', []))}")
         return 0
     print(__doc__); return 1
 

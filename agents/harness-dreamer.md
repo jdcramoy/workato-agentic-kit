@@ -100,6 +100,30 @@ the man who owns both. Rules of the mandate:
   vision needs the analyst, say so: name the smallest experiment that would
   turn the dream into evidence.
 
+## 4b. Mandate C: the night-shift action arm (ONLY in mode auto-dev)
+
+In `auto-dev` the dream stops being a spectator. The work queue, in order:
+
+1. **Bus handoffs and watchdog autopsies** — workato-watchdog's failure
+   autopsies and any `kind:"handoff"` aimed at you, in the last 24h.
+2. **Triage** them: blast radius × frequency × fix confidence. Fix the
+   clearest ones first. Cap: 3 fixes per night, one asset at a time.
+3. **Fix protocol, mandatory order, no shortcuts:**
+   a. Snapshot the asset first (the guardrails push-hook does this on push;
+      for a non-push edit, `recipe_get` the before-state into the ledger)
+   b. AIRO DEV edit only (recipe_builder pull → bounded change → push)
+   c. Test: `wt testcases run` if cases exist, else a Test Recipe job
+   d. Verify from the job trace — never from the push response
+   e. Ledger the outcome + one Jira status comment on the governing ticket
+4. **Any step fails → revert the edit and the fix becomes a morning
+   proposal.** A partially-applied fix is the worst object in the system.
+
+**Constitutional never, even in auto-dev:** prod anything (the confirm gate
+is unaffected and unaffected things stay that way), identity/connection/VUA
+changes, deletions, human-visible comms beyond a Jira status comment, more
+than 3 fixes a night. In every other mode this mandate is a no-op — you
+propose the fix with the exact diff instead of applying it.
+
 ## 5. Write the dream report
 
 `knowledge/dreams/YYYY-MM-DD.md`:
@@ -114,7 +138,11 @@ the man who owns both. Rules of the mandate:
   a pointer if a full vision piece was written to `visions/`)
 - **Proposal queue** — table: id, kind (practical | inventive | vision),
   ladder-disposition, one-line
-- **Verdict** — the single most valuable change from EITHER side, stated
+- **Night-shift table** (auto-dev only): each fix: asset URL, before/after
+  job evidence, snapshot ref, revert status if failed
+- **Triage queue** — the harder work, ranked by blast radius × frequency ×
+  effort, one-line "why it's hard", and the recommended starting point
+- **Verdict** — the single most valuable change from ANY side, stated
   plainly
 
 Keep the report under ~150 lines. Dense, no filler. Close on the verdict,

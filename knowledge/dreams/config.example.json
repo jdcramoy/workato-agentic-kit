@@ -1,10 +1,11 @@
 {
   "version": "1.0",
-  "mode": "report",
+  "mode": "propose",
   "_mode_ladder": {
     "report": "Write the dream report ONLY. No proposal files, no edits outside knowledge/dreams/. Zero risk.",
     "propose": "Report + write proposal files to knowledge/dreams/proposals/ with status:proposed. Nothing is applied; Josh reviews.",
-    "auto-safe": "Report + proposals, PLUS auto-apply ONLY the actions listed in auto_safe_allow. Everything in never_auto still requires approval, always."
+    "auto-safe": "Report + proposals, PLUS auto-apply ONLY the actions listed in auto_safe_allow. Everything in never_auto still requires approval, always.",
+    "auto-dev": "Report + proposals + auto_safe_allow, PLUS bounded dev fixes: AIRO dev recipe/function edits, dev stop/start/test, wt testcases runs, ledger + Jira status comments. Hard cap 3 fixes/night, one asset at a time, mandatory snapshot\u2192edit\u2192test\u2192trace-verify\u2192ledger order, any failure reverts and downgrades to proposal."
   },
   "never_auto": [
     "skills",
@@ -31,5 +32,20 @@
     "never_auto is a constitutional limit: NO mode, including auto-safe, ever auto-applies skills/hooks/mods/agents/settings/crons/mcp/commands. Those are proposal-only forever unless Josh edits this file.",
     "Upgrading the ladder is a one-line change: python3 ~/.claude/knowledge/scripts/dream-config.py set-mode propose (or auto-safe). Josh does this himself after reviewing a week of reports.",
     "Every auto-applied change must be recorded in the dream report and is rolled back by the nightly harness backup if it goes wrong."
+  ],
+  "auto_dev_allow": [
+    "dev-recipe-edit",
+    "dev-recipe-stop-start",
+    "dev-test-execution",
+    "wt-testcases-run",
+    "build-ledger-write",
+    "jira-status-comment"
+  ],
+  "auto_dev_never": [
+    "prod-anything",
+    "identity-connection-VUA-change",
+    "deletion",
+    "human-visible-comms-beyond-jira-status",
+    "more-than-3-fixes-per-night"
   ]
 }
