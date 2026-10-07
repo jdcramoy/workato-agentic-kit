@@ -75,6 +75,26 @@ optional BACKUP_REPO_URL   "Harness backup: origin URL (blank = local-only commi
 PROJECT_PATH_DEFAULT="${PROJECT_PATH:-${HOME}/Documents/workbench}"
 optional PROJECT_PATH "Project dir where the agents/crons live:" "$PROJECT_PATH_DEFAULT"
 
+echo
+echo "-- API tokens (stored in the macOS keychain, never written to a file) --"
+echo "   Find them: Workato → Workspace admin → API clients → your client → generate token."
+printf "Dev API token (paste, return to skip if already stored): "
+read -rs DEV_TOKEN
+if [ -n "${DEV_TOKEN:-}" ]; then
+  security add-generic-password -s workato-platform-cli -a "$PROFILE_DEV" -w "$DEV_TOKEN" -U \
+    && echo "  ✓ stored in keychain (account: $PROFILE_DEV)"
+  unset DEV_TOKEN
+fi
+if [ -n "${WORKSPACE_PROD:-}" ]; then
+  printf "Prod API token (paste, return to skip): "
+  read -rs PROD_TOKEN
+  if [ -n "${PROD_TOKEN:-}" ]; then
+    security add-generic-password -s workato-platform-cli -a "$PROFILE_PROD" -w "$PROD_TOKEN" -U \
+      && echo "  ✓ stored in keychain (account: $PROFILE_PROD)"
+    unset PROD_TOKEN
+  fi
+fi
+
 # --- write config.sh ----------------------------------------------------------
 {
   echo "#!/usr/bin/env bash"

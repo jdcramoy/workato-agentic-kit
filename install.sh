@@ -161,7 +161,8 @@ cat << 'NEXT'
    tracker, Atlassian. The kit cannot do this — it needs YOUR accounts.
 2. /reload-plugins (or restart) so the mods load.
 3. Fill config.sh if you skipped it, re-run ./install.sh, restart again.
-4. Smoke test: /guardrails (lists the hooks), /builds (ledger, starts empty),
+4. Run ./verify.sh — 32 checks; fix any FAIL it reports.
+5. Smoke test: /guardrails (lists the hooks), /builds (ledger, starts empty),
    then ask for a "watchdog run" for your workspaces.
 Schedules (docs-watch 22:31 + launchd 22:15, brain gardener 22:43, watchdog
 23:13, harness backup 23:33, harness dreamer 23:43, corpus Mon 06:07, estate

@@ -20,6 +20,16 @@ real workspaces, Jira project, and field IDs by design; they give a new
 teammate a working starting point. Do not publish externally without a
 sanitization pass (untrack config.sh, genericize the org identifiers).
 
+## Quick start (5 minutes)
+
+    git clone https://github.com/Workato-All/workato-agentic-kit.git
+    cd workato-agentic-kit
+    ./onboard.sh      # ~15 validating questions; tokens go to keychain, not files
+    ./install.sh      # renders + installs everything
+    ./verify.sh       # doctor: 32 checks, green means go
+
+Then restart Claude Code and run `/guardrails`. Details below.
+
 ## How the layers fit together
 
 1. **Enforce (always on).** Two mods hook every tool call. They redact
@@ -247,11 +257,17 @@ the exact prompts.
 1. Prerequisites: Claude Code 2.1.287 or later, git, python3, jq. Connect
    your MCP servers first (AIRO dev and prod, dependency tracker, Jira);
    the kit cannot do your authentication.
-2. `cp config.example.sh config.sh` and fill in your workspace IDs and Jira
-   field IDs. The comments explain how to discover the field IDs from one
-   of your past promotion stories.
-3. `./install.sh`
-4. Restart Claude Code, then run `/guardrails` to confirm the hooks loaded
+2. `./onboard.sh` — an interactive questionnaire: workspace IDs, Jira
+   project/fields, CLI profile names, backup repo, and your API tokens
+   (pasted once, stored straight into the macOS keychain, never written to
+   a file). Answers are validated and written to config.sh (chmod 600).
+   Prefer hand-editing? `cp config.example.sh config.sh` works too.
+3. `./install.sh` — renders templates and installs: mods, agents, skills,
+   scripts, prod wrappers, dreams scaffold, gossip outboxes.
+4. `./verify.sh` — the doctor. 32 checks across prereqs, config, binaries,
+   live dev/prod identity, mods, knowledge tree, agents, skills, MCP
+   health, crons, and backup. Exits non-zero on hard failures.
+5. Restart Claude Code, then run `/guardrails` to confirm the hooks loaded
    (13 hooks in workato-guardrails).
 5. Prod CLI access (only if you gate production through this kit): store the
    prod API token in the keychain for the `PROFILE_PROD` account, then
