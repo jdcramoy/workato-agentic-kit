@@ -6,10 +6,13 @@ The agents and scripts run on these cadences. Two install paths:
 
     ./install-launchd.sh
 
-Also installs `com.josh.dream-mini` (the hidden lane): every 3h, headless,
-silent unless there is new signal since the last run (new corrections or
-unanswered dreamer handoffs) — then a bounded mini-dream via `claude -p`,
-output only to knowledge/dreams/ + the bus.
+The canonical night fleet is the launchd fleet (`com.josh.fleet.*` via
+~/.local/bin/fleet/run-job.sh — per-job prompts/env, mkdir locks, timeouts,
+per-job logs). This kit's install-launchd adds `com.josh.dream-mini` (the
+hidden lane): hourly during ramp-up, headless, signal-gated — silent unless
+there is new signal since the last run (new corrections or unanswered
+dreamer handoffs), then a bounded mini-dream via `claude -p`, output only to
+knowledge/dreams/ + the bus.
 
     ./install-launchd.sh
 
