@@ -36,6 +36,21 @@ A local, nightly-synced knowledge base. Four sources, one index, mandatory citat
 - Re-run index manually: `cd ~/Documents/workato-kb && .venv/bin/python -m kb.indexer`. After a corpus change, also rebuild term stats + entropy: `.venv/bin/python -m kb.pmi build && .venv/bin/python -m kb.entropy score` (search.py auto-builds term stats if missing).
 - Phase-2 layers are LIVE in `kb/search.py`: entropy modulation (ENTROPY_WEIGHT 0.15), PMI (PMI_WEIGHT 0.10, term stats in `index/terms.json.gz`), confidence gate (expand when distribution entropy > 0.9 bits AND top rerank < 0.5). Known entropy edge: proper-noun lists score high on raw rarity — that's why entropy only modulates rerank-gated candidates.
 
+## Advanced modes (v0.6)
+
+- `kb zoom "topic"` — fractal zoom: coarse-first retrieval over the factlet
+  hierarchy (topic → file → section → chunk); read the coarsest level that
+  answers, drill only on decision. The factlet schema is identical at every
+  scale — same unit, any depth.
+- `kb funnel search "query"` — Matryoshka-style funnel: coarse page-context
+  embedding shortlists, fine chunk search refines. Falls back to plain fine
+  search when the coarse layer's coverage is weak. Coverage grows as the
+  contextualize backlog drains.
+- `kb criticality` — fleet cascade power-law fit; tells you whether the agent
+  network's information flow is subcritical, critical, or flooded.
+- MCP server: `~/Documents/workato-kb/.venv/bin/python -m kb.mcp_server`
+  (stdio; kb_search / kb_read / kb_zoom) for any MCP client.
+
 ## Known limits (v0.1)
 
 - Attachments (PDFs) not crawled.
