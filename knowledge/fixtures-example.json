@@ -1,0 +1,25 @@
+{
+ "recipe_id": 82921718,
+ "kind": "webhook",
+ "webhook_url": "https://webhooks.workato.com/webhooks/rest/0b2c2fd8-8a70-4d80-ac8e-f61ed4a27cc5/fixturedemo",
+ "input": {
+  "payload": "fixture-pilot-1",
+  "sent_from": "wt-fixture"
+ },
+ "expect": [
+  {
+   "path": "payload.payload",
+   "op": "eq",
+   "value": "fixture-pilot-1"
+  },
+  {
+   "path": "payload.sent_from",
+   "op": "eq",
+   "value": "wt-fixture"
+  },
+  {
+   "path": "params",
+   "op": "present"
+  }
+ ]
+}

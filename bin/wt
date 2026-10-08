@@ -25,6 +25,7 @@ import re
 import json
 import os
 import subprocess
+import time
 import sys
 import urllib.error
 import urllib.parse
@@ -578,6 +579,216 @@ def cmd_testcases(a):
                       f"/api/recipes/{a.recipe}/test_cases")
         print(json.dumps(out, indent=2))
 
+# ---------------------------------------------------------------- fixtures ---
+
+FIXTURE_DIR = os.path.expanduser("~/.claude/knowledge/fixtures")
+
+
+def _fx_call(host, token, method, url, payload=None, authed=True):
+    """Non-dying request for the fixture harness: HTTP errors become
+    verdicts, not exits (wt.request sys.exits on HTTPError)."""
+    hdrs = {"Accept": "application/json"}
+    if authed:
+        hdrs["Authorization"] = f"Bearer {token}"
+        hdrs["User-Agent"] = "wt/1.0 (Workato Toolbox)"
+    data = None
+    if payload is not None:
+        data = json.dumps(payload).encode()
+        hdrs["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            body = resp.read()
+            try:
+                return resp.status, json.loads(body or b"{}")
+            except json.JSONDecodeError:
+                return resp.status, body.decode(errors="replace")[:500]
+    except urllib.error.HTTPError as e:
+        body = e.read()
+        try:
+            return e.code, json.loads(body or b"{}")
+        except json.JSONDecodeError:
+            return e.code, body.decode(errors="replace")[:500]
+    except Exception as e:  # noqa: BLE001 — any transport failure is a verdict
+        return 0, {"transport_error": str(e)}
+
+
+def _fx_get_path(obj, dotted):
+    cur = obj
+    for part in dotted.split("."):
+        if isinstance(cur, dict):
+            if part not in cur:
+                return None, f"path '{dotted}': missing key '{part}'"
+            cur = cur[part]
+        elif isinstance(cur, list) and part.isdigit():
+            i = int(part)
+            if i >= len(cur):
+                return None, f"path '{dotted}': index {i} out of range"
+            cur = cur[i]
+        else:
+            return None, f"path '{dotted}': cannot descend into {type(cur).__name__}"
+    return cur, None
+
+
+def _fx_check(expect, output):
+    """expect: {'path': 'a.b', 'op': 'eq', 'value': x}. Returns (ok, note)."""
+    path, op = expect.get("path", ""), expect.get("op", "present")
+    val, err = _fx_get_path(output, path)
+    if err:
+        return False, err
+    want = expect.get("value")
+    if op == "present":
+        return val is not None, f"{path} present={val is not None}"
+    if op == "absent":
+        return val is None, f"{path} absent={val is None}"
+    if op == "eq":
+        return val == want, f"{path}={val!r} == {want!r}: {val == want}"
+    if op == "ne":
+        return val != want, f"{path}={val!r} != {want!r}: {val != want}"
+    if op == "contains":
+        ok = want in val if isinstance(val, (list, str, dict)) else False
+        return ok, f"{path} contains {want!r}: {ok}"
+    if op in ("gt", "lt"):
+        try:
+            ok = (float(val) > float(want)) if op == "gt" else (float(val) < float(want))
+            return ok, f"{path}={val} {op} {want}: {ok}"
+        except (TypeError, ValueError):
+            return False, f"{path}={val!r} not numeric for {op}"
+    return False, f"unknown op {op}"
+
+
+def cmd_fixture(a):
+    """Browser-free recipe testing: invoke the recipe the way a real caller
+    would (webhook POST / API endpoint / force_run), catch the new job, and
+    assert on its output. Fixtures: ~/.claude/knowledge/fixtures/<recipe>.json
+    {recipe_id, kind, webhook_url?, api_url?, input?, expect?: [{path, op, value}]}
+    Scheduled-recipe pattern: lift the body into a recipe function, keep the
+    schedule as a thin shell, and fixture-test a callable driver recipe."""
+    host, token = client(a)
+    fpath = os.path.expanduser(a.fixture) if (a.fixture and "/" in a.fixture) \
+        else os.path.join(FIXTURE_DIR, f"{a.recipe}.json")
+
+    if a.op == "init":
+        os.makedirs(FIXTURE_DIR, exist_ok=True)
+        if os.path.exists(fpath) and not a.fixture:
+            die(f"fixture exists: {fpath} (pass --fixture to override)")
+        fx = {"recipe_id": a.recipe, "kind": a.kind or "webhook",
+              "webhook_url": "", "input": {}, "expect": []}
+        json.dump(fx, open(fpath, "w"), indent=1)
+        print(f"scaffolded {fpath} — fill kind/webhook_url/input/expect, then `wt fixture run --recipe {a.recipe}`")
+        return
+
+    if a.op == "list":
+        if not os.path.isdir(FIXTURE_DIR):
+            print("no fixtures yet")
+            return
+        for f in sorted(os.listdir(FIXTURE_DIR)):
+            try:
+                fx = json.load(open(os.path.join(FIXTURE_DIR, f)))
+                print(f"{f:24} kind={fx.get('kind', '?'):9} expects={len(fx.get('expect', []))}")
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"{f:24} UNREADABLE {e}")
+        return
+
+    # ---- run ----
+    if not a.recipe:
+        die("run needs --recipe")
+    fx = {}
+    if os.path.exists(fpath):
+        fx = json.load(open(fpath))
+    kind = a.kind or fx.get("kind")
+    expect = list(fx.get("expect", []))
+    for spec in (a.expect or []):
+        path, _, rest = spec.partition("=")
+        op, _, val = rest.partition(":")
+        e = {"path": path, "op": op or "present"}
+        if op in ("eq", "ne", "contains", "gt", "lt"):
+            try:
+                e["value"] = json.loads(val)
+            except json.JSONDecodeError:
+                e["value"] = val
+        expect.append(e)
+
+    # 0. capture the newest job id before invoking
+    st, before = _fx_call(host, token, "GET",
+                          f"{host}/api/recipes/{a.recipe}/jobs?per_page=1")
+    prev_id = ((before.get("items") or [{}])[0].get("id")
+               if isinstance(before, dict) else None)
+
+    # 1. invoke
+    payload = json.loads(a.input) if a.input else fx.get("input")
+    if kind == "webhook":
+        url = fx.get("webhook_url") or fx.get("api_url")
+        if not url:
+            die("webhook kind needs fixture webhook_url (from the recipe trigger's Request URL)")
+        st, resp = _fx_call(host, token, "POST", url, payload=payload, authed=False)
+    elif kind == "api":
+        url = fx.get("api_url")
+        if not url:
+            die("api kind needs fixture api_url (the API platform endpoint URL)")
+        st, resp = _fx_call(host, token, "POST", url, payload=payload, authed=False)
+    elif kind == "force-run":
+        st, resp = _fx_call(host, token, "POST",
+                            f"{host}/api/recipes/{a.recipe}/force_run",
+                            payload=payload)
+    else:
+        die(f"unknown kind {kind!r}")
+    invoke_ok = 200 <= st < 300
+    result = {"recipe_id": a.recipe, "kind": kind, "invoke_status": st}
+
+    # 2. catch the new job
+    job = None
+    deadline = time.time() + a.timeout
+    while time.time() < deadline:
+        st2, jobs = _fx_call(host, token, "GET",
+                             f"{host}/api/recipes/{a.recipe}/jobs?per_page=1")
+        items = jobs.get("items") or [] if isinstance(jobs, dict) else []
+        if items and items[0].get("id") != prev_id:
+            job = items[0]
+            break
+        time.sleep(3)
+    if not job:
+        result.update({"verdict": "timeout", "invoke_response": resp,
+                       "note": f"no new job within {a.timeout}s"})
+        print(json.dumps(result, indent=2))
+        sys.exit(2)
+    result["job_id"] = job.get("id")
+    result["job_status"] = job.get("status")
+
+    # 3. pull the job output — function recipes expose job 'output'; other
+    # recipes: fall back to the LAST STEP's output in the trace
+    st3, detail = _fx_call(host, token, "GET",
+                           f"{host}/api/recipes/{a.recipe}/jobs/{job.get('id')}")
+    output = detail.get("output") if isinstance(detail, dict) else None
+    if not output and isinstance(detail, dict) and detail.get("lines"):
+        last = detail["lines"][-1]
+        output = last.get("output")
+        if output is None:
+            output = {"step_output": None,
+                      "step": last.get("recipe_line_number"),
+                      "adapter": last.get("adapter_name")}
+    result["output"] = output if output is not None else detail
+
+    # 4. assertions
+    failures = []
+    if not invoke_ok:
+        failures.append(f"invoke returned HTTP {st}")
+    if job.get("status") not in ("succeeded", "success"):
+        failures.append(f"job status {job.get('status')!r}")
+    for e in expect:
+        ok, note = _fx_check(e, output)
+        (result.setdefault("checks", []).append(
+            {"path": e["path"], "op": e["op"], "ok": ok, "note": note}))
+        if not ok:
+            failures.append(note)
+    result["verdict"] = "fail" if failures else "pass"
+    if failures:
+        result["failures"] = failures
+        print(json.dumps(result, indent=2))
+        sys.exit(1)
+    print(json.dumps(result, indent=2))
+
+
 def cmd_discover(a):
     """Self-discover the Workato Developer API surface and report coverage."""
     host, token = client(a)
@@ -752,6 +963,18 @@ def main():
     p.add_argument("--ids", help="comma-separated test case ids")
     p.add_argument("--run-id", help="run request id, for op=status")
     p.set_defaults(fn=cmd_testcases)
+
+    p = sub.add_parser("fixture", help="browser-free recipe testing: invoke via webhook/API/force-run, assert on the job output")
+    add_common(p)
+    p.add_argument("op", choices=["init", "list", "run"])
+    p.add_argument("--recipe", type=int, help="recipe id the fixture tests")
+    p.add_argument("--kind", choices=["webhook", "force-run", "api"],
+                   help="invocation kind: webhook = POST to trigger URL (payload = --input or fixture input); force-run = POST /force_run (scheduled recipes); api = POST to an API-platform endpoint URL")
+    p.add_argument("--fixture", help="fixture name or explicit path (default: ~/.claude/knowledge/fixtures/<recipe>.json)")
+    p.add_argument("--input", help="JSON payload for this run (overrides fixture input)")
+    p.add_argument("--expect", nargs="*", help="inline assertions path=op:value (ops: eq, ne, present, absent, contains, gt, lt); merged over fixture expects")
+    p.add_argument("--timeout", type=int, default=90, help="seconds to wait for the new job")
+    p.set_defaults(fn=cmd_fixture)
 
     args = ap.parse_args()
     # small post-parse normalizations
