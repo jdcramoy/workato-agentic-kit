@@ -84,18 +84,16 @@ def search(query: str, k: int = 8, shortlist: int = 60) -> list[dict]:
             f"SELECT doc_id, distance FROM {COARSE_TABLE} WHERE embedding MATCH ? AND k = {shortlist}",
             (qbind,),
         ).fetchall()
-        # coverage guard: coarse layer only knows contextualized docs — if its
-        # best distance is bad, the shortlist would exclude the true answer;
-        # fall back to unrestricted fine search instead
-        pages = [p for p in pages if p[1] < 0.65] or pages
-        confident = pages and min(p[1] for p in pages) < 0.65
+        # design note (tested): the coarse layer's absolute distances cluster
+        # tightly (0.72-0.84 for everything relevant), so a distance-based
+        # "confident shortlist" filter is a poor discriminator AND a recall
+        # risk (it can exclude the true page). The rank-based page-affinity
+        # boost carries all the value; the candidate set stays unrestricted.
         page_rank: dict[int, int] = {}
         for rank, (doc_id, _dist) in enumerate(pages):
             page_rank[doc_id] = rank
 
         # fine: chunks restricted to shortlisted pages, vec0 kNN with page boost
-        placeholders = ",".join("?" * len(page_rank))
-        in_clause = (f"doc_id IN ({placeholders})" if page_rank else "1=1") if confident else "1=1"
         # MATCH + joins live in ONE inner select (the only vec0 shape the
         # planner accepts); the outer query filters columns only
         inner = f"""SELECT c.chunk_id, c.doc_id, d.url, d.title, d.source, d.section, c.context, c.text,
@@ -105,8 +103,8 @@ def search(query: str, k: int = 8, shortlist: int = 60) -> list[dict]:
                     JOIN docs d ON d.doc_id = c.doc_id
                     WHERE v.embedding MATCH ? AND k = {k * 6}"""
         rows = db.execute(
-            f"SELECT * FROM ({inner}) WHERE {in_clause} ORDER BY distance LIMIT ?",
-            [qbind, *page_rank.keys(), k * 3] if (page_rank and confident) else [qbind, k * 3],
+            f"SELECT * FROM ({inner}) ORDER BY distance LIMIT ?",
+            [qbind, k * 3],
         ).fetchall()
 
         # fusion: vec distance (smaller=better) + coarse page-affinity bonus
@@ -127,7 +125,7 @@ def search(query: str, k: int = 8, shortlist: int = 60) -> list[dict]:
                 }
             )
         for r in out:
-            r["funnel"] = "coarse-shortlist" if confident else "fallback-fine"
+            r["funnel"] = "fine+affinity"
         out.sort(key=lambda r: -r["score"])
         return out[:k]
     finally:

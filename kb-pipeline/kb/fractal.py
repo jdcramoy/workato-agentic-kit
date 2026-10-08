@@ -24,6 +24,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from collections import defaultdict
 from pathlib import Path
 
 from .common import DATA_ROOT
@@ -260,6 +261,57 @@ def build(full: bool = False) -> dict:
             stats["level1"] += 1
             _mark(db, key, _sha(p_c))
 
+    # --- ALL other project memory dirs (every ~/.claude/projects/*/memory) ---
+    for mem_d in Path.home().joinpath(".claude/projects").glob("*/memory"):
+        if mem_d == mem_dir:
+            continue  # workbench memory already covered above
+        for p_m in mem_d.glob("*.md"):
+            key = f"memproj:{mem_d.parent.name}:{p_m.name}"
+            if not full and not _source_changed(db, key, _sha(p_m)):
+                stats["skipped"] += 1
+                continue
+            proj = mem_d.parent.name.replace("-Users-joshcramoy-", "~/").replace("-", "/")[:60]
+            insert(1, f"memory[{proj}]: {p_m.stem}", p_m.read_text()[:4000], root, str(p_m))
+            stats["level1"] += 1
+            _mark(db, key, _sha(p_m))
+
+    # --- repo instruction files (CLAUDE.md / AGENTS.md in every repo) ---
+    for pat in ("*/CLAUDE.md", "*/AGENTS.md", "*/docs/AGENTS.md"):
+        for cpath in Path.home().joinpath("Documents").glob(pat):
+            key = f"repo-instr:{cpath}"
+            if not full and not _source_changed(db, key, _sha(cpath)):
+                stats["skipped"] += 1
+                continue
+            insert(1, f"instructions: {cpath.parent.name}", cpath.read_text()[:6000], root, str(cpath))
+            stats["level1"] += 1
+            _mark(db, key, _sha(cpath))
+
+    # --- fleet job prompts (procedural memory: what each scheduled job does) ---
+    fleet_jobs = Path.home() / ".local/bin/fleet/jobs"
+    if fleet_jobs.exists():
+        for p_j in list(fleet_jobs.glob("*.prompt")) + list(fleet_jobs.glob("*.script")):
+            key = f"fleet:{p_j.name}"
+            if not full and not _source_changed(db, key, _sha(p_j)):
+                stats["skipped"] += 1
+                continue
+            insert(2, f"fleet job: {p_j.stem}", p_j.read_text()[:3000], root, str(p_j))
+            stats["level2"] += 1
+            _mark(db, key, _sha(p_j))
+
+    # --- loose docs in ~/Documents/Claude (linked, not moved; INDEX points here) ---
+    claude_docs = Path.home() / "Documents/Claude"
+    if claude_docs.exists():
+        for p_d in claude_docs.glob("*.md"):
+            if p_d.name == "CLAUDE.md":
+                continue
+            key = f"loose:{p_d.name}"
+            if not full and not _source_changed(db, key, _sha(p_d)):
+                stats["skipped"] += 1
+                continue
+            insert(1, f"doc: {p_d.stem}", p_d.read_text()[:6000], root, str(p_d))
+            stats["level1"] += 1
+            _mark(db, key, _sha(p_d))
+
     # --- KB chunk layer (level 3) — rebuild only when the KB index moved ---
     kb_db = DB_PATH
     kb_newer = not _source_changed(db, "kb-chunks", f"{kb_db.stat().st_mtime_ns}") if kb_db.exists() else False
@@ -386,6 +438,89 @@ def show(fid: str) -> dict:
         db.close()
 
 
+def coverage() -> dict:
+    """The airtight check: walk every memory surface, verify each prose file
+    has at least one factlet. Gaps listed by surface."""
+    db = _connect()
+    try:
+        sources = {r[0] for r in db.execute("SELECT DISTINCT source FROM factlets")}
+        gaps: dict[str, list] = defaultdict(list)
+        checked = 0
+
+        def check(path: Path, surface: str):
+            nonlocal checked
+            checked += 1
+            sp = str(path)
+            # factlet sources are often repo-relative (agents/x.md, domains/y.md)
+            # and skills drop the SKILL.md tail (skills/<name>); match on suffix
+            # or directory so format differences can't fake a gap
+            hit = any(
+                item in sources
+                or any(s == item or item.endswith("/" + s) or s.endswith("/" + item) for s in sources)
+                for item in {sp, sp.removesuffix("/SKILL.md"), path.name}
+            )
+            if not hit:
+                gaps[surface].append(sp)
+
+        # knowledge tree
+        for sub in ("domains", "projects"):
+            for p_f in (KT / sub).glob("*.md"):
+                check(p_f, f"knowledge/{sub}")
+        # claims
+        if (KT / "claims/claims.jsonl").exists():
+            check(KT / "claims/claims.jsonl", "claims")
+        # agents
+        for p_a in Path.home().joinpath(".claude/agents").glob("*.md"):
+            check(p_a, "agents")
+        # skills
+        for p_s in Path.home().joinpath(".claude/skills").glob("*/SKILL.md"):
+            check(p_s, "skills")
+        # claude tiers + workbench memory
+        for label, cpath in [
+            ("global-CLAUDE.md", Path.home() / ".claude/CLAUDE.md"),
+            ("project-CLAUDE.md", Path.home() / "Documents/CLAUDE.md"),
+        ]:
+            if cpath.exists():
+                check(cpath, "claude-tiers")
+        mem_dir = Path.home() / ".claude/projects/-Users-joshcramoy-Documents-workbench/memory"
+        for p_m in mem_dir.glob("*.md"):
+            check(p_m, "memory-workbench")
+        # all other project memory dirs
+        for mem_d in Path.home().joinpath(".claude/projects").glob("*/memory"):
+            if mem_d == mem_dir:
+                continue
+            for p_m in mem_d.glob("*.md"):
+                check(p_m, f"memory:{mem_d.parent.name[-40:]}")
+        # repo instructions
+        for pat in ("*/CLAUDE.md", "*/AGENTS.md"):
+            for cpath in Path.home().joinpath("Documents").glob(pat):
+                check(cpath, "repo-instructions")
+        # fleet prompts
+        for p_j in Path.home().joinpath(".local/bin/fleet/jobs").glob("*.prompt"):
+            check(p_j, "fleet-jobs")
+        # loose docs
+        for p_d in Path.home().joinpath("Documents/Claude").glob("*.md"):
+            if p_d.name != "CLAUDE.md":
+                check(p_d, "loose-docs")
+        # KB corpus: every docs row should have >=1 chunk factlet
+        kb = get_db()
+        n_docs = kb.execute("SELECT COUNT(*) FROM docs").fetchone()[0]
+        n_pages = db.execute(
+            "SELECT COUNT(*) FROM factlets WHERE level=1 AND source LIKE 'http%'"
+        ).fetchone()[0]
+        kb.close()
+        gap_total = sum(len(v) for v in gaps.values())
+        return {
+            "checked_files": checked,
+            "gap_total": gap_total,
+            "gaps_by_surface": {k: v[:8] for k, v in gaps.items() if v},
+            "kb_pages_covered": f"{n_pages}/{n_docs}",
+            "verdict": "AIRTIGHT" if gap_total == 0 else f"{gap_total} gaps",
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -397,6 +532,7 @@ if __name__ == "__main__":
     z.add_argument("-k", type=int, default=6)
     s = sub.add_parser("show")
     s.add_argument("id")
+    sub.add_parser("coverage")
     a = ap.parse_args()
     if a.cmd == "build":
         print(json.dumps(build(full=a.full), indent=2))
@@ -404,3 +540,5 @@ if __name__ == "__main__":
         print(json.dumps(zoom(a.topic, a.level, a.k), indent=2))
     elif a.cmd == "show":
         print(json.dumps(show(a.id), indent=2))
+    elif a.cmd == "coverage":
+        print(json.dumps(coverage(), indent=2))
