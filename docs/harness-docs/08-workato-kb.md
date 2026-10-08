@@ -50,6 +50,18 @@ AIRTIGHT). Files stay the source of truth; the factlet store is a
 rebuildable projection (incremental, per-source sha freshness). MRL-style
 funnel: doc-context embeddings as the coarse page layer boost chunk search.
 
+**Why fractal memory matters (the case in numbers):** before it, a question
+paid for a whole file even when one section answered it — 2-10K tokens per
+memory look-up. The fractal ladder answers at the coarsest level that's
+correct (~300-500 tokens) and drills only when a decision needs the detail:
+10-30x less context per memory question, with provenance (the exact evidence
+line) one drill away. The single schema at every scale means one tool set
+serves all of memory — the same zoom works on a transcript line, a knowledge
+file, a claim, or a docs page — and the coverage auditor makes completeness
+a checked fact instead of a hope. Brains organize memory this way (the same
+code recurs at every scale, retrieval zooms by cue); the harness version is
+queryable at any depth instantly, which is where it beats biology.
+
 ## The science layer (the dreaming team)
 
 - **Prediction-error protocol** (`predict.py`): open a prediction before

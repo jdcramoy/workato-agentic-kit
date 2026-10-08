@@ -9,8 +9,26 @@ platform tools do not expose, watcher agents that inspect the estate on a
 schedule and corroborate each other over a shared bus, a curated knowledge
 system that captures lessons and verifies them against live behavior, a
 promotion pipeline that turns tracked dev work into governed production
-releases, and a nightly dreamer that mines every session transcript to
-improve the harness itself.
+releases, a nightly dreamer that mines every session transcript to improve
+the harness itself, a RAG++ knowledge base over all Workato documentation
+with a fractal memory layer — one self-similar schema at every scale, so
+zoom retrieval answers memory questions at 10-30x less context and drills
+to exact evidence on demand (see kb-pipeline/README.md) — and a science
+layer for the dreaming team: a prediction-error protocol, a neuromodulation
+register, per-agent calibration curves, an adversarial dissenter triad, and
+counterfactual rehearsal.
+**Why fractal memory matters (the case in numbers):** before it, a question
+paid for a whole file even when one section answered it — 2-10K tokens per
+memory look-up. The fractal ladder answers at the coarsest level that's
+correct (~300-500 tokens) and drills only when a decision needs the detail:
+10-30x less context per memory question, with provenance (the exact evidence
+line) one drill away. The single schema at every scale means one tool set
+serves all of memory — the same zoom works on a transcript line, a knowledge
+file, a claim, or a docs page — and the coverage auditor makes completeness
+a checked fact instead of a hope. Brains organize memory this way (the same
+code recurs at every scale, retrieval zooms by cue); the harness version is
+queryable at any depth instantly, which is where it beats biology.
+
 
 The design goal: no rule should depend on memory, no failure should depend on
 luck, and no knowledge should live only in one session's context.
