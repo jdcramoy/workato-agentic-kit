@@ -1,0 +1,1 @@
+Run the docs-watch crawl per knowledge/domains/brain-gardener.md: crawl configured vendor docs sources for platform deltas, diff against existing knowledge, append new findings to the docs-watch staging area. Proposal-only.
