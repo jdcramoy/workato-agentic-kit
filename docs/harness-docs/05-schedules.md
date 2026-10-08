@@ -11,6 +11,8 @@ human the entire night with corroboration counts as the trust signal.
 
 | Time | Job | Role on the bus |
 |---|---|---|
+| 21:37 | KB sync (launchd, unattended) | syncs all documentation sources into the RAG++ corpus, contextualizes, re-indexes, rebuilds the concept graph, writes the memory-entropy report and the diff report |
+| 22:07 | KB digest (launchd, unattended) | per-agent briefs: what changed, live lens queries per agent's domain — every agent opens its night knowing what moved |
 | 22:15 | Docs crawler (launchd, unattended) | first poster: platform documentation and status page deltas |
 | 22:31 | Docs crawler summary | folds deltas into the bus and the gardener's report |
 | 22:43 | Brain gardener | curates knowledge, posts stale-claim findings |
@@ -20,6 +22,7 @@ human the entire night with corroboration counts as the trust signal.
 | 00:37 | Project dreamer | architecture dreamer for one project per night (deep pass Sundays): mines the project's sessions, memory, repo, and git; dissenter-gated proposals |
 | hourly | Hidden lane (launchd) | headless mini-mines and the cortex pulse, silent unless there is new signal |
 | Mon 06:07 | Corpus indexer | recipes and task counters, development and production |
+| Mon 06:27 | Board minutes (fleet job) | renders the dreaming team's week through the sanitizer and publishes a reviewable draft page in the team space |
 | Mon 06:37 | Estate architect | full weekly estate review |
 | 00:13 | Regression harness | runs every recipe's test cases through the Test Automation API, reports failures with job IDs |
 | 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits |

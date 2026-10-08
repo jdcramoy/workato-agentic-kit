@@ -126,3 +126,20 @@ network property:
 Verdict: individually each agent is a competent specialist with no memory;
 together they are a system that notices its own gaps, argues with itself
 before bothering a human, and gets harder to fool every week.
+
+## The dreaming team
+
+The two dreamers (harness and project) are where the night's learning
+compounds. Their constitution: convene a board of professional lenses
+(doctor, lawyer, artist, musician, CEO, engineer, accountant, product
+manager, CTO — rotating, running on three different model lineages with the
+frontier model cost-governed to one seat per night); consume the lateral
+engine's hidden concept pairs as raw material; attach a math block to every
+proposal (Bayesian acceptance probability learned from Josh's real ledger,
+expected value, break-even sensitivity); register load-bearing assumptions
+for nightly re-checking; file same-night ideas as incubating — a different
+model re-judges them cold, and only ideas that survive two re-looks or gain
+evidence reach Josh's queue. In the dreamer's autonomous mode it may spend a
+small budget testing an idea with a probe recipe — dreams with measurements
+outrank dreams with speculation. Weekly board minutes publish as a reviewable
+draft page in the team space.

@@ -2,7 +2,7 @@
   "space_key": "BTI",
   "space_name": "[External] BT-Business Technology",
   "parent_page_id": "2938830860",
-  "last_synced_commit": "88c50cb",
+  "last_synced_commit": "post-v0.5.3",
   "sync_schedule": "weekly session-cron, Tuesdays 06:57, self-rearming",
   "policy": {
     "updates_to_existing_pages": "autonomous (sanitized content only, read-back required)",
@@ -49,6 +49,12 @@
       "file": "07-trust-ladder.md",
       "page_id": "2939387948",
       "title": "The dreamer and the trust ladder: self-improvement with a human in the loop"
+    },
+    {
+      "file": "08-workato-kb.md",
+      "page_id": "2938929237",
+      "title": "The Workato KB: RAG++ over all documentation, and the dreaming team"
     }
-  ]
+  ],
+  "last_synced_date": "2026-10-08"
 }
