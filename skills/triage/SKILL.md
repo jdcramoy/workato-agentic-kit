@@ -1,0 +1,111 @@
+---
+name: triage
+description: Interactive approval queue for development, bugfix, and build triage findings discovered by the fleet (watchdog autopsies, regression failures, gardener actionable items, estate-architect recommendations, cortex work-shaped attention items, jira-autotriage held plans). Use when Josh says "triage findings", "show the triage queue", "what needs fixing", "work the findings", or invokes /triage. Renders every open finding as a decision card, collects verdicts in one batched pass, records them via triage-decide.py, creates the BSYS Story or Bug for approved work, and dispatches approved dev work.
+---
+
+# Triage — the silver platter for discovered work
+
+One interactive pass over every open finding the fleet filed. The
+mechanical recorder already exists (`knowledge/scripts/triage-decide.py`);
+this skill is the face on it. Distinct from `/proposals`: THAT queue holds
+dreamer IDEAS (what the harness or a project should become); THIS queue
+holds evidence-backed DISCOVERIES (what is broken, rotting, or costing
+time, ready to become work).
+
+## Procedure
+
+1. **Load the queue:**
+
+   ```bash
+   python3 ~/.claude/knowledge/scripts/triage-decide.py list
+   ```
+
+   If nothing is open: say so in one line, done. No ceremony.
+
+2. **Build one decision card per open finding.** Compact, scannable:
+
+   - slug, `kind` (bugfix | playbook | test | hygiene | build), source
+     agent, age in days, points estimate
+   - the finding's own title and proposed work line (not your paraphrase)
+   - the evidence anchor (its strongest ref: job ID, file path, ledger line)
+   - for anything touching a live Workato asset: run the blast-radius
+     skill and put the radius on the card
+   - your recommended verdict, marked as a recommendation
+
+   Order oldest-first (the stale ones get decided or die).
+
+3. **Collect verdicts in ONE batched pass.** Use AskUserQuestion, up to 4
+   findings per call (loop batches until done). Options per finding:
+
+   - **File story/bug** — create the Jira work item now (see step 4),
+     record `filed --jira KEY`
+   - **Build now (dev)** — dev-estate fixes only, executed in this
+     session (see step 5), then record `build`
+   - **Queue only** — record `accept` (queued for a promotion batch or a
+     later session, no ticket yet)
+   - **Reject** — recorded rejected; the note is the taste signal
+   - **Defer** — untouched, re-offered next time
+
+   Josh's "Other" free-text becomes the logged note. Never call
+   AskUserQuestion twice for the same finding.
+
+4. **File story/bug (the Jira procedure).** Issue type: **Bug** when the
+   finding is a defect (something that worked or should work is broken);
+   **Story** for builds, playbook entries, hygiene, and everything else.
+   Project **BSYS** (cloudId `99bd32a1-58a6-41d6-8e61-c98194c68259`).
+   Rules, in order:
+
+   a. **Parent epic**: use an existing epic ONLY with certainty (its
+      summary and scope clearly cover the finding). Search
+      `project = BSYS AND issuetype = Epic AND summary ~ "<domain terms>"`
+      first. No certain match → create the Epic: house format
+      (Background / Objective / Scope / Out of Scope / Success Measures /
+      Acceptance Criteria), points 13, labels `V2MOM-FY27` style.
+   b. **The FY27 anchor**: new epics file under parent `BSYS-21305`
+      ("VMT FY2027 M3: Become IPO-ready by leveraging Enterprise AI to
+      prove efficiency at scale") — the V2MOM FY27 work item the BT epic
+      tree hangs from. Re-verify the key live the first time each session
+      uses it; never quote it from memory.
+   c. **The story/bug**: parent = the epic key, assignee = Josh (account
+      id `712020:112eb7d5-8a97-41a3-ae23-05513ca0ad72`), points at
+      creation via `additional_fields {"customfield_10057": N}` (BSYS
+      supports the field; scale: 1 trivial, 2 half day, 3 one day, 5 the
+      common build), description per jira-story-standards (Background,
+      Business Requirements, Technical Requirements, Acceptance
+      Criteria `- [ ]`, UAT Evidence section naming what WILL be
+      recorded), labels reusing the epic's set, and the finding's
+      evidence refs inline (real asset URLs, job IDs, file paths).
+   d. Batch story creation; don't ask per-story. After creation, record
+      `triage-decide.py <slug> filed "story created" --jira KEY` and
+      include the key + URL in the summary table.
+
+5. **Dispatch Build-now, scoped hard:**
+
+   - **Dev-estate only**: Workato dev recipes/functions/MCP-dev assets,
+     knowledge and skill fixes, script fixes. Mandatory cycle:
+     snapshot → edit → test → verify with a live trace → build-ledger
+     entry. Then record `triage-decide.py <slug> build "<evidence ref>"`.
+   - **UAT/prod NEVER via build-now**: production sign-off gates stand
+     untouched; file the story instead and let the promotion pipeline
+     carry it.
+   - **Bigger than a first move**: file the story (step 4) and record
+     `accept "story filed, sized for a session"`.
+
+6. **Close with a summary table:** slug | verdict | jira key or evidence |
+   what happens next (filed / built + ref / queued / deferred / rejected).
+   If 3+ rejections share a reason, append that taste pattern as one line
+   to the bus thread `triage-taste` (YOUR outbox, `kind:"finding"`) — that
+   is how the watchers learn what not to re-raise.
+
+## Hard rules
+
+- Never decide for Josh. The queue renders facts and a recommendation;
+  the verdict is his.
+- Never hand-edit the queue file — the recorder is the only writer of
+  status changes; findings are appended by their source agent.
+- Final states are terminal: rejected and built findings do not get
+  re-decided; new evidence means a NEW finding with a new slug.
+- Rejected stays rejected: re-raising needs materially new evidence.
+- Batch, don't drip: one AskUserQuestion round per ≤4 findings, then move.
+- Nothing in this skill bypasses a prod-write gate, a UAT sign-off, or
+  the promotion pipeline; those boundaries are constitutional.

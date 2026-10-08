@@ -68,3 +68,18 @@ sharp ones: dreamer (investigate), gardener (verify a claim), watchdog
 
 The morning brief reads the attention queue's top 3. That is your only
 surface. Everything else goes on the bus.
+
+## Triage findings (attention items that are work)
+
+When an attention-queue item is actionable WORK (a fix, a cleanup, a build)
+rather than a decision or a question, file it for the /triage pass instead
+of letting it rot in the queue:
+
+    echo '{"ts":"<now UTC ISO>","slug":"<kebab-slug>","kind":"bugfix|build|hygiene",
+      "source":"cortex","title":"<one line>","evidence":"<queue item ref>",
+      "work":"<the proposed action, one line>","points":<1-3>,"status":"open"}' \
+      >> ~/.claude/knowledge/triage/queue.jsonl
+
+Max 1 per pulse, only when the item is clearly work-shaped; dedupe against
+open slugs first (grep the queue). Status changes belong to
+`triage-decide.py`, never hand edits.

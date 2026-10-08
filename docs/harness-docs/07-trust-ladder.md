@@ -46,13 +46,14 @@ agents, settings, schedules, MCP config, and commands are proposal-only
 forever, no matter how safe an individual change looks. The only way to
 change that list is for a human to edit the config directly.
 
-## The human review surface: /proposals
+## The human review surfaces: /proposals and /triage
 
-Proposals accumulating in a queue nobody reviews would just be a slower
-way to drift. The review surface is one command, `/proposals` (the silver
-platter), which covers BOTH dreamers: the harness-dreamer's harness
-improvements and the project-dreamer's architecture and feature
-proposals. One interactive pass renders every pending proposal as a
+Two queues feed the human's decision passes, kept deliberately separate
+because they answer different questions.
+
+**/proposals** covers IDEAS: both dreamers' proposals (the harness-dreamer's
+harness improvements and the project-dreamer's architecture and feature
+proposals). One interactive pass renders every pending proposal as a
 decision card: slug, kind, risk, source dreamer, age, the proposal's own
 value case, its strongest evidence ref, and blast radius for anything
 touching a live Workato asset. Oldest first, so stale proposals get
@@ -72,6 +73,20 @@ touching UAT or production keeps its standing sign-off gate. Second,
 rejections teach: when three or more rejections share a reason, the
 pattern goes back to the dreamers' bus thread as taste, which is how the
 proposal quality improves week over week.
+
+**/triage** covers DISCOVERED WORK: evidence-backed findings the watchers
+file as they run (watchdog autopsies and self-heal candidates, regression
+failures, the gardener's actionable hygiene items, estate-architect
+recommendations, cortex work-shaped attention items). Same pass shape:
+decision cards oldest-first, batched verdicts (file story or bug, build
+now in dev, queue only, reject, defer), one mechanical recorder, one
+summary table. Filing creates the Jira Story or Bug immediately under the
+governing epic (a certain existing epic, or a new one under the FY27
+V2MOM work item), assigned to Josh, points set at creation, the finding's
+evidence inline. Build-now executes dev-estate work only, with the
+snapshot-edit-test-verify-ledger cycle; UAT and production keep their
+standing gates. Rejection patterns feed a triage-taste thread on the bus,
+so the watchers stop re-raising what the human already declined.
 
 The suggested cadence is earn-then-extend: run report for a week and read
 the reports, upgrade to propose and review the proposals for another week,

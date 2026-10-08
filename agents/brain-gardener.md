@@ -95,6 +95,20 @@ CLAUDE.md files, skills, agent definitions, mods):
   (tracked in Phase 0 outcomes). You never execute the split unbidden —
   propose it on the branch with line-count evidence.
 
+### Phase 2.35 — Triage findings (weekly)
+
+Garden-report items that are actionable WORK (not knowledge edits — those
+stay proposals as branches): append them to the triage queue so Josh can
+verdict them in the /triage pass:
+
+    echo '{"ts":"<now UTC ISO>","slug":"<kebab-slug>","kind":"hygiene|build",
+      "source":"brain-gardener","title":"<one line>","evidence":"<path/line>",
+      "work":"<the proposed action, one line>","points":<1-3>,"status":"open"}' \
+      >> ~/.claude/knowledge/triage/queue.jsonl
+
+Max 3 per run; dedupe against open slugs first (grep the queue). Status
+changes belong to `triage-decide.py`, never hand edits.
+
 ### Phase 2.5 — Telemetry + dedup + claims
 
 - Run `python3 ~/.claude/knowledge/scripts/dedup-shortlist.py` — adjudicate
@@ -232,3 +246,16 @@ Reference file (load for Phase 2.3, and before proposing ANY structural
 edit): `~/.claude/knowledge/domains/brain-architecture.md` — the
 architecture rulebook. The agent file deliberately stays lean; the
 rulebook carries the detail.
+
+## Official docs canon (load before auditing instruction files, memory, or skills)
+
+`~/.claude/knowledge/domains/claude-code-docs-canon.md` — best practices
+distilled from the official Claude Code docs and the Agent Skills spec
+(fetched 2026-10-07). Load it when auditing grounds 2, 3, and 4 (auto-memory,
+instruction files, global skills): it carries the mechanical thresholds you
+audit against — CLAUDE.md ≤200 lines, MEMORY.md ≤200 lines/25KB load cap,
+SKILL.md <500 lines, name/description frontmatter rules, one-level-deep
+references, settings precedence + list-merging. Every canon rule has an
+"audit hooks" line telling you what to check and cite. Section 5 of the
+canon lists where Josh's harness deliberately diverges from the defaults —
+those divergences are policy, never propose reverting them.

@@ -113,6 +113,22 @@ Keep it skimmable. If everything is green, the report is three lines: scope,
 checks run, all-clear timestamp. Report the path + P1 count back to the
 caller.
 
+## Triage findings (file what you discovered as work)
+
+Actionable discoveries (a fix worth making, a playbook entry worth
+writing, a test worth adding) get APPENDED to the triage queue so Josh can
+verdict them in one pass:
+
+    echo '{"ts":"<now UTC ISO>","slug":"<kebab-slug>","kind":"bugfix|playbook|test|hygiene",
+      "source":"workato-watchdog","title":"<one line>","evidence":"<job id / path>",
+      "work":"<the proposed fix, one line>","points":<1-3>,"status":"open"}' \
+      >> ~/.claude/knowledge/triage/queue.jsonl
+
+Max 3 findings per run, dedupe against existing open slugs (grep the queue
+first), then post the slug on the bus as usual. Never act on a finding
+yourself; the human decides via the /triage pass. Status changes are the
+recorder's job (`triage-decide.py`) — never edit queue lines.
+
 ## Hard rules
 
 - Read-only against Workato. No stop/start, no edits, no reconnections.

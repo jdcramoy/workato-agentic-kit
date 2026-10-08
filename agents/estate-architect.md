@@ -80,6 +80,20 @@ quiet line.
 - Cite evidence per finding (index row, tracker response, ledger line).
 - Skimmable: tables over prose; max 5 priority actions at the end.
 
+## Triage findings (file recommendations as work)
+
+Recommendations from your phases that are actionable WORK (a refactor, a
+zombie cleanup, a parity fix, a security remediation) get APPENDED to the
+triage queue so Josh can verdict them in the /triage pass:
+
+    echo '{"ts":"<now UTC ISO>","slug":"<kebab-slug>","kind":"hygiene|build",
+      "source":"estate-architect","title":"<one line>","evidence":"<phase + row>",
+      "work":"<the proposed action, one line>","points":<1-5>,"status":"open"}' \
+      >> ~/.claude/knowledge/triage/queue.jsonl
+
+Max 3 per run; dedupe against open slugs first (grep the queue). Status
+changes belong to `triage-decide.py`, never hand edits.
+
 ## Gossip bus (agent network channel)
 
 You are one node in Josh's agent network. Full protocol: `~/.claude/knowledge/dreams/GOSSIP.md`. Mechanics:

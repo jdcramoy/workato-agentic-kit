@@ -55,6 +55,13 @@ repeatable SOP extracted from real work:
 - **platform-onboarding**: cold-start the harness on a platform it has
   never seen, from API reference to first working integration with test
   cases in one sitting.
+- **triage**: the interactive approval queue for discovered work. The
+  watchers file evidence-backed findings (a broken thing worth fixing, a
+  playbook entry worth writing, a cleanup worth doing) to a shared queue;
+  this skill renders them as decision cards, collects verdicts in one
+  batched pass, creates the Jira Story or Bug for approved work under the
+  governing epic, and dispatches approved dev-scoped fixes with the full
+  snapshot-verify-ledger cycle.
 
 ## Why skills rather than documentation
 
