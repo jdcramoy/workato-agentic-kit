@@ -111,7 +111,7 @@ def _confluence_best_effort():
     out = {}
     for space in ("extbt", "intbt"):
         try:
-            out[space] = confluence_sync.sync_space(space, days=2)
+            out[space] = confluence_sync.sync_space(space)
         except SystemExit as e:
             out[space] = {"skipped": str(e).strip().splitlines()[0]}
     return out

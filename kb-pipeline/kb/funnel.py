@@ -52,8 +52,10 @@ def build(batch: int = 64) -> dict:
             texts = [r[1] for r in chunk]
             embs = model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
             for (doc_id, _), emb in zip(chunk, embs):
+                # vec0 has no working INSERT OR REPLACE: delete-then-insert
+                db.execute(f"DELETE FROM {COARSE_TABLE} WHERE doc_id=?", (doc_id,))
                 db.execute(
-                    f"INSERT OR REPLACE INTO {COARSE_TABLE}(doc_id, embedding) VALUES(?,?)",
+                    f"INSERT INTO {COARSE_TABLE}(doc_id, embedding) VALUES(?,?)",
                     (doc_id, struct.pack(f"{len(emb)}f", *emb)),
                 )
             done += len(chunk)

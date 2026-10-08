@@ -46,6 +46,11 @@ CREATE TABLE IF NOT EXISTS factlets (
     date TEXT,
     children TEXT DEFAULT '[]'
 );
+CREATE TABLE IF NOT EXISTS build_meta (
+    source_key TEXT PRIMARY KEY,
+    sha TEXT NOT NULL,
+    built_at TEXT DEFAULT (datetime('now'))
+);
 CREATE INDEX IF NOT EXISTS idx_factlets_level ON factlets(level);
 CREATE INDEX IF NOT EXISTS idx_factlets_parent ON factlets(parent);
 CREATE VIRTUAL TABLE IF NOT EXISTS factlets_fts USING fts5(
@@ -65,8 +70,8 @@ def _connect() -> sqlite3.Connection:
     return db
 
 
-def _insert(db, level, title, text, parent, source, verdict=None, date=None):
-    fid = _fid(level, title, source)
+def _insert(db, level, title, text, parent, source, verdict=None, date=None, fid=None):
+    fid = fid or _fid(level, parent, title, source)
     db.execute(
         "INSERT OR REPLACE INTO factlets(id,level,title,text,parent,source,verdict,date,children) "
         "VALUES(?,?,?,?,?,?,?,?,COALESCE((SELECT children FROM factlets WHERE id=?),'[]'))",
@@ -81,23 +86,49 @@ def _insert(db, level, title, text, parent, source, verdict=None, date=None):
     return fid
 
 
-def build() -> dict:
+def _sha(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha1(path.read_bytes()).hexdigest()
+
+
+def _source_changed(db, key: str, sha: str) -> bool:
+    row = db.execute("SELECT sha FROM build_meta WHERE source_key=?", (key,)).fetchone()
+    return row is None or row[0] != sha
+
+
+def _mark(db, key: str, sha: str) -> None:
+    db.execute(
+        "INSERT OR REPLACE INTO build_meta(source_key, sha, built_at) VALUES(?,?,datetime('now'))",
+        (key, sha),
+    )
+
+
+def build(full: bool = False) -> dict:
+    """Incremental by default: each source rebuilds only when its content changed.
+    Sources: knowledge tree, claims, agent SOPs, skills, CLAUDE.md tiers, the
+    auto-memory dir, dream reports, calibration cards, KB chunk layer."""
     db = _connect()
-    stats = {"level0": 0, "level1": 0, "level2": 0, "level3": 0}
+    stats = {"level0": 0, "level1": 0, "level2": 0, "level3": 0, "skipped": 0}
     kb = get_db()
 
-    # level 0/1 from the knowledge tree INDEX (topic -> file)
+    def insert(level, title, text, parent, source, verdict=None, date=None, fid=None):
+        return _insert(db, level, title, text, parent, source, verdict, date, fid=fid)
+
+    # --- knowledge tree (INDEX -> files -> sections) ---
     index_lines = [
         ln
         for ln in (KT / "INDEX.md").read_text().splitlines()
         if ln.strip().startswith("- [")
     ]
-    root = _fid(0, "INDEX-root", "knowledge-tree")
-    db.execute(
-        "INSERT OR REPLACE INTO factlets(id,level,title,text,parent,source,verdict,date,children) VALUES(?,?,?,?,?,?,?,?,?)",
-        (root, 0, "The knowledge tree", "The harness's curated memory: every line routes to one file.", None, "INDEX.md", None, None, "[]"),
-    )
-    stats["level0"] += 1
+    if full or _source_changed(db, "kt-index", _sha(KT / "INDEX.md")):
+        root = _fid(0, "INDEX-root", "knowledge-tree")
+        db.execute(
+            "INSERT OR REPLACE INTO factlets(id,level,title,text,parent,source,verdict,date,children) VALUES(?,?,?,?,?,?,?,?,?)",
+            (root, 0, "The knowledge tree", "The harness's curated memory: every line routes to one file.", None, "INDEX.md", None, None, "[]"),
+        )
+        _mark(db, "kt-index", _sha(KT / "INDEX.md"))
+        stats["level0"] += 1
     for ln in index_lines:
         m = re.match(r"- \[(.+?)\]\((.+?)\)", ln)
         if not m:
@@ -110,10 +141,12 @@ def build() -> dict:
                 break
         if not path:
             continue
-        fid = _insert(db, 1, title, path.read_text()[:4000], root, rel)
+        key = f"kt:{rel}"
+        if not full and not _source_changed(db, key, _sha(path)):
+            stats["skipped"] += 1
+            continue
+        fid = insert(1, title, path.read_text()[:9000], root, rel)
         stats["level1"] += 1
-
-        # level 2: sections within the file
         text = path.read_text()
         for sec in re.split(r"\n(?=## )", text):
             if not sec.strip() or not sec.startswith("## "):
@@ -121,16 +154,16 @@ def build() -> dict:
             sec_title = sec.splitlines()[0][3:].strip()[:80]
             _insert(db, 2, f"{title} :: {sec_title}", sec[:3000], fid, rel)
             stats["level2"] += 1
+        _mark(db, key, _sha(path))
 
-    # level 2 from the claims ledger (structured facts attach to their domain file)
+    # --- claims ledger ---
     claims_p = KT / "claims" / "claims.jsonl"
-    if claims_p.exists():
+    if claims_p.exists() and (full or _source_changed(db, "claims", _sha(claims_p))):
         for line in claims_p.read_text().splitlines():
             if not line.strip():
                 continue
             c = json.loads(line)
-            _insert(
-                db,
+            insert(
                 2,
                 f"claim: {c.get('claim', '')[:60]}",
                 json.dumps(c, indent=1),
@@ -140,52 +173,182 @@ def build() -> dict:
                 date=c.get("last_verified") or c.get("created"),
             )
             stats["level2"] += 1
+        _mark(db, "claims", _sha(claims_p))
 
-    # level 3 from KB chunks (fine grain; parent = the docs page file factlet)
-    for (url, title, context, text) in kb.execute(
-        "SELECT d.url, d.title, c.context, c.text FROM chunks c JOIN docs d ON d.doc_id = c.doc_id LIMIT 200000"
-    ):
-        _insert(db, 3, title[:150], f"{context}\n\n{text[:2000]}", _fid(1, title, url.split("docs.workato.com/")[-1].removesuffix(".md")), url)
-        stats["level3"] += 1
-    kb.close()
+    # --- agent SOPs (level 1 + level 2 sections) ---
+    agents_changed = 0
+    for p_ag in (Path.home() / ".claude/agents").glob("*.md"):
+        key = f"agent:{p_ag.name}"
+        if not full and not _source_changed(db, key, _sha(p_ag)):
+            stats["skipped"] += 1
+            continue
+        text = p_ag.read_text()
+        head = re.sub(r"^---\n.*?---\n", "", text, flags=re.S).strip()
+        title = head.splitlines()[0].lstrip("# ").strip() if head.startswith("#") else p_ag.stem
+        fid = insert(1, f"agent: {title}", head[:9000], root, f"agents/{p_ag.name}")
+        stats["level1"] += 1
+        for sec in re.split(r"\n(?=## )", head):
+            if not sec.strip() or not sec.startswith("## "):
+                continue
+            insert(2, f"agent {p_ag.stem} :: {sec.splitlines()[0][3:].strip()[:60]}", sec[:3000], fid, f"agents/{p_ag.name}")
+            stats["level2"] += 1
+        _mark(db, key, _sha(p_ag))
+        agents_changed += 1
+
+    # --- skills (level 1: one factlet per skill, description carries the routing) ---
+    for p_sk in (Path.home() / ".claude/skills").glob("*/SKILL.md"):
+        key = f"skill:{p_sk.parent.name}"
+        if not full and not _source_changed(db, key, _sha(p_sk)):
+            stats["skipped"] += 1
+            continue
+        text = p_sk.read_text()
+        desc = ""
+        m = re.search(r"description:\s*>?-?\s*\n?((?:\s+.+\n)+)", text)
+        if not m:
+            m = re.search(r"description:\s*(.+)", text)
+        if m:
+            desc = " ".join(m.group(1).split())[:500]
+        insert(1, f"skill: {p_sk.parent.name}", f"{desc}\n\n{text[:2500]}", root, f"skills/{p_sk.parent.name}")
+        stats["level1"] += 1
+        _mark(db, key, _sha(p_sk))
+
+    # --- CLAUDE.md tiers + auto-memory (level 1) ---
+    for label, cpath in [
+        ("global-CLAUDE.md", Path.home() / ".claude/CLAUDE.md"),
+        ("project-CLAUDE.md", Path.home() / "Documents/CLAUDE.md"),
+        ("workbench-CLAUDE.md", Path.home() / "Documents/workbench/CLAUDE.md"),
+        ("MEMORY.md", Path.home() / ".claude/projects/-Users-joshcramoy-Documents-workbench/memory/MEMORY.md"),
+    ]:
+        if not cpath.exists():
+            continue
+        key = f"claude:{label}"
+        if not full and not _source_changed(db, key, _sha(cpath)):
+            stats["skipped"] += 1
+            continue
+        insert(1, label, cpath.read_text()[:5000], root, str(cpath))
+        stats["level1"] += 1
+        _mark(db, key, _sha(cpath))
+    mem_dir = Path.home() / ".claude/projects/-Users-joshcramoy-Documents-workbench/memory"
+    for p_m in mem_dir.glob("*.md"):
+        if p_m.name == "MEMORY.md":
+            continue
+        key = f"memory:{p_m.name}"
+        if not full and not _source_changed(db, key, _sha(p_m)):
+            stats["skipped"] += 1
+            continue
+        insert(1, f"memory: {p_m.stem}", p_m.read_text()[:4000], root, str(p_m))
+        stats["level1"] += 1
+        _mark(db, key, _sha(p_m))
+
+    # --- dream reports + calibration cards (level 1, dated) ---
+    for p_d in sorted((KT / "dreams").glob("2*.md"))[-30:]:
+        key = f"dream:{p_d.name}"
+        if not full and not _source_changed(db, key, _sha(p_d)):
+            stats["skipped"] += 1
+            continue
+        insert(1, f"dream: {p_d.stem}", p_d.read_text()[:6000], root, str(p_d), date=p_d.stem[:10])
+        stats["level1"] += 1
+        _mark(db, key, _sha(p_d))
+    cal = KT / "dreams/calibration"
+    if cal.exists():
+        for p_c in sorted(cal.glob("*.md"))[-8:]:
+            key = f"calibration:{p_c.name}"
+            if not full and not _source_changed(db, key, _sha(p_c)):
+                stats["skipped"] += 1
+                continue
+            insert(1, f"calibration: {p_c.stem}", p_c.read_text()[:3000], root, str(p_c))
+            stats["level1"] += 1
+            _mark(db, key, _sha(p_c))
+
+    # --- KB chunk layer (level 3) — rebuild only when the KB index moved ---
+    kb_db = DB_PATH
+    kb_newer = not _source_changed(db, "kb-chunks", f"{kb_db.stat().st_mtime_ns}") if kb_db.exists() else False
+    if full or kb_newer:
+        # level-1 factlets for every docs page FIRST (chunks parent to these);
+        # the llm_context (or title) is the page's coarse summary
+        docs_rows = kb.execute(
+            "SELECT DISTINCT d.url, d.title, IFNULL(d.llm_context, ''), d.source FROM docs d LIMIT 200000"
+        ).fetchall()
+        page_fid = {}
+        for (url, title, llm_ctx, source) in docs_rows:
+            pf = _fid(1, title, url.split("docs.workato.com/")[-1].removesuffix(".md"))
+            page_fid[url] = pf
+            coarse = llm_ctx or f"{title} ({source} page)"
+            insert(1, f"{source}: {title[:120]}", f"{coarse}\n\n{url}", root, url, fid=pf)
+            stats["level1"] += 1
+        # fid includes chunk_id — chunks of one page must not overwrite each other
+        for (chunk_id, url, title, context, text) in kb.execute(
+            "SELECT c.chunk_id, d.url, d.title, c.context, c.text FROM chunks c JOIN docs d ON d.doc_id = c.doc_id LIMIT 200000"
+        ):
+            insert(
+                3,
+                title[:150],
+                f"{context}\n\n{text[:2000]}",
+                page_fid.get(url) or _fid(1, title, url.split("docs.workato.com/")[-1].removesuffix(".md")),
+                url,
+                fid=_fid(3, chunk_id),
+            )
+            stats["level3"] += 1
+        _mark(db, "kb-chunks", f"{kb_db.stat().st_mtime_ns}")
 
     db.commit()
     db.close()
-    stats["total"] = sum(stats.values())
+    stats["total"] = sum(v for k2, v in stats.items() if k2 != "skipped")
     return stats
 
 
-def zoom(topic: str, level: int | None = None, k: int = 6) -> dict:
+def _freshen() -> None:
+    """Rebuild incrementally if any tracked source changed (cheap shas)."""
+    import subprocess as _sp
+    import sys as _sys
+
+    r = _sp.run(
+        [_sys.executable, str(Path(__file__).resolve()), "build"],
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    if "skipped" not in r.stdout:
+        import sys as _s
+
+        print("[fractal: refreshed]", file=_s.stderr, flush=True)
+
+
+def zoom(topic: str, level: int | None = None, k: int = 6, fresh: bool = True) -> dict:
     """Coarse-first retrieval: best factlets at the coarsest level that answers,
     with drill-down pointers. Read less; zoom only when needed."""
+    if fresh:
+        _freshen()
     db = _connect()
     try:
         import re as _re
 
         tokens = _re.findall(r"\w{2,}", topic.lower())
         match = " OR ".join(f'"{t}"' for t in tokens) or '""'
+        # one query across ALL levels: bm25 scores are comparable within a single
+        # FTS index, so the ranking is global — chunk noise cannot bury the file
+        # that actually answers (the first-non-empty-level design had exactly
+        # that failure; the eval caught it)
+        where = "WHERE factlets_fts MATCH ? AND f.level = ?" if level is not None else "WHERE factlets_fts MATCH ?"
+        params = [match, level, k] if level is not None else [match, k]
+        rows = db.execute(
+            f"SELECT f.id, f.level, f.title, substr(f.text, 1, 300), f.parent, f.source "
+            f"FROM factlets_fts ft JOIN factlets f ON f.rowid = ft.rowid "
+            f"{where} ORDER BY bm25(factlets_fts, 8.0, 1.0) LIMIT ?",
+            params,
+        ).fetchall()
         out = {"topic": topic, "levels": {}}
-        for lvl in sorted(LEVELS):  # coarse first
-            if level is not None and lvl != level:
-                continue
-            rows = db.execute(
-                "SELECT f.id, f.level, f.title, substr(f.text, 1, 300), f.parent, f.source "
-                "FROM factlets_fts ft JOIN factlets f ON f.rowid = ft.rowid "
-                "WHERE factlets_fts MATCH ? AND f.level = ? LIMIT ?",
-                (match, lvl, k),
-            ).fetchall()
-            if rows:
-                out["levels"][LEVELS[lvl]] = [
-                    {
-                        "id": r[0],
-                        "title": r[2],
-                        "snippet": r[3],
-                        "parent": r[4],
-                        "source": r[5],
-                        "drill": f"kb fractal show {r[0]}",
-                    }
-                    for r in rows
-                ]
+        for r in rows:
+            out["levels"].setdefault(LEVELS[r[1]], []).append(
+                {
+                    "id": r[0],
+                    "title": r[2],
+                    "snippet": r[3],
+                    "parent": r[4],
+                    "source": r[5],
+                    "drill": f"kb fractal show {r[0]}",
+                }
+            )
         out["verdict"] = (
             f"{sum(len(v) for v in out['levels'].values())} factlets; read the coarsest level that answers, drill only on decision"
         )
@@ -226,7 +389,8 @@ def show(fid: str) -> dict:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("build")
+    b = sub.add_parser("build")
+    b.add_argument("--full", action="store_true")
     z = sub.add_parser("zoom")
     z.add_argument("topic")
     z.add_argument("--level", type=int, default=None)
@@ -235,7 +399,7 @@ if __name__ == "__main__":
     s.add_argument("id")
     a = ap.parse_args()
     if a.cmd == "build":
-        print(json.dumps(build(), indent=2))
+        print(json.dumps(build(full=a.full), indent=2))
     elif a.cmd == "zoom":
         print(json.dumps(zoom(a.topic, a.level, a.k), indent=2))
     elif a.cmd == "show":

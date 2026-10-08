@@ -70,8 +70,11 @@ def _gateway() -> tuple[str, str]:
     return base.rstrip("/"), token
 
 
-def _call(model_key: str, system: str, user: str, max_tokens: int = 2000) -> dict:
+def _call(model_key: str, system: str, user: str, max_tokens: int | None = None) -> dict:
     base, token = _gateway()
+    # glm's thinking is verbose — it needs headroom or the text block never fits
+    if max_tokens is None:
+        max_tokens = 4500 if model_key == "glm" else 2000
     body = {
         "model": MODELS[model_key],
         "max_tokens": max_tokens,
