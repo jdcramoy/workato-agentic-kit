@@ -668,3 +668,14 @@ Claude Code 2.1.289 on macOS. The mods use standard mod events (`tool.call`,
 `prompt.submit`, `ui.render`, `turn.complete`, `command.run`); drawing
 surfaces fall back to text in VS Code, headless, and SDK contexts. Windows
 is untested.
+
+## Run validation (fleet runner v2)
+
+A fleet job counts as run only when there is evidence of work: a fresh
+heartbeat or non-empty output. A silent rc=0 exit is a STUB. The runner
+retries a stub once, then writes it to `garden-reports/fleet-validation.jsonl`
+for the watchdog to escalate. It also repairs the launchd environment
+(PATH + gateway env from `~/.zshenv`, which bash never reads) — the root
+cause of the silent stub night of 2026-10-07. Josh's contract: if we
+expect jobs to run, validate that they ran, and never let a failure be
+invisible.

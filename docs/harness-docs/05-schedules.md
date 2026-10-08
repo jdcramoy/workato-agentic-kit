@@ -37,6 +37,21 @@ only fire while a session is open and idle, so the parts that must run
 unattended (the crawler, the hidden lane) are launchd jobs that need no
 session at all.
 
+## The validation contract (added 2026-10-08)
+
+Firing is not running. The fleet runner validates every attempt for
+EVIDENCE of work: a fresh heartbeat for the job inside the run window, or
+non-empty output (a silent rc=0 exit with zero output is a STUB, not a
+run; this class silently killed the 22:15-23:43 jobs on 2026-10-07 when
+launchd's environment could not find claude or the gateway credentials,
+and nobody noticed for a full day). The runner repairs the launchd
+environment itself (PATH + gateway env), retries a stub once, and on a
+double stub writes `garden-reports/fleet-validation.jsonl` — a confirmed
+execution failure the watchdog escalates to the bus and the morning burn.
+Success writes the heartbeat mechanically, so the dashboard's
+heartbeat-first evidence ladder is enforced by the runner, not by the
+model's good manners.
+
 ## The heartbeat contract
 
 Every fleet job must check in to a shared heartbeat ledger with a timestamp
