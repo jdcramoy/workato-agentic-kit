@@ -1,0 +1,93 @@
+#!/bin/bash
+# prod-bypass — explicit, time-boxed bypass for the workato-guardrails
+# prod-write gates (hook 13 Bash gate + hook 9 push-risk gate + the
+# permissions.ask layer for prod MCP writes).
+#
+#   prod-bypass on 30m     bypass prod gates for 30 minutes (m/h suffixes)
+#   prod-bypass on 2h      two hours
+#   prod-bypass off        end it now
+#   prod-bypass            status
+#
+# Every write during a bypass window is STILL audit-logged, marked BYPASS,
+# in ~/.claude/workato-audit/prod-writes.log. The flag lives at
+# ~/.claude/workato-audit/prod-bypass.json and expires by itself.
+
+set -euo pipefail
+DIR="$HOME/.claude/workato-audit"
+FLAG="$DIR/prod-bypass.json"
+SETTINGS="$HOME/.claude/settings.json"
+mkdir -p "$DIR"
+
+now=$(python3 -c "import time;print(int(time.time()))")
+
+case "${1:-status}" in
+  on)
+    DUR="${2:-30m}"
+    SECS=$(python3 -c "
+import re, sys
+m = re.match(r'^(\d+)([mh]?)$', '$DUR')
+sys.exit('bad duration (use e.g. 30m, 2h)') if not m else None
+n, u = int(m.group(1)), m.group(2)
+print(n * (3600 if u == 'h' else 60))") || exit 1
+    UNTIL=$((now + SECS))
+    python3 -c "
+import json
+json.dump({'until': $UNTIL, 'set_at': $now, 'set_by': 'josh', 'note': 'manual prod-bypass on $DUR'}, open('$FLAG','w'), indent=1)"
+    # permissions layer: move prod-MCP write tools ask -> allow (next session)
+    python3 - "$SETTINGS" "$FLAG" << 'PY'
+import json, sys, shutil
+settings, flag = sys.argv[1], sys.argv[2]
+shutil.copy2(settings, settings + '.bak-bypass')
+d = json.load(open(settings))
+p = d.get('permissions', {})
+ask = p.get('ask', [])
+allow = p.get('allow', [])
+moved = [t for t in ask if t.startswith('mcp__workato-airo-mcp-prod__')]
+p['ask'] = [t for t in ask if not t.startswith('mcp__workato-airo-mcp-prod__')]
+p['allow'] = sorted(set(allow) | set(moved))
+json.dump(d, open(settings, 'w'), indent=2)
+# restore list rides in the flag for `off`
+f = json.load(open(flag))
+f['moved_to_allow'] = moved
+json.dump(f, open(flag, 'w'), indent=1)
+print(f"settings: {len(moved)} prod-MCP write tools ask->allow (takes effect next session)")
+PY
+    echo "⚠️  PROD BYPASS ON until $(python3 -c "import time;print(time.strftime('%H:%M', time.localtime($UNTIL)))")"
+    echo "    every prod write in the window is audit-logged as BYPASS"
+    ;;
+  off)
+    if [ -f "$FLAG" ]; then
+      python3 - "$SETTINGS" "$FLAG" << 'PY'
+import json, sys
+settings, flag = sys.argv[1], sys.argv[2]
+f = json.load(open(flag))
+moved = f.get('moved_to_allow', [])
+if moved:
+    d = json.load(open(settings))
+    p = d.get('permissions', {})
+    p['ask'] = sorted(set(p.get('ask', [])) | set(moved))
+    p['allow'] = [t for t in p.get('allow', []) if t not in moved]
+    json.dump(d, open(settings, 'w'), indent=2)
+    print(f"settings: {len(moved)} prod-MCP write tools restored to ask (next session)")
+PY
+      rm -f "$FLAG"
+      echo "prod bypass OFF (gates restored)"
+    else
+      echo "prod bypass: already off"
+    fi
+    ;;
+  status|"")
+    if [ -f "$FLAG" ]; then
+      python3 -c "
+import json, time
+f = json.load(open('$FLAG'))
+left = f['until'] - int(time.time())
+print(f\"⚠️  PROD BYPASS ACTIVE — expires in {left//60}m{left%60}s\") if left > 0 else print('flag expired (gate is live)')"
+    else
+      echo "prod bypass: off (all gates live)"
+    fi
+    ;;
+  *)
+    sed -n '2,14p' "$0"
+    ;;
+esac

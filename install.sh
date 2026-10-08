@@ -144,11 +144,11 @@ echo "skills installed: airo-mcp-playbook, workato-development-playbook, jira-st
 mkdir -p "${KIT_HOME}/.local/bin"
 cp bin/wt "${KIT_HOME}/.local/bin/wt"
 chmod +x "${KIT_HOME}/.local/bin/wt"
-for w in wt-prod workato-prod; do
+for w in wt-prod workato-prod prod-bypass; do
   render "bin/$w" "${KIT_HOME}/.local/bin/$w"
   chmod +x "${KIT_HOME}/.local/bin/$w"
 done
-echo "prod wrappers installed: wt-prod, workato-prod (keychain account: ${PROFILE_PROD:-josh-prod})"
+echo "prod wrappers installed: wt-prod, workato-prod, prod-bypass (keychain account: ${PROFILE_PROD:-josh-prod})"
 case ":$PATH:" in
   *":${KIT_HOME}/.local/bin:"*) echo "wt installed: ${KIT_HOME}/.local/bin/wt (on PATH)" ;;
   *) echo "wt installed: ${KIT_HOME}/.local/bin/wt — add ~/.local/bin to your PATH" ;;
