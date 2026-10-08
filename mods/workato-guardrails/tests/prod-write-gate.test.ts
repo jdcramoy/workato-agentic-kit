@@ -121,3 +121,10 @@ test('non-push git commands are untouched', async ($, on) => {
   expect(answer.deny).toBeUndefined()
   expect(String(answer.result)).toContain('ok')
 })
+
+// ---- bypass mode ------------------------------------------------------------
+// The bypass flag path (hook 13 + push gate + status band) is NOT testable in
+// the plugin test sandbox (no $.process/$.fs in the test kit — verified
+// 2026-10-07). Fail-closed default is covered by 'wt-prod mutation is
+// blocked' above; the bypass window is live-verified on first real use
+// (audit log must show PROD-WRITE-BYPASSED lines).

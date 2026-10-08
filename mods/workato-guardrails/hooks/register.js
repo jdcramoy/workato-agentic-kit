@@ -430,7 +430,13 @@ export function register(on) {
       }
       // Gate prod pushes that look risky; ui.ask time does not count against
       // the hook's time limit, and a dismissed dialog fails closed.
-      if (isProd && risk && !risk.error && (risk.score >= 3 || risk.running)) {
+      let bypassOnPush = false
+      try {
+        const bf2 = await $.fs.read(BYPASS_PATH)
+        const bj2 = JSON.parse(String(bf2.text ?? bf2))
+        bypassOnPush = typeof bj2.until === 'number' && bj2.until * 1000 > Date.now()
+      } catch { bypassOnPush = false }
+      if (isProd && risk && !risk.error && (risk.score >= 3 || risk.running) && !bypassOnPush) {
         let answer = 'Cancel push'
         try {
           answer = await $.ui.ask(
@@ -616,6 +622,10 @@ export function register(on) {
     return result
   })
 
+  // BYPASS flag path: explicit, time-boxed prod-gate bypass (bin/prod-bypass).
+  // Inline at each site ($ may not be passed to helpers — mod validator).
+  const BYPASS_PATH = '{{HOME}}/.claude/workato-audit/prod-bypass.json'
+
   // 13. PROD-WRITE CONFIRM GATE — EVERY surface, not just AIRO MCP.
   //     The prod AIRO server is already gated (permissions.ask + hook 1).
   //     This closes the other doors into production: the Workato CLI
@@ -690,6 +700,19 @@ export function register(on) {
     const cmd = String(e.command ?? '')
     const surface = prodSurface(cmd)
     if (surface) {
+      let bypassOn = false
+      try {
+        const bf = await $.fs.read(BYPASS_PATH)
+        const bj = JSON.parse(String(bf.text ?? bf))
+        bypassOn = typeof bj.until === 'number' && bj.until * 1000 > Date.now()
+      } catch { bypassOn = false }
+      if (bypassOn) {
+        await $.process.run(['sh', '-c', 'cat >> ' + AUDIT_FILE], {
+          stdin: new Date().toISOString() + ' PROD-WRITE-BYPASSED(' + surface + ') ' + cmd.slice(0, 200) + '\n',
+        })
+        $.ui.log('PROD WRITE (bypassed) · ' + surface + ' · ' + cmd.slice(0, 80))
+        return next(e)
+      }
       const isWrite =
         surface === 'workato-prod'
           ? workatoIsWrite(cmd)
@@ -746,7 +769,9 @@ export function register(on) {
 
   async function originIn(cmd, e) {
     // best-effort cwd: the event may carry it, else fall back to process cwd
-    const cwd = String(e.cwd || e.workingDir || process.cwd())
+    const cwdRaw = e.cwd || e.workingDir
+    if (!cwdRaw) return null   // no cwd in the event: skip the origin check, never throw
+    const cwd = String(cwdRaw)
     try {
       const res = await $.process.run(
         ['sh', '-c', 'git -C "' + cwd + '" remote get-url origin 2>/dev/null'])
@@ -1053,7 +1078,14 @@ export function register(on) {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const prior = await next(e)
     const { Box, Text } = $.ui.resolve(e)
+    let bypass = false
+    try {
+      const bf3 = await $.fs.read(BYPASS_PATH)
+      const bj3 = JSON.parse(String(bf3.text ?? bf3))
+      bypass = typeof bj3.until === 'number' && bj3.until * 1000 > Date.now()
+    } catch { bypass = false }
     const label =
+      (bypass ? '⚠️ PROD BYPASS ACTIVE · ' : '') +
       '🛡 guardrails · prod writes this session: ' + prodWrites +
       ' · /guardrails for status'
     return Box({
