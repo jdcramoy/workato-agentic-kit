@@ -77,6 +77,33 @@ for f in "$HOME/.local/bin/"*; do
 done
 cp "$HOME/Library/LaunchAgents/com.josh."*.plist "$REPO/launchagents/" 2>/dev/null || true
 
+# --- git remotes: josh-knowledge + the kit (nightly auto-push) ---------------
+# Both repos carry their own origin. Commit anything dirty and push, with a
+# token-shaped-string scan on the staged diff: a hit REFUSES the push (reset,
+# report). Up-to-date repos are a silent no-op. josh-orca above is the
+# whole-harness snapshot; this is the two repos' own git history going remote.
+auto_push() { # $1 = repo path, $2 = name
+  local repo="$1" name="$2"
+  git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  git -C "$repo" remote get-url origin >/dev/null 2>&1 || return 0
+  if [ -n "$(git -C "$repo" status --porcelain 2>/dev/null)" ]; then
+    git -C "$repo" add -A
+    if git -C "$repo" diff --cached | grep -qE '(wrkaus|sk|ghp|github_pat)-?[A-Za-z0-9._-]{16,}'; then
+      echo "harness-backup: $name push REFUSED — token-shaped string staged ($STAMP)"
+      git -C "$repo" reset -q
+      return 0
+    fi
+    git -C "$repo" commit -q -m "nightly auto-backup $STAMP" || true
+  fi
+  if git -C "$repo" push -q origin main 2>/dev/null; then
+    REMOTE_NOTE="$REMOTE_NOTE
+- $name: pushed ($(git -C "$repo" log --oneline -1 | head -c 60))"
+  fi
+}
+REMOTE_NOTE=""
+auto_push "$CLAUDE/knowledge" "josh-knowledge"
+auto_push "$HOME/Documents/agentic-workato-kit" "workato-agentic-kit"
+
 # manifest
 cat > "$REPO/backup-manifest.md" << EOF
 # Backup manifest
@@ -86,6 +113,7 @@ cat > "$REPO/backup-manifest.md" << EOF
 - mods: $(ls "$REPO/mods" 2>/dev/null | tr '\n' ' ')
 - knowledge files: $(find "$REPO/harness/knowledge" -type f 2>/dev/null | wc -l | tr -d ' ')
 - recipe-history snapshots: $(find "$REPO/harness/recipe-history" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
+- git remotes:$REMOTE_NOTE
 - Settings secrets: redacted. Transcripts/keychain: never copied.
 EOF
 
