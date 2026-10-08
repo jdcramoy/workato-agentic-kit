@@ -2,7 +2,7 @@
   "space_key": "BTI",
   "space_name": "[External] BT-Business Technology",
   "parent_page_id": "2938830860",
-  "last_synced_commit": "",
+  "last_synced_commit": "3b57208",
   "sync_schedule": "weekly session-cron, Tuesdays 06:57, self-rearming",
   "policy": {
     "updates_to_existing_pages": "autonomous (sanitized content only, read-back required)",
@@ -10,13 +10,45 @@
     "sanitizer": "no workspace IDs, cloudIds, real recipe/folder/job IDs, epic keys, tokens, or keychain specifics in published content"
   },
   "pages": [
-    {"file": "00-overview.md", "page_id": "2938830860", "title": "The Agentic Workato Harness: a self-improving development organism"},
-    {"file": "01-agents.md", "page_id": "2938961981", "title": "The agents: a nervous system of specialists"},
-    {"file": "02-skills.md", "page_id": "2938929171", "title": "Skills: knowledge that loads into every session"},
-    {"file": "03-mods.md", "page_id": "2939060252", "title": "Enforcement mods: rules as code"},
-    {"file": "04-knowledge.md", "page_id": "2939158533", "title": "Memory and the knowledge base architecture"},
-    {"file": "05-schedules.md", "page_id": "2939387928", "title": "The nightly machine: schedules and the morning brief"},
-    {"file": "06-gossip-bus.md", "page_id": "2939191301", "title": "The gossip bus: how the agents talk"},
-    {"file": "07-trust-ladder.md", "page_id": "2939387948", "title": "The dreamer and the trust ladder: self-improvement with a human in the loop"}
+    {
+      "file": "00-overview.md",
+      "page_id": "2938830860",
+      "title": "The Agentic Workato Harness: a self-improving development organism"
+    },
+    {
+      "file": "01-agents.md",
+      "page_id": "2938961981",
+      "title": "The agents: a nervous system of specialists"
+    },
+    {
+      "file": "02-skills.md",
+      "page_id": "2938929171",
+      "title": "Skills: knowledge that loads into every session"
+    },
+    {
+      "file": "03-mods.md",
+      "page_id": "2939060252",
+      "title": "Enforcement mods: rules as code"
+    },
+    {
+      "file": "04-knowledge.md",
+      "page_id": "2939158533",
+      "title": "Memory and the knowledge base architecture"
+    },
+    {
+      "file": "05-schedules.md",
+      "page_id": "2939387928",
+      "title": "The nightly machine: schedules and the morning brief"
+    },
+    {
+      "file": "06-gossip-bus.md",
+      "page_id": "2939191301",
+      "title": "The gossip bus: how the agents talk"
+    },
+    {
+      "file": "07-trust-ladder.md",
+      "page_id": "2939387948",
+      "title": "The dreamer and the trust ladder: self-improvement with a human in the loop"
+    }
   ]
 }
