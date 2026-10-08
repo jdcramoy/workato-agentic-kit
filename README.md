@@ -331,6 +331,7 @@ the exact prompts.
 | Mon 06:07 | Corpus indexer (recipes + task counters, dev and prod) |
 | Mon 06:37 | Estate architect (full review) |
 | 00:13 daily | Regression harness: run every recipe's test cases via the Test Automation API, report failures with job IDs |
+| Tue 06:57 | Harness-docs sync: reconcile live harness <-> repo <-> Confluence doc tree (see "Keeping the docs honest") |
 
 ## Install
 
@@ -525,6 +526,29 @@ patterns before solo findings, dream verdict, watchdog P1s, your Jira
 movements, and repo commits from the last 24h. Empty sections say
 "nothing" — no padding. If you read one thing in the morning, read this.
 
+### Keeping the docs honest (harness-docs sync, Tue 06:57)
+
+Three copies of the architecture documentation exist — the live harness
+(`~/.claude/agents`, `~/mods`, the knowledge tree), this repo
+(`docs/harness-docs/`), and the published Confluence tree in the BT
+Business Technology space — and any of them can drift. A weekly sync job
+reconciles them in one direction per edge: the live harness is the source
+of truth for agent SOPs (synced INTO the repo), the repo docs are the
+source of truth for the published pages (published OUT to Confluence).
+
+- `docs/harness-docs/manifest.json` maps each doc file to its Confluence
+  page ID and records `last_synced_commit`, so drift detection is just
+  `git diff <last_synced_commit>..HEAD -- docs/harness-docs/` plus a
+  diff of the live SOPs against the repo copies.
+- The full procedure lives in `schedules/harness-docs-sync.txt`. Policy:
+  updates to existing pages are autonomous (a sanitizer strips workspace
+  IDs, tokens, and internal identifiers before every publish, and every
+  publish is read back to verify rendering); creating new pages,
+  reparenting, or deleting needs Josh first.
+- The job heartbeats and posts a one-line drift report to the bus, so a
+  skipped sync shows up in the watchdog and the morning brief like any
+  other fleet job.
+
 ### Troubleshooting
 
 - **The bus is quiet** — the nightly agents only fire while a Claude Code
@@ -582,6 +606,7 @@ knowledge/scripts/brain-dashboard.py
                       the full-page agent-network dashboard (self-refreshing);
                       open it with /cockpit full or brain-dashboard --open
 schedules/            cron prompt templates + launchd plist
+docs/harness-docs/    the published harness documentation set + page manifest
 ```
 
 ## Tested with
