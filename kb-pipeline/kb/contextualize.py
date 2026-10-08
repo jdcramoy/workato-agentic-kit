@@ -78,7 +78,7 @@ def run(limit: int = 400) -> dict:
             (limit,),
         ).fetchall()
         done, failed = 0, []
-        for doc_id, source, url, title, section, path in rows:
+        for i, (doc_id, source, url, title, section, path) in enumerate(rows, 1):
             f = DATA_ROOT / "corpus" / path
             if not f.exists():
                 continue
@@ -90,6 +90,8 @@ def run(limit: int = 400) -> dict:
                 db.execute("UPDATE docs SET llm_context=?, sha256='' WHERE doc_id=?", (ctx, doc_id))
                 db.commit()
                 done += 1
+                if i % 25 == 0:
+                    print(f"  ... {i}/{len(rows)} contextualized", flush=True)
             except Exception as e:  # noqa: BLE001 - nightly job records, continues
                 failed.append({"url": url, "error": str(e)[:120]})
         (total_pending,) = db.execute(

@@ -184,8 +184,8 @@ def build(force: bool = False, with_embeddings: bool = True) -> dict:
         else:
             stats["docs_added"] += 1
         cur = db.execute(
-            "INSERT INTO docs(source,url,path,title,section,sha256) VALUES(?,?,?,?,?,?)",
-            (source, url, rel, title, sec, sha),
+            "INSERT INTO docs(source,url,path,title,section,sha256,llm_context) VALUES(?,?,?,?,?,?,?)",
+            (source, url, rel, title, sec, sha, llm_ctx),
         )
         doc_id = cur.lastrowid
         context_header = f"[source: {source} | section: {sec} | page: {title} | url: {url}]"

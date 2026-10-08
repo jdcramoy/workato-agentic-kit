@@ -21,10 +21,13 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+from collections import Counter
 from pathlib import Path
 
 KNOWLEDGE = Path.home() / ".claude/knowledge"
-OUTCOMES = KNOWLEDGE / "dreams/proposals/outcomes.jsonl"
+# the REAL ledger written by proposal-decide.py (garden-reports, append-only)
+OUTCOMES = KNOWLEDGE / "garden-reports/proposal-outcomes.jsonl"
+LEGACY_OUTCOMES = KNOWLEDGE / "dreams/proposals/outcomes.jsonl"
 ASSUMPTIONS = KNOWLEDGE / "dreams/assumptions.jsonl"
 
 # informed prior: Josh accepts ambitious-but-evidenced harness proposals often
@@ -33,18 +36,45 @@ PRIOR_ALPHA, PRIOR_BETA = 2.2, 1.3
 
 
 def _outcomes() -> list[dict]:
-    if not OUTCOMES.exists():
-        return []
-    return [json.loads(l) for l in OUTCOMES.read_text().splitlines() if l.strip()]
+    recs = []
+    for p in (OUTCOMES, LEGACY_OUTCOMES):
+        if p.exists():
+            recs += [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+    return recs
+
+
+def flywheel() -> dict:
+    """Ledger stats for the /proposals display — the habit made visible."""
+    recs = _outcomes()
+    counts = Counter(o.get("action", "?") for o in recs)
+    n_decided = counts.get("accepted", 0) + counts.get("rejected", 0)
+    a, b = PRIOR_ALPHA, PRIOR_BETA
+    for o in recs:
+        if o.get("action") in ("accepted", "built"):
+            a += 1
+        elif o.get("action") == "rejected":
+            b += 1
+    return {
+        "total_records": len(recs),
+        "decisions": dict(counts),
+        "posterior_p_accept": round(a / (a + b), 3),
+        "message": (
+            "prior-dominated — decide through the queue to train the model"
+            if n_decided < 10
+            else "learning from your decisions"
+        ),
+        "fit_ready": n_decided >= 20,
+    }
 
 
 def p_accept(domains: int, evidence: int, cost: float) -> dict:
     outcomes = _outcomes()
     a, b = PRIOR_ALPHA, PRIOR_BETA
     for o in outcomes:
-        if o.get("decision") == "accept":
+        act = o.get("action", o.get("decision", ""))
+        if act in ("accepted", "built", "accept"):
             a += 1
-        elif o.get("decision") == "reject":
+        elif act in ("rejected", "reject"):
             b += 1
     post_mean = a / (a + b)
     out = {
@@ -63,7 +93,7 @@ def p_accept(domains: int, evidence: int, cost: float) -> dict:
                 ],
                 dtype=float,
             )
-            y = np.array([1.0 if o.get("decision") == "accept" else 0.0 for o in outcomes])
+            y = np.array([1.0 if o.get("action", o.get("decision")) in ("accepted", "built", "accept") else 0.0 for o in outcomes])
             from sklearn.linear_model import LogisticRegression
 
             m = LogisticRegression(max_iter=200).fit(X, y)
@@ -140,7 +170,7 @@ def fit() -> dict:
     import numpy as np
 
     X = np.array([[o.get("domains", 1), o.get("evidence", 0), o.get("cost", 8)] for o in outcomes], dtype=float)
-    y = np.array([1.0 if o.get("decision") == "accept" else 0.0 for o in outcomes])
+    y = np.array([1.0 if o.get("action", o.get("decision")) in ("accepted", "built", "accept") else 0.0 for o in outcomes])
     from sklearn.linear_model import LogisticRegression
 
     m = LogisticRegression(max_iter=200).fit(X, y)
@@ -156,6 +186,7 @@ if __name__ == "__main__":
     s.add_argument("--domains", type=int, default=2)
     s.add_argument("--evidence", type=int, default=2)
     sub.add_parser("fit")
+    sub.add_parser("flywheel")
     a2 = sub.add_parser("assume")
     a2.add_argument("--proposal", required=True)
     a2.add_argument("--text", required=True)
@@ -166,5 +197,7 @@ if __name__ == "__main__":
         print(json.dumps(score(args), indent=2))
     elif args.cmd == "fit":
         print(json.dumps(fit(), indent=2))
+    elif args.cmd == "flywheel":
+        print(json.dumps(flywheel(), indent=2))
     elif args.cmd == "assume":
         print(json.dumps(assume_check() if args.check else assume_add(args.proposal, args.text, args.query), indent=2))
