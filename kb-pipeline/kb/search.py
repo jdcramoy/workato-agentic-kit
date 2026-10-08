@@ -106,9 +106,9 @@ def _bm25(db: sqlite3.Connection, query: str, k: int, source: str | None, sectio
 
 
 def _vec(db: sqlite3.Connection, query: str, k: int, source: str | None, section: str | None) -> list[Hit]:
-    from sentence_transformers import SentenceTransformer
+    from .indexer import get_model
 
-    model = SentenceTransformer(MODEL_NAME)
+    model = get_model("embed")
     emb = model.encode([query], normalize_embeddings=True)[0].tolist()
     binding = struct.pack(f"{len(emb)}f", *emb)
     sql = """
@@ -160,9 +160,9 @@ def _rerank(query: str, hits: list[Hit], top_k: int, use_entropy: bool, use_pmi:
     if not hits:
         return hits
     try:
-        from sentence_transformers import CrossEncoder
+        from .indexer import get_model
 
-        model = CrossEncoder("BAAI/bge-reranker-base")
+        model = get_model("rerank")
         pairs = [(query, f"{h.context}\n\n{h.text}") for h in hits]
         scores = model.predict(pairs)
         for h, s in zip(hits, scores):

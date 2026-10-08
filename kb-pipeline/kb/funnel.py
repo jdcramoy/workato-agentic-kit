@@ -73,9 +73,9 @@ def search(query: str, k: int = 8, shortlist: int = 60) -> list[dict]:
             n_coarse = db.execute(f"SELECT COUNT(*) FROM {COARSE_TABLE}").fetchone()[0]
         except sqlite3.OperationalError:
             return [{"error": "coarse layer missing — run kb.funnel build"}]
-        from sentence_transformers import SentenceTransformer
+        from .indexer import get_model
 
-        model = SentenceTransformer(MODEL_NAME)
+        model = get_model("embed")
         q = model.encode([query], normalize_embeddings=True)[0].tolist()
         qbind = struct.pack(f"{len(q)}f", *q)
 

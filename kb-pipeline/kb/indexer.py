@@ -21,6 +21,20 @@ from pathlib import Path
 from .common import DATA_ROOT, load_manifest
 
 DB_PATH = DATA_ROOT / "index" / "kb.db"
+_MODEL_CACHE: dict = {}
+
+
+def get_model(kind: str = "embed"):
+    """Process-wide model cache: load once, reuse for every query.
+    (Resident servers amortize the ~6s load; CLI calls still pay it.)"""
+    if kind not in _MODEL_CACHE:
+        from sentence_transformers import SentenceTransformer, CrossEncoder
+
+        if kind == "embed":
+            _MODEL_CACHE[kind] = SentenceTransformer(MODEL_NAME)
+        elif kind == "rerank":
+            _MODEL_CACHE[kind] = CrossEncoder("BAAI/bge-reranker-base")
+    return _MODEL_CACHE[kind]
 MODEL_NAME = "BAAI/bge-base-en-v1.5"
 CHUNK_TARGET_CHARS = 4800  # ~1200 tokens
 MAX_DOCS_PER_RUN = 0  # 0 = all
