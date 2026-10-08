@@ -75,6 +75,16 @@ def expand_query(query: str) -> str:
     return " ".join(parts)
 
 
+def _fts_safe(query: str) -> str:
+    """FTS5 MATCH breaks on raw hyphens/punctuation (bare '-run' = column filter
+    or exclusion). Rebuild as quoted tokens joined by OR — ranking fixes itself
+    in the fusion layer."""
+    import re as _re
+
+    tokens = _re.findall(r"\w{2,}", query.lower())
+    return " OR ".join(f'"{t}"' for t in tokens) or '""'
+
+
 def _bm25(db: sqlite3.Connection, query: str, k: int, source: str | None, section: str | None) -> list[Hit]:
     sql = """
         SELECT c.chunk_id, c.doc_id, d.url, d.title, d.source, d.section, c.context, c.text
@@ -83,7 +93,7 @@ def _bm25(db: sqlite3.Connection, query: str, k: int, source: str | None, sectio
         JOIN docs d ON d.doc_id = c.doc_id
         WHERE chunks_fts MATCH ?
     """
-    params: list = [query]
+    params: list = [_fts_safe(query)]
     if source:
         sql += " AND d.source = ?"
         params.append(source)

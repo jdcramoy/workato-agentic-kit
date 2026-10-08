@@ -36,7 +36,9 @@ MIN_DF = 300  # real domain concepts only
 MIN_BURST = 2.5  # mean occurrences per containing chunk (concentration filter)
 MAX_DF_FRAC = 0.03  # terms co-occurring with >3% of the corpus are hubs, not concepts
 MIN_EDGE_PMI = 1.0  # edge kept only if co-occurrence beats chance by >1 bit
-MAX_DIRECT = 10  # "hidden" means near-zero direct co-occurrence, hard filter
+MAX_DIRECT_DOCS = 2  # latent = co-occurring in no more than 2 DISTINCT documents
+# (dreamer test 2026-10-08: the echo-pair failure was ONE document's vocabulary
+# fanned into a cluster — the enemy is single-doc echo, not co-occurrence itself)
 
 # structural vocabulary from chunk context headers — never counts as concepts
 HEADER_STOP = {
@@ -58,10 +60,10 @@ def build() -> dict:
             "SELECT c.text FROM chunks c JOIN docs d ON d.doc_id = c.doc_id "
             "WHERE d.source IN ('docs', 'eip', 'github', 'claude')"
         ).fetchall()
-        for (text,) in rows:
+        for doc_i, (text,) in enumerate(rows):
             words = _WORD_RE.findall(text.lower())
             present = {w for w in words if not is_stop(w) and w not in HEADER_STOP and len(w) >= 4}
-            chunk_terms.append(present)
+            chunk_terms.append((present, doc_i))
             for t in present:
                 df[t] += 1  # chunks containing the term
                 cf[t] += words.count(t)  # total occurrences (burstiness numerator)
@@ -77,19 +79,21 @@ def build() -> dict:
         print(f"concepts: {len(concepts)} (of {len(df)} terms; technical df window)")
         kt = Path.home() / ".claude/knowledge"
         kt_files = [p for p in kt.rglob("*.md") if p.is_file() and p.stat().st_size > 100]
-        for p in kt_files:
+        for kt_i, p in enumerate(kt_files):
             words = set(_WORD_RE.findall(p.read_text().lower()))
-            chunk_terms.append({w for w in words if w in concepts})
+            chunk_terms.append(({w for w in words if w in concepts}, f"kt-{kt_i}"))
         print(f"knowledge-tree files joined as edge evidence: {len(kt_files)}")
 
         # co-occurrence edges, chance-corrected: keep only positive-PMI pairs
         # (P(a,b) >> P(a)*P(b)) — co-occurrence at chance level carries no link
         n_chunks = len(chunk_terms)
         raw: dict[tuple[str, str], int] = defaultdict(int)
-        for terms in chunk_terms:
+        pair_docs: dict[tuple[str, str], set] = defaultdict(set)
+        for terms, doc_i in chunk_terms:
             present = sorted(terms & concepts)
             for a, b in combinations(present, 2):
                 raw[(a, b)] += 1
+                pair_docs[(a, b)].add(doc_i)
         pa = {t: df[t] / n_chunks for t in concepts}
         edges: dict[tuple[str, str], int] = {}
         for (a, b), c in raw.items():
@@ -97,6 +101,7 @@ def build() -> dict:
             pmi = math.log2(pab / (pa[a] * pa[b]))
             if pmi >= MIN_EDGE_PMI:
                 edges[(a, b)] = c
+        pair_doc_counts = {k: len(v) for k, v in pair_docs.items()}
         print(f"chance-corrected edges: {len(edges)} (of {len(raw)} raw)")
 
         deg: dict[str, int] = defaultdict(int)
@@ -119,6 +124,7 @@ def build() -> dict:
             "concepts": sorted(concepts),
             "edges": {f"{a}|{b}": w for (a, b), w in edges.items()},
             "deg": dict(deg),
+            "pair_doc_counts": {f"{a}|{b}": n for (a, b), n in pair_doc_counts.items()},
         }
         GRAPH_PATH.parent.mkdir(parents=True, exist_ok=True)
         with gzip.open(GRAPH_PATH, "wt") as f:
@@ -133,24 +139,25 @@ def build() -> dict:
         db.close()
 
 
-def _load_graph() -> tuple[dict, dict, dict]:
+def _load_graph() -> tuple[dict, dict, dict, dict]:
     import gzip
 
     with gzip.open(GRAPH_PATH, "rt") as f:
         payload = json.load(f)
     edges = {tuple(k.split("|")): v for k, v in payload["edges"].items()}
     deg = payload["deg"]
+    pdc = payload.get("pair_doc_counts", {})
     adj: dict[str, set[str]] = defaultdict(set)
     for (a, b) in edges:
         adj[a].add(b)
         adj[b].add(a)
-    return edges, deg, adj
+    return edges, deg, adj, pdc
 
 
 def top(n: int = 20) -> list[dict]:
     import numpy as np
 
-    edges, deg, adj = _load_graph()
+    edges, deg, adj, pdc = _load_graph()
     concepts = sorted(deg, key=lambda t: -deg[t])[:MAX_TERMS]
     idx = {t: i for i, t in enumerate(concepts)}
     N = len(concepts)
@@ -173,9 +180,15 @@ def top(n: int = 20) -> list[dict]:
     iu = np.triu_indices(N, k=1)
     flat_direct = direct[iu]
     flat_aa = AA[iu]
+    # distinct-doc spread per pair: 1 doc = echo (surface, not bridge)
+    flat_pdc = np.array([
+        pdc.get(f"{concepts[i]}|{concepts[j]}", pdc.get(f"{concepts[j]}|{concepts[i]}", 99))
+        for i, j in zip(*iu)
+    ])
 
-    # hidden connections: strong indirect affinity, (near-)zero direct co-occurrence
-    mask = (flat_direct <= MAX_DIRECT) & (flat_aa > 0)
+    # hidden connections: strong indirect affinity, direct co-occurrence spread
+    # across few distinct documents (echo pairs come from one doc's vocabulary)
+    mask = (flat_pdc <= MAX_DIRECT_DOCS) & (flat_aa > 0)
     scores = flat_aa * mask
     order = np.argsort(-scores)[:n]
 
