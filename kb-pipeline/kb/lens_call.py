@@ -72,17 +72,18 @@ def _gateway() -> tuple[str, str]:
 
 def _call(model_key: str, system: str, user: str, max_tokens: int = 2000) -> dict:
     base, token = _gateway()
-    payload = json.dumps(
-        {
-            "model": MODELS[model_key],
-            "max_tokens": max_tokens,
-            "system": system,
-            "messages": [{"role": "user", "content": user}],
-            # these gateway models emit thinking blocks that eat the token
-            # budget before any text — request it off where supported
-            "thinking": {"type": "disabled"},
-        }
-    ).encode()
+    body = {
+        "model": MODELS[model_key],
+        "max_tokens": max_tokens,
+        "system": system,
+        "messages": [{"role": "user", "content": user}],
+    }
+    if model_key != "glm":
+        # kimi/deepseek emit thinking blocks that eat the token budget before
+        # any text — disable where the gateway supports it (glm's route 400s
+        # on this param; its thinking just gets skipped by the extractor)
+        body["thinking"] = {"type": "disabled"}
+    payload = json.dumps(body).encode()
     req = urllib.request.Request(
         f"{base}/v1/messages",
         data=payload,
