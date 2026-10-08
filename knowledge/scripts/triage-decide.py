@@ -98,8 +98,11 @@ def main():
             print("triage queue: nothing open.")
         for r in open_rows:
             age = (dt.date.today() - dt.date.fromisoformat(r["ts"][:10])).days
-            print(f"[{r.get('kind','?')}] {r['slug']} (age {age}d, {r.get('points','?')}pts, "
-                  f"source {r.get('source','?')}): {r.get('title','')} | {r.get('work','')}")
+            urg = r.get("urgency", "")
+            jira = f", {r['jira']}" if r.get("jira") else ""
+            print(f"[{r.get('kind','?')}{'/' + urg if urg else ''}] {r['slug']} "
+                  f"(age {age}d, {r.get('points','?')}pts, source {r.get('source','?')}{jira}): "
+                  f"{r.get('title','')} | {r.get('work','')}")
         print(f"queue: {len(open_rows)} open / {len(rows)} total at {QUEUE}")
         return
     # flags: --jira KEY may appear anywhere after the action

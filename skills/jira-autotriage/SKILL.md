@@ -65,6 +65,26 @@ Work products cluster under their governing project/epic, not loose:
 4. **Hand back.** Every comment ends with what's verified, what's pending,
    and the next step. Quiet queue = one line, exit.
 
+## Triage findings (everything that needs Josh, one place)
+
+Every pass ends by filing what needs Josh's attention into the /triage
+queue, so ONE interactive pass surfaces all of it:
+
+    echo '{"ts":"<now UTC ISO>","slug":"<kebab-slug>","kind":"bugfix|build|playbook|test|hygiene",
+      "source":"jira-autotriage","jira":"<KEY>","urgency":"high|medium|low",
+      "title":"<one line>","evidence":"<KEY + what changed>","work":"<the ask, one line>",
+      "points":<estimate>,"status":"open"}' \
+      >> ~/.claude/knowledge/triage/queue.jsonl
+
+What gets filed: BSYS technical plans awaiting authorization (kind build);
+hotfix-class bugs (kind bugfix, report-and-propose); anything the matrix
+routes to Josh as ambiguous; and INBOUND attention items found during the
+sweep — new tickets assigned to Josh, new comments on his tickets, tickets
+aging without movement (urgency: customer-facing or blocked = high, stale
+>7d = medium, background = low). Max 5 per pass; dedupe against open slugs
+first (grep the queue; a ticket key already open does not get a second
+finding). Status changes belong to `triage-decide.py`, never hand edits.
+
 ## Hard rules
 
 - The matrix is the whole game. A ticket outside the rows is Josh's.

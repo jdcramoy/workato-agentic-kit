@@ -479,19 +479,21 @@ which is how the proposals get better over time.
 ### The triage surface (`/triage`)
 
 The watchers don't just report — they FILE. Watchdog autopsies, regression
-failures, gardener hygiene items, architect recommendations, and
-work-shaped cortex attention items land as findings in a shared queue
-(`knowledge/triage/queue.jsonl`, appended by the source agent, status
-changes only via `triage-decide.py`). `/triage` renders the open queue as
-decision cards (kind, source, age, points, evidence, blast radius) and
-collects verdicts in one batched pass: **file story/bug** (Jira item
-created immediately under the governing epic — a certain existing epic or
-a new one under the FY27 V2MOM work item — assigned to Josh, points at
-creation), **build now** (dev-estate only, snapshot-verify-ledger cycle;
-UAT/prod gates untouched), **queue only**, **reject**, or **defer**.
-Rejection patterns go to a `triage-taste` bus thread so the watchers learn
-the human's bar. Where `/proposals` answers "what should we become",
-`/triage` answers "what should we fix first".
+failures, gardener hygiene items, architect recommendations, work-shaped
+cortex attention items, and every Jira attention item the autotriage loop
+sweeps (plans awaiting authorization, hotfix-class bugs, new tickets
+assigned to Josh, new comments, tickets aging without movement) land as
+findings in a shared queue (`knowledge/triage/queue.jsonl`, appended by
+the source agent, status changes only via `triage-decide.py`). `/triage`
+renders the open queue as decision cards ranked by urgency first, then
+age, and collects verdicts in one batched pass: **file story/bug** (Jira
+item created immediately under the governing epic — a certain existing
+epic or a new one under the FY27 V2MOM work item — assigned to Josh,
+points at creation), **build now** (dev-estate only, snapshot-verify-
+ledger cycle; UAT/prod gates untouched), **queue only**, **reject**, or
+**defer**. Rejection patterns go to a `triage-taste` bus thread so the
+watchers learn the human's bar. Where `/proposals` answers "what should
+we become", `/triage` answers "what needs my attention first".
 
 ### Gossip bus (agent-to-agent communication)
 

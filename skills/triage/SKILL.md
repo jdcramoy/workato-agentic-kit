@@ -1,6 +1,6 @@
 ---
 name: triage
-description: Interactive approval queue for development, bugfix, and build triage findings discovered by the fleet (watchdog autopsies, regression failures, gardener actionable items, estate-architect recommendations, cortex work-shaped attention items, jira-autotriage held plans). Use when Josh says "triage findings", "show the triage queue", "what needs fixing", "work the findings", or invokes /triage. Renders every open finding as a decision card, collects verdicts in one batched pass, records them via triage-decide.py, creates the BSYS Story or Bug for approved work, and dispatches approved dev work.
+description: Interactive approval queue for development, bugfix, and build triage findings discovered by the fleet (watchdog autopsies, regression failures, gardener actionable items, estate-architect recommendations, cortex work-shaped attention items, jira-autotriage findings including inbound Jira attention items: tickets assigned to Josh, new comments, aging tickets). Cards ranked by urgency then age. Use when Josh says "triage findings", "show the triage queue", "what needs fixing", "what needs my attention", "work the findings", or invokes /triage. Renders every open finding as a decision card, collects verdicts in one batched pass, records them via triage-decide.py, creates the BSYS Story or Bug for approved work, and dispatches approved dev work.
 ---
 
 # Triage — the silver platter for discovered work
@@ -20,19 +20,29 @@ time, ready to become work).
    python3 ~/.claude/knowledge/scripts/triage-decide.py list
    ```
 
-   If nothing is open: say so in one line, done. No ceremony.
+   If nothing is open: say so in one line, done. No ceremony. Sources:
+   the watcher SOPs file findings as they run, and the jira-autotriage
+   loop files every Jira attention item each pass (plans awaiting your
+   authorization, hotfix-class bugs, ambiguous tickets, and inbound
+   signals: new tickets assigned to you, new comments, tickets aging
+   without movement).
 
 2. **Build one decision card per open finding.** Compact, scannable:
 
    - slug, `kind` (bugfix | playbook | test | hygiene | build), source
      agent, age in days, points estimate
    - the finding's own title and proposed work line (not your paraphrase)
-   - the evidence anchor (its strongest ref: job ID, file path, ledger line)
+   - the evidence anchor (its strongest ref: Jira key + link, job ID,
+     file path, ledger line)
    - for anything touching a live Workato asset: run the blast-radius
      skill and put the radius on the card
+   - urgency: from the finding's `urgency` field if set, upgraded by
+     blast radius (a P1 blast radius on a low-urgency finding renders it
+     high), downgraded for findings that are pure noise repeats
    - your recommended verdict, marked as a recommendation
 
-   Order oldest-first (the stale ones get decided or die).
+   RANK by urgency first (high → low), then age (oldest first) within
+   each band. Time-sensitive work never hides behind old hygiene.
 
 3. **Collect verdicts in ONE batched pass.** Use AskUserQuestion, up to 4
    findings per call (loop batches until done). Options per finding:
