@@ -17,7 +17,7 @@ human the entire night with corroboration counts as the trust signal.
 | 22:31 | Docs crawler summary | folds deltas into the bus and the gardener's report |
 | 22:43 | Brain gardener | curates knowledge, posts stale-claim findings |
 | 23:13 | Workato watchdog | posts connection health, stalls, autopsies; opens with the heartbeat check |
-| 23:33 | Harness backup | snapshots the whole harness, secrets redacted |
+| 23:33 | Harness backup | snapshots the whole harness, secrets redacted; then auto-pushes the josh-knowledge and kit remotes (token-scan refusal on staged diffs; no-op when up to date) |
 | 23:43 | Harness dreamer | reader-in-chief: merges the night, writes the dream report |
 | 00:37 | Project dreamer | architecture dreamer for one project per night (deep pass Sundays): mines the project's sessions, memory, repo, and git; dissenter-gated proposals |
 | hourly | Hidden lane (launchd) | headless mini-mines and the cortex pulse, silent unless there is new signal |

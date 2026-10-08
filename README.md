@@ -397,6 +397,12 @@ scheduled tasks, and settings into a git repo, with secrets redacted
 safe to let agents modify the system they run in: any applied change is
 reversible with `git revert` on the backup repo.
 
+After the snapshot, the same job pushes the two repos that carry their own
+remotes — the knowledge tree (`josh-knowledge`) and this kit — committing
+anything dirty first, with a token-shaped-string scan on the staged diff
+that refuses the push on a hit, and a manifest line recording what went
+out. Up-to-date repos are a silent no-op.
+
 - Configure via `BACKUP_REPO_LOCAL` (local clone) and `BACKUP_REPO_URL`
   (origin) in config.sh. Empty URL = local commits only.
 - Never copied: session transcripts (they contain verbatim secrets),
