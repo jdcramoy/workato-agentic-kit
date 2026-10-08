@@ -20,6 +20,13 @@ A local, nightly-synced knowledge base. Four sources, one index, mandatory citat
 
 ## The retrieval loop (agentic — do NOT dump results into context)
 
+**Fast path (preferred):** if `mcp__workato-kb__*` tools are in your tool list,
+use them — `kb_search` / `kb_read` / `kb_zoom` — the server is resident and the
+embedding model is already warm (~0.17s/query vs ~9s CLI cold). The CLI below
+is the fallback for when the MCP server isn't connected.
+
+
+
 1. **Query**: `~/Documents/workato-kb/.venv/bin/python -m kb.search "your question" [-k 8] [--source docs] [--section Connectors]` (run from `~/Documents/workato-kb`).
    - Phase-2 stack: BM25 + dense vector + RRF fusion + cross-encoder rerank, then entropy modulation (surprise density lifts distinctive chunks) and PMI (query-term concentration), then a retrieval-distribution confidence gate — weak+flat results trigger one expanded second round automatically (reported in the output header).
    - Ablate with `--no-entropy` / `--no-pmi` when comparing result quality.
