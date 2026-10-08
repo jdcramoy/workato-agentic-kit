@@ -6,7 +6,7 @@
 const AUDIT_DIR = '$HOME/.claude/workato-audit'
 const AUDIT_FILE = AUDIT_DIR + '/prod-writes.log'
 const STANDARDS_PATH =
-  '{{HOME}}/.claude/skills/jira-story-standards/SKILL.md'
+  '/Users/joshcramoy/.claude/skills/jira-story-standards/SKILL.md'
 
 // Write-surface tools on the prod AIRO server. Read tools pass through untouched.
 const PROD_WRITE = /^mcp__workato-airo-mcp-prod__(recipe_builder_(save|push|init|init_skill|add_step|update_step|remove_step|remove_input_field|move_step|move_steps|set_input_field|set_input_field_v4_mode|set_condition|set_foreach_source|set_error_handling_config|set_block_comments|update_asset_metadata|select_connections|convert_to_skill)|blueprint_(apply|init|push|link_asset|reset)|genie_(create|update)|data_table_(create|delete|update|truncate)|knowledge_base_(create|delete|delete_documents|update|upload_file)|mcp_server_create|connector_builder_(apply_connector_code_patch|init_connector|release_connector|save_latest_connector_code))/
@@ -311,8 +311,8 @@ export function register(on) {
       description: 'Mark a recipe promoted: /promoted <recipe_id> [recipe_id...]',
     })
     await $.command.register({
-      name: 'diff',
-      description: 'Recipe snapshot history: /diff <recipe_id> shows recent changes',
+      name: 'snapdiff',
+      description: 'Recipe snapshot history: /snapdiff <recipe_id> shows recent changes',
     })
     await $.command.register({
       name: 'cockpit',
@@ -346,7 +346,7 @@ export function register(on) {
         '4. Workato asset URL linker (AIRO + dependency-tracker results)\n' +
         '5. jira-story-standards prompt injection (' +
         (standards ? 'SKILL.md loaded' : 'fallback digest') + ')\n' +
-        '6. status band above the prompt + /guardrails /cockpit /builds /promotion-ready /promoted /diff\n' +
+        '6. status band above the prompt + /guardrails /cockpit /builds /promotion-ready /promoted /snapdiff\n' +
         '7. datapill trap warning on recipe_builder_pull\n' +
         '8. writeback re-read nudge on Jira/Confluence writes\n' +
         '9. push risk scorer (tracker lookup; risky PROD pushes held for confirm)\n' +
@@ -624,7 +624,7 @@ export function register(on) {
 
   // BYPASS flag path: explicit, time-boxed prod-gate bypass (bin/prod-bypass).
   // Inline at each site ($ may not be passed to helpers — mod validator).
-  const BYPASS_PATH = '{{HOME}}/.claude/workato-audit/prod-bypass.json'
+  const BYPASS_PATH = '/Users/joshcramoy/.claude/workato-audit/prod-bypass.json'
 
   // 13. PROD-WRITE CONFIRM GATE — EVERY surface, not just AIRO MCP.
   //     The prod AIRO server is already gated (permissions.ask + hook 1).
@@ -993,10 +993,12 @@ export function register(on) {
     })
   })
 
-  // /diff — recipe snapshot history: recent snapshots + last real diff
-  on('command.run', { command: 'diff' }, async ($, e) => {
+  // /snapdiff — recipe snapshot history: recent snapshots + last real diff.
+  // Named snapdiff (not diff): /diff belongs to the engine's built-in
+  // cc-plugin-diff panel; a second registration of a taken name is refused.
+  on('command.run', { command: 'snapdiff' }, async ($, e) => {
     const rid = (String(e.args ?? '').match(/\d{6,9}/g) ?? [])[0]
-    if (!rid) return { text: 'Usage: /diff <recipe_id>' }
+    if (!rid) return { text: 'Usage: /snapdiff <recipe_id>' }
     const find = async (env) => {
       try {
         const r = await $.process.run(['sh', '-c',

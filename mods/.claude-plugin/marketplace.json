@@ -1,0 +1,16 @@
+{
+  "name": "josh-mods",
+  "owner": { "name": "Josh Cramoy" },
+  "plugins": [
+    {
+      "name": "workato-guardrails",
+      "source": "./workato-guardrails",
+      "description": "Mechanical enforcement of standing Workato/Jira rules: prod-write audit log + transcript visibility, Jira story-points enforcement at creation, Workato asset URL linking, secret redaction, standards injection, datapill trap warning, writeback nudge."
+    },
+    {
+      "name": "brain-guard",
+      "source": "./brain-guard",
+      "description": "Brain gardener nervous system: write-time linting of memory/knowledge writes (relative dates, frontmatter, INDEX drift) + usage telemetry ledger feeding the brain-gardener's curation runs."
+    }
+  ]
+}
