@@ -26,9 +26,43 @@ from .indexer import get_db
 
 TERMS_PATH = DATA_ROOT / "index" / "terms.json.gz"
 _WORD_RE = re.compile(r"[a-z][a-z0-9_\-]{2,}")
-_STOP = set(
-    """the and for are but not you all any can her was one our out day get has him his how man new now old see two way who boy did its let put say she too use with this that from have they what when your will each which their said many then them these some more very just like also into over such only than when where why""".split()
+
+try:
+    # comprehensive standard list (318 words) — covers prose filler comprehensively
+    from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS as _SK_STOP
+
+    _STOP = set(_SK_STOP)
+except ImportError:  # noqa: Fallback if sklearn missing
+    _STOP = set(
+        """the and for are but not you all any can was one our out get has how this that with when your will which then them these some more just like also into over such only than where why""".split()
+    )
+_STOP.update(
+    """workato workato's page pages doc docs documentation documentation's section sections
+    thing things stuff lot lots way ways want wants wanted need needs needed know knows known
+    use uses used using make makes made take takes taken give given going get gets got getting
+    i'm it's don't we're they're you're can't won't didn't doesn't isn't wasn't that's there's
+    http https www com md wiki able happens happen happening happened having having""".split()
 )
+
+
+def is_stop(word: str) -> bool:
+    """Stopword check with inflection stripping: 'having'->'have', 'taking'->'take'."""
+    if word in _STOP:
+        return True
+    stem = word
+    for suffix in ("ing", "ed", "er", "es", "s", "ly"):
+        if stem.endswith(suffix) and len(stem) - len(suffix) >= 3:
+            stem = stem[: -len(suffix)]
+            break
+    if stem != word:
+        if stem in _STOP:
+            return True
+        # 'having'->'hav' misses 'have'; try restoring trailing e
+        if (stem + "e") in _STOP:
+            return True
+        if stem[-1] == stem[-2] and stem[:-1] in _STOP:  # 'running'->'runn'->'run'
+            return True
+    return False
 
 
 def build() -> dict:
@@ -45,7 +79,7 @@ def build() -> dict:
             ).fetchall()
             for (text,) in rows:
                 for w in _WORD_RE.findall(text.lower()):
-                    if w in _STOP:
+                    if is_stop(w):
                         continue
                     counts[w] = counts.get(w, 0) + 1
                     total += 1

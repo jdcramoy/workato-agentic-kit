@@ -37,8 +37,10 @@ def main() -> None:
             errors.append(f"{name}: {e}")
             results[name] = {"error": str(e)}
 
-    from . import docs_source, eip_source, github_source, llms_source, wp_source
+    from . import attachments, contextualize, docs_source, eip_source, github_source, llms_source, wp_source
+    from .entropy import score as entropy_score
     from .indexer import build
+    from .pmi import build as pmi_build
 
     try_step("docs", docs_source.sync)
     try_step("blog", wp_source.sync_blog)
@@ -48,7 +50,28 @@ def main() -> None:
     try_step("eip", eip_source.sync)
     try_step("claude", llms_source.sync, "claude")
     try_step("confluence", _confluence_best_effort)
+    try_step("attachments", attachments.sync)
+    try_step("contextualize", contextualize.run, 400)
     try_step("index", build, with_embeddings=not a.no_embed)
+    try_step("pmi", pmi_build)
+    try_step("entropy", entropy_score)
+
+    # dream-team feedstock: concept graph + memory-entropy report
+    if not wanted or "lateral" in wanted:
+        try:
+            from .lateral import build as lateral_build
+
+            results["lateral"] = lateral_build()
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"lateral: {e}")
+    if not wanted or "memory-entropy" in wanted:
+        try:
+            from .dream_entropy import main as de_main
+
+            de_main()
+            results["memory-entropy"] = "written"
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"memory-entropy: {e}")
 
     today = dt.date.today().isoformat()
     report = {"date": today, "results": results, "errors": errors}
