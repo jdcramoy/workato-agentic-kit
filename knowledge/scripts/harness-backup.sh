@@ -38,6 +38,12 @@ rsync -a --delete --max-size='50M' \
 rsync -a --delete --max-size='50M' \
   --exclude '.git' --exclude '__pycache__' --exclude 'usage-ledger.jsonl' \
   "$CLAUDE/knowledge/"  "$REPO/harness/knowledge/"
+# Recipe snapshot history: the rollback payload for every pushed recipe.
+# Its own git history is per-snapshot commits and does not travel; the
+# snapshot files are the asset.
+rsync -a --delete --max-size='50M' \
+  --exclude '.git' \
+  "$CLAUDE/recipe-history/" "$REPO/harness/recipe-history/"
 rsync -a --delete --max-size='50M' \
   --exclude '.git' --exclude 'node_modules' --exclude '.claude-plugin/types' \
   "$HOME/mods/"         "$REPO/mods/"
@@ -79,6 +85,7 @@ cat > "$REPO/backup-manifest.md" << EOF
 - agents: $(ls "$REPO/harness/agents" 2>/dev/null | wc -l | tr -d ' ') agents
 - mods: $(ls "$REPO/mods" 2>/dev/null | tr '\n' ' ')
 - knowledge files: $(find "$REPO/harness/knowledge" -type f 2>/dev/null | wc -l | tr -d ' ')
+- recipe-history snapshots: $(find "$REPO/harness/recipe-history" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
 - Settings secrets: redacted. Transcripts/keychain: never copied.
 EOF
 
