@@ -299,6 +299,11 @@ project property upserts. Three discovery and testing capabilities on top:
 Authentication comes from `WORKATO_API_TOKEN` or the keychain entry the
 Workato platform CLI stores; no token ships in this kit and none should.
 
+**Prod bypass** (`prod-bypass`): time-boxed, self-expiring stand-down of all
+prod-write gates when a batch of prod work would otherwise prompt every call.
+`prod-bypass on 30m`, `off`, or bare for status. Writes during the window are
+audit-logged as PROD-WRITE-BYPASSED; the status band shows it while active.
+
 **Production instances** (`wt-prod`, `workato-prod`): mirror the dev/prod
 AIRO MCP split. Each wrapper reads the PRODUCTION token from the keychain
 (`security add-generic-password -s workato-platform-cli -a <prod-profile> -w
