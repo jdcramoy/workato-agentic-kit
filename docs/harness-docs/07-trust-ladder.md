@@ -46,6 +46,33 @@ agents, settings, schedules, MCP config, and commands are proposal-only
 forever, no matter how safe an individual change looks. The only way to
 change that list is for a human to edit the config directly.
 
+## The human review surface: /proposals
+
+Proposals accumulating in a queue nobody reviews would just be a slower
+way to drift. The review surface is one command, `/proposals` (the silver
+platter), which covers BOTH dreamers: the harness-dreamer's harness
+improvements and the project-dreamer's architecture and feature
+proposals. One interactive pass renders every pending proposal as a
+decision card: slug, kind, risk, source dreamer, age, the proposal's own
+value case, its strongest evidence ref, and blast radius for anything
+touching a live Workato asset. Oldest first, so stale proposals get
+decided or die.
+
+Verdicts are collected in one batched pass, four proposals at a time:
+**approve** (queued for build), **build now**, **reject** (the note is
+the taste signal), or **defer** (untouched, re-offered next time). Every
+verdict is recorded mechanically: a recorder script stamps the proposal
+and appends the outcomes log that the gardener's meta-improvement phase
+reads, so acceptance rates per proposal kind are measured, not remembered.
+
+Two semantics matter. First, "build now" on a harness item is the approval
+that unlocks a never_auto item for that one build, stated as it happens;
+on a project item it executes only the bounded first move, and anything
+touching UAT or production keeps its standing sign-off gate. Second,
+rejections teach: when three or more rejections share a reason, the
+pattern goes back to the dreamers' bus thread as taste, which is how the
+proposal quality improves week over week.
+
 The suggested cadence is earn-then-extend: run report for a week and read
 the reports, upgrade to propose and review the proposals for another week,
 then decide on auto-safe. The destination rung, auto-dev, exists and is

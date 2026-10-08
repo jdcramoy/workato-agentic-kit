@@ -42,6 +42,7 @@ Every agent is an organ. The roster:
 | motor planning | promotion-orchestrator | batches dev work into governed production releases |
 | imagination | harness-dreamer | dreams (pragmatic + visionary); fixes at auto-dev |
 | immune system | dissenter | adversarial review: attacks every proposal before it reaches a human; "steel manned, could not break it" is the strongest approval signal |
+| project architect | project-dreamer | the nightly dreamer for Josh's PROJECTS (not the harness): mines project sessions, memory, repo docs, and git, then proposes architecture debt, features, and better solutions; advisory-only constitutional |
 | **the brain** | **cortex** | **attention, coherence, curiosity — reads everything, asks the questions nobody is asking, and directs the whole network's focus** |
 
 The cortex is the difference between a bundle of scheduled jobs and a
@@ -328,6 +329,7 @@ the exact prompts.
 | 23:13 daily | Workato watchdog, including the heartbeat check |
 | 23:33 daily | Harness backup (git snapshot, secrets redacted, push if configured) |
 | 23:43 daily | Harness dreamer (reader-in-chief of the bus; pragmatic + inventive report) |
+| 00:37 daily | Project dreamer (architecture dreamer for one project per night; deep pass Sundays; dissenter-gated proposals) |
 | Mon 06:07 | Corpus indexer (recipes + task counters, dev and prod) |
 | Mon 06:37 | Estate architect (full review) |
 | 00:13 daily | Regression harness: run every recipe's test cases via the Test Automation API, report failures with job IDs |
@@ -457,6 +459,22 @@ that list is editing `config.json` yourself.
 
 Suggested cadence: run `report` for a week, read the reports, upgrade to
 `propose`, review proposals for another week, then decide on `auto-safe`.
+
+### The proposal review surface (`/proposals`)
+
+The human side of both dream loops is one command. `/proposals` (the
+silver platter) renders every pending proposal from EITHER dreamer as a
+decision card — slug, kind, risk, source dreamer, age, the proposal's own
+value case, its strongest evidence ref, and blast radius for anything
+touching a live Workato asset — then collects verdicts in one batched
+pass: approve, build now, reject, or defer. Every verdict is recorded
+mechanically (`proposal-decide.py` stamps the proposal and appends the
+outcomes log the gardener grades itself against), so reviews never depend
+on someone editing proposal files by hand. "Build now" on a harness item
+is the approval that unlocks a never_auto item for that build; on a
+project item it executes only the bounded first move and UAT/prod sign-off
+gates still hold. Rejection patterns feed back to the dreamers as taste,
+which is how the proposals get better over time.
 
 ### Gossip bus (agent-to-agent communication)
 
@@ -593,7 +611,8 @@ be auto-applied in any mode. Rollback for the whole kit is three commands:
 config.example.sh     per-person settings (workspaces, Jira fields)
 install.sh            renders templates + installs everything
 mods/                 the two plugins (hook modules + tests)
-agents/               the seven agent SOPs (five watchers + dreamer, cortex, dissenter)
+agents/               the eight agent SOPs (five watchers + harness dreamer,
+                      project dreamer, cortex, dissenter)
 skills/               airo-mcp-playbook, workato-development-playbook,
                       jira-story-standards (adapt to your team)
 bin/wt                Workato Toolbox: Developer API wrapper (manifests,

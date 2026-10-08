@@ -51,7 +51,7 @@ modes, and this harness exists because we hit all of them:
 | Learn | nightly and weekly | A curator agent reviews the knowledge base for drift, conflicts, and rot, mines session transcripts for unrecorded lessons, measures the harvest rate, and files proposals as git branches. Behavioral claims get re-verified as a side effect of real work. |
 | Operate | any time | The `wt` CLI wraps the Workato Developer API for what the platform tools do not expose: manifests, packages, recipe lifecycle, job reruns, connection CRUD, property upserts, plus full API self-discovery (302 endpoints across 32 groups harvested from the docs). |
 | Promote | on demand | A promotion orchestrator assembles batches from the build ledger, files the deployment story with real field IDs, and stages production execution behind explicit approval, one stage at a time. |
-| Dream | nightly | A backup job snapshots the whole harness (secrets redacted) so agent-made changes are reversible, and a dreamer mines recent transcripts for corrections, repeats, and recurring errors, then reports and proposes under a three-rung trust ladder. The agents talk over a race-free gossip bus; the dreamer reads the whole night and synthesizes it last. |
+| Dream | nightly | A backup job snapshots the whole harness (secrets redacted) so agent-made changes are reversible, and two dreamers read the record: the harness-dreamer mines recent transcripts for corrections, repeats, and recurring errors, and the project-dreamer (00:37 nightly) studies the busiest project's actual architecture and proposes what it should become. Both report and propose under a trust ladder, gated by the dissenter, and their queues are reviewed in one pass through the /proposals command. The agents talk over a race-free gossip bus; the dreamers read the whole night and synthesize it last. |
 
 ## The agents, as anatomy
 
@@ -62,6 +62,7 @@ modes, and this harness exists because we hit all of them:
 | surveying | estate-architect | weekly estate review: cost heatmap, zombies, environment parity, lineage, security posture |
 | motor planning | promotion-orchestrator | batches dev work into governed production releases |
 | imagination | harness-dreamer | mines transcripts, writes the nightly dream report, proposes under a trust ladder |
+| project architect | project-dreamer | the nightly dreamer for the projects themselves: architecture debt, features, better solutions; dissenter-gated; advisory-only constitutional |
 | immune system | dissenter | adversarial review: attacks every proposal before it reaches a human |
 | the brain | cortex | attention, coherence, curiosity: reads everything, asks the questions nobody is asking, directs the network's focus |
 
@@ -69,8 +70,8 @@ No agent mutates the estate or the knowledge base on its own authority.
 They report, propose, corroborate, and challenge each other; a human
 approves anything that touches production or the harness itself. The
 escalation path is explicit: the watchdog finds, the gardener verifies,
-the dissenter attacks, the dreamer proposes, the cortex attends, Josh
-decides.
+the dissenter attacks, the dreamers propose, the cortex attends, Josh
+decides, and `/proposals` is the one pass where those decisions happen.
 
 ## Why it matters
 

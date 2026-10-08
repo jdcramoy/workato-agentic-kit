@@ -64,7 +64,27 @@ file, a trace, a claim, or a concrete failure scenario; "feels risky" is not
 an objection. It names severity (fatal, material, cosmetic) and never
 softens it. It never proposes fixes; it diagnoses. When a proposal survives
 its best attack, it posts one line: "steel manned, could not break it". That
-line is worth more than ten approvals.
+line is worth more than ten approvals. The gate is wired into the dreamers
+themselves: the project-dreamer spawns the dissenter on every proposal
+before filing, and a proposal with unanswered fatal or material dissent is
+dissent-blocked and goes to the human instead.
+
+**project-dreamer** (nightly 00:37, deep pass Sundays). The harness-dreamer
+dreams about the harness; the project-dreamer dreams about the actual
+PROJECTS. Each night it picks the project with the most real activity
+(Josh can name one instead), grounds itself in four inputs: the project's
+session history (mined for the archaeology of decisions, not read whole),
+the durable project memory in the knowledge tree (with a staleness sample
+against the repo), the repo's actual architecture and code shape, and the
+last 14 days of git history where churn hotspots confess architecture
+debt. Mandate A finds architecture debt, repeated friction, and
+operational reality, every finding evidence-cited. Mandate B is the
+architect's dream: features worth building next, better architectural
+solutions, and the 3 to 12 month version of the project, marked as vision
+so they travel the pipeline honestly. It files at most 3 proposals a
+night, each with the exact change drafted and the rollback stated, and it
+never touches project code: advisory-only is constitutional, and that arm
+does not exist even at the auto-dev rung.
 
 **cortex** (hourly pulse, inside the hidden lane). The brain. The other agents
 are specialists; the cortex attends. Three jobs: attention (a ranked queue of
