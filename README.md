@@ -647,6 +647,15 @@ schedules/            cron prompt templates + launchd plist
 docs/harness-docs/    the published harness documentation set + page manifest
 ```
 
+## Mods: one source of truth
+
+The kit repo's `mods/` is the SOURCE for both plugins; `~/mods/` is the
+deployed runtime the `josh-mods` directory marketplace serves from. Edit
+mods in the kit, commit, then `bin/mods-deploy` (rsync to `~/mods`), then
+`/reload-plugins`. Hot-editing `~/mods` directly is how the copies drift;
+if it happens, the weekly harness-docs sync job catches the divergence and
+copies it back into the kit, then redeploys.
+
 ## Tested with
 
 Claude Code 2.1.289 on macOS. The mods use standard mod events (`tool.call`,

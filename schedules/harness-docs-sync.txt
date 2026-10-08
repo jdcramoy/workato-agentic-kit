@@ -16,9 +16,10 @@ A. LIVE HARNESS -> REPO. Diff the live SOPs against the repo copies and
    sync changed files INTO the repo (repo = source of truth for docs, the
    live harness = source of truth for agent SOPs):
    - ~/.claude/agents/*.md            -> agents/
-   - new/changed hooks in ~/mods/*/   -> mods/ (only if the mod source
-     diverges; the mods are developed in the repo, so this is usually a
-     no-op)
+   - ~/mods divergence check: run `bash bin/mods-deploy.sh --check`.
+     The kit is the SOURCE for mods; runtime drift means someone
+     hot-edited ~/mods — copy the divergence INTO the kit, commit, then
+     redeploy with `bin/mods-deploy` so both sides agree again.
    - new scripts in ~/.claude/knowledge/scripts/ -> knowledge/scripts/
    - new architecture rulebooks in ~/.claude/knowledge/domains/ that
      describe the harness itself (e.g. brain-architecture.md)
