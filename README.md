@@ -36,11 +36,12 @@ Every agent is an organ. The roster:
 
 | Organ | Agent | Function |
 |---|---|---|
-| memory consolidation | brain-gardener | curates, dedups, harvests knowledge; proposals as branches |
+| memory consolidation | brain-gardener | curates, dedups, harvests knowledge; audits structure (size budgets, modularization); proposals as branches |
 | proprioception | workato-watchdog | the body's status: connections, stalls, failures, canon checks |
 | surveying | estate-architect | weekly estate review: cost, zombies, parity, lineage |
 | motor planning | promotion-orchestrator | batches dev work into governed production releases |
 | imagination | harness-dreamer | dreams (pragmatic + visionary); fixes at auto-dev |
+| immune system | dissenter | adversarial review: attacks every proposal before it reaches a human; "steel manned, could not break it" is the strongest approval signal |
 | **the brain** | **cortex** | **attention, coherence, curiosity — reads everything, asks the questions nobody is asking, and directs the whole network's focus** |
 
 The cortex is the difference between a bundle of scheduled jobs and a
@@ -149,7 +150,7 @@ what each touches before you load anything.
 | 8 | Writeback nudge | every Jira or Confluence write | Reminds to re-read the artifact and confirm rendering before calling it done. |
 | 9 | Build ledger (AIRO) | every successful AIRO mutation | Appends one JSON line per mutation to a shared ledger: tool, server (dev or prod), session, recipe, folder, ticket. |
 | 10 | Build ledger (CLI and browser) | Bash commands using the Workato CLI or Orca | Ledgers the paths that bypass AIRO. A successful CLI start also triggers a read-back that verifies the start actually took, refreshing the relevant platform claim. |
-| 11 | Slash commands | user | `/guardrails` (hook status), `/builds` (ledger summary for today, week, or all), `/promotion-ready` (dev edits newer than their last promotion mark), `/promoted` (mark recipes shipped), `/diff` (recipe snapshot history). |
+| 11 | Slash commands | user | `/guardrails` (hook status), `/builds` (ledger summary for today, week, or all), `/promotion-ready` (dev edits newer than their last promotion mark), `/promoted` (mark recipes shipped), `/snapdiff` (recipe snapshot history; renamed from `/diff` because the engine's built-in diff panel owns that name and a duplicate registration is refused). |
 | 12 | Snapshot history and cockpit | every push; on demand | After each push, pulls the fresh DSL from the matching server and commits it to a local git repo, so "what changed in this recipe" is a diff. `/cockpit` opens a pane with session counters and the ledger tail. |
 | 13 | Prod-write confirm gate | Bash commands that target production via ANY surface: `workato-prod`, `wt-prod`, `WORKATO_PROFILE`/`--profile` set to the prod profile, raw HTTP carrying the prod credential, Orca on prod URLs | Holds WRITES for an explicit confirm dialog, fail-closed on dismissal. Reads pass through. This is the door-closer that makes the prod CLI/wt wrappers safe to hand an agent. |
 
@@ -568,7 +569,7 @@ be auto-applied in any mode. Rollback for the whole kit is three commands:
 config.example.sh     per-person settings (workspaces, Jira fields)
 install.sh            renders templates + installs everything
 mods/                 the two plugins (hook modules + tests)
-agents/               the five agent SOPs (four watchers + the dreamer)
+agents/               the seven agent SOPs (five watchers + dreamer, cortex, dissenter)
 skills/               airo-mcp-playbook, workato-development-playbook,
                       jira-story-standards (adapt to your team)
 bin/wt                Workato Toolbox: Developer API wrapper (manifests,

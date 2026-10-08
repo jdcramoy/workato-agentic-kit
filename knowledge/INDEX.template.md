@@ -10,6 +10,7 @@ current work. Update the line whenever you update a file.
 - [MCP operations](domains/mcp-operations.md) — MCP server/reconnect/reauth operations
 - [Claude Code mods](domains/claude-code-mods.md) — building/installing/rolling back mods; the kit's guardrails plugins
 - [Brain gardener](domains/brain-gardener.md) — knowledge-base curator agent + brain-guard plugin; nightly/weekly curation
+- [Brain architecture rulebook](domains/brain-architecture.md) — structural best practices the gardener audits against (size budgets, modularization SOP, thin-index rules, routing surfaces)
 
 ## Projects (load when working in this project)
 
