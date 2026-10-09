@@ -15,12 +15,18 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from pathlib import Path
 
 from .common import DATA_ROOT
 from .search import search, format_hits
 
 DIGEST_DIR = Path.home() / ".claude/knowledge/kb-digests"
+
+# sources where recency IS the signal; lens hits for these are re-ordered
+# fresh-first (see _recency_key) before the top-3 is taken
+RECENCY_SOURCES = {"changelog", "blog"}
+LENS_K = 12  # oversampled, then recency-ordered + doc-deduped down to 3
 
 # per-agent lens: what to query the KB for, and what an opinion means for them
 AGENTS = {
@@ -99,12 +105,31 @@ def change_surface(diff: dict | None) -> list[str]:
     return lines or ["- no changes since previous sync"]
 
 
+def _doc_year(h) -> int | None:
+    """Best-effort publish year from the URL slug or title (e.g.
+    'on-prem-file-major-update-2018', 'Product Scoop - March 2026'). The
+    corpus stores no publish-date field, so slug/title year is the only
+    recency signal a lens hit carries."""
+    m = re.search(r"(20\d{2})", h.url) or re.search(r"(20\d{2})", h.title)
+    return int(m.group(1)) if m else None
+
+
+def _recency_key(h, this_year: int):
+    y = _doc_year(h)
+    if y == this_year:
+        return 0  # current year
+    if y is None:
+        return 1  # undated (evergreen/current pages carry no year)
+    return 2  # stale
+
+
 def build_digests() -> dict:
     from .search import search as kb_search
 
     diff = latest_diff()
     surface = change_surface(diff)
     today = dt.date.today().isoformat()
+    this_year = dt.date.today().year
     out = {}
     for agent, cfg in AGENTS.items():
         parts = [
@@ -121,7 +146,23 @@ def build_digests() -> dict:
                 src = None
                 if "--source" in source_flag:
                     src = source_flag.split("--source ")[1].split()[0]
-                hits, meta = kb_search(query, k=3, source=src)
+                hits, meta = kb_search(query, k=LENS_K, source=src)
+                if src in RECENCY_SOURCES:
+                    # stable sort keeps retrieval rank within each recency
+                    # bucket; dedupe by doc_id (rerank surfaces several chunks
+                    # of the same page)
+                    hits.sort(key=lambda h: _recency_key(h, this_year))
+                    seen: set[int] = set()
+                    deduped = []
+                    for h in hits:
+                        if h.doc_id in seen:
+                            continue
+                        seen.add(h.doc_id)
+                        deduped.append(h)
+                    hits = deduped[:3]
+                    if not any(_doc_year(h) == this_year for h in hits):
+                        parts.append(f"_lens staleness: no {this_year} {src} hit in top {LENS_K} — "
+                                     f"retrieval may be degraded; flag it on the bus_")
                 conf = meta.get("confidence_bits")
                 parts.append(f"_query: `{query}`{f' (source: {src})' if src else ''} — confidence {conf} bits_")
                 for i, h in enumerate(hits, 1):

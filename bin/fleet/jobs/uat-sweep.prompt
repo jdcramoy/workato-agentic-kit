@@ -10,6 +10,9 @@ Procedure, per category (skip categories outside SWEEP_SCOPE):
 
 Coordinator pass, after all categories:
 5. Read all results files and write ~/harness/uat-sweep/brief-$(date +%F).md (overwrite that day's brief) with: a pass/fail matrix (category x recipes), the double-failure list (failed both attempts), and for each double-failure a DRAFT BSYS bug body (title + 3-line description + evidence IDs) — drafts only, do NOT file anything in Jira.
+5b. Wire the brief into the harness (both, every run):
+    a. cp ~/harness/uat-sweep/brief-$(date +%F).md ~/.claude/knowledge/garden-reports/uat-sweep-$(date +%F).md  (garden report; skip if identical)
+    b. For each double-failure recipe, append ONE open triage card to ~/.claude/knowledge/triage/queue.jsonl via a python3 heredoc that: builds the row {"ts": <UTC ISO>, "slug": "uat-sweep-<recipe-id>", "kind": "bugfix", "title": "<recipe name> fails UAT sweep (dev)", "evidence": "<job/run IDs + one-line error>", "work": "autopsy + fix-forward (dev-scoped; build-kickoff is Josh's gate)", "points": 2, "status": "open", "source": "uat-sweep"}; SKIPS the append if that slug already has an open row (read the file, check slug+status first — never duplicate); and appends with json.dumps(..., ensure_ascii=False) + newline.
 6. Print a 5-line summary (per category: tested/pass/fail/skip) as your final output so the runner captures real content.
 
 Rules: dev workspace only; never touch prod (workato-prod profile); append-only on results files; no recipe edits; if wt errors 401/403, record it and move on rather than retrying the whole sweep.
