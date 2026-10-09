@@ -1,0 +1,9 @@
+[cost-governor-daily] Zero-LLM-script day job; you only run the scripts and verify the outputs.
+
+(1) Run: python3 ~/.claude/knowledge/scripts/cost-governor.py — it computes the per-task-class cost/quality posteriors and writes garden-reports/cost-governor-<today>.md plus the "## Cost governor" proposal section in knowledge/cortex/attention-queue.md (proposals only; it never mutates model-routing.json). Confirm the report file exists and is non-empty.
+
+(2) If today is the 1st of the month, ALSO run: python3 ~/.claude/knowledge/scripts/roi-report.py — it writes garden-reports/roi-<YYYY-MM>.md with per-capability KILL/PROMOTE/KEEP recommendations. On any other day, skip this step.
+
+(3) Verify: both outputs it was asked to produce exist and their tables rendered (head the files). If a script errors, fix nothing silently — report the exact error in one line.
+
+LAST STEP (never skip): Bash-append {"ts":"<now ISO>","job":"cost-governor"} to ~/.claude/knowledge/garden-reports/heartbeat.jsonl.
