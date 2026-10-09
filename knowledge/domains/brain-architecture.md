@@ -124,3 +124,33 @@ stay whole is fine. A file 2× over is always a finding.
    evidence (line counts + the sections that motivated the split).
 5. After any accepted split, update INDEX.md/MEMORY.md lines in the same
    commit — an unmoved index makes the split worse than the monolith.
+
+## Phase 3: fractal memory authoring rules (2026-10-08)
+
+The fractal lens (`~/Documents/workato-kb/kb/fractal.py`) projects the whole
+memory system into factlets — one schema at every scale (topic → file →
+section → chunk). It rebuilds nightly from the stores; it is a projection,
+NOT the storage layer. For the projection to be clean, authored memory must:
+
+1. **One file, one topic** — a file's H1 title is its level-1 factlet title;
+   a file covering two topics splits into two factlets that fight for the
+   same zoom query.
+2. **Sections are `## Heading`-delimited** — level-2 factlets are extracted
+   per `## ` heading; a section without a heading is invisible to zoom.
+3. **Headings are queries** — write them as the question a future zoom would
+   ask ("VUA connection mode", not "misc notes"); headings are the API of
+   the factlet graph.
+4. **Claims ledger stays the structured tier** — anything with a verdict,
+   evidence, and a re-check date belongs in `claims/claims.jsonl`, not prose;
+   prose states the conclusion and links the claim.
+5. **No orphan levels** — every level-2 section should live under a level-1
+   file with an INDEX line; the factlet graph's parent links follow the
+   real containment, so a file missing from INDEX produces a parentless
+   factlet (gardener catches these).
+6. **Frontmatter stays parseable** — `key: "value"` with quotes; the KB
+   chunker and the fractal builder both parse it, and unquoted colons in
+   values break both.
+
+Cutover rule (if/when fractal.db becomes a write target): full git tag +
+DB backup first, projections verified against sources row-for-row, and the
+cutover is a Josh decision, not a gardener or dreamer decision.
