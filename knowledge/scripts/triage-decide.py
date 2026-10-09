@@ -26,6 +26,7 @@ jira-autotriage) as one JSON line:
    "work":"the proposed fix, one line","points":2,"status":"open"}
 """
 import json, os, sys, datetime as dt
+from atomic_io import atomic_append
 
 HOME = os.path.expanduser("~")
 K = os.path.join(HOME, ".claude", "knowledge")
@@ -85,8 +86,7 @@ def log_outcome(row, action, note, jira):
            "slug": row.get("slug", ""), "source": row.get("source", ""),
            "action": action, "notes": note or "", "jira": jira or "",
            "by": "josh (triage-decide)"}
-    with open(OUTCOMES, "a") as fh:
-        fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    atomic_append(OUTCOMES, rec)
 
 
 def main():

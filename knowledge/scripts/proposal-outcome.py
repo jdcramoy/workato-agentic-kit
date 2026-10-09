@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import time
+from atomic_io import atomic_append
 
 K = os.path.expanduser("~/.claude/knowledge")
 PROPS = os.path.join(K, "dreams", "proposals")
@@ -43,11 +44,10 @@ def main():
                             f"status: {verdict}d" if verdict != "revise" else "status: revise", 1)
         open(path, "w").write(body)
 
-    with open(OUTCOMES, "a") as fh:
-        fh.write(json.dumps({
-            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "proposal": slug, "verdict": verdict, "reason": reason,
-        }) + "\n")
+    atomic_append(OUTCOMES, {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "proposal": slug, "verdict": verdict, "reason": reason,
+    })
     print(f"recorded: {slug} -> {verdict} ({reason[:60]})")
     return 0
 

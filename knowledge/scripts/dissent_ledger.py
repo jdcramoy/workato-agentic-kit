@@ -24,6 +24,7 @@ import datetime as dt
 import json
 from collections import defaultdict
 from pathlib import Path
+from atomic_io import atomic_append
 
 K = Path.home() / ".claude/knowledge"
 LEDGER = K / "dreams/dissent-ledger.jsonl"
@@ -55,8 +56,7 @@ def log(proposal: str, critic: str, severity: str, attack_class: str, objection:
         "logged": dt.datetime.now().isoformat(timespec="seconds"),
         "outcome": None,  # filled when the proposal is decided
     }
-    with LEDGER.open("a") as f:
-        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    atomic_append(LEDGER, rec)
     return rec
 
 

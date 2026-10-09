@@ -21,6 +21,9 @@ const WORKATO_TOOLS = /^mcp__(workato-airo-mcp-server|workato-airo-mcp-prod|work
 // sessions (this is what lets any session answer "what did we change").
 const BUILD_LEDGER_DIR = '$HOME/.claude/knowledge'
 const BUILD_LEDGER = BUILD_LEDGER_DIR + '/build-ledger.jsonl'
+// Atomic append helper (flock + temp file + os.replace) — shared with knowledge/scripts.
+const ATOMIC_APPEND_PY = '$HOME/.claude/knowledge/scripts/atomic_io.py'
+const SYSPY = '/usr/bin/python3'
 const RECIPE_HISTORY = '$HOME/.claude/recipe-history'
 
 // AIRO mutation tools (dev + prod). Reads never ledger.
@@ -31,8 +34,10 @@ const TICKET_KEY = /\b([A-Z]{2,6}-\d{3,5})\b/
 // Append one event to the build ledger (top-level decl: static-analysis rule).
 function ledgerAppend($, event) {
   const line = JSON.stringify({ ts: new Date().toISOString(), ...event }) + '\n'
+  // Atomic: temp file + rename via atomic_io.py (was plain 'cat >>', which
+  // truncated line 4837 once when a write died mid-record).
   return $.process
-    .run(['sh', '-c', 'mkdir -p ' + BUILD_LEDGER_DIR + ' && cat >> ' + BUILD_LEDGER], { stdin: line })
+    .run(['sh', '-c', 'mkdir -p ' + BUILD_LEDGER_DIR + ' && ' + SYSPY + ' ' + ATOMIC_APPEND_PY + ' ' + BUILD_LEDGER], { stdin: line })
     .catch(() => {})
 }
 
@@ -48,7 +53,7 @@ function verifyClaim($, subject, observation, evidence) {
   }) + '\n'
   const dir = '$HOME/.claude/knowledge/claims'
   return $.process
-    .run(['sh', '-c', 'mkdir -p ' + dir + ' && cat >> ' + dir + '/verifications.jsonl'], { stdin: line })
+    .run(['sh', '-c', 'mkdir -p ' + dir + ' && ' + SYSPY + ' ' + ATOMIC_APPEND_PY + ' ' + dir + '/verifications.jsonl'], { stdin: line })
     .catch(() => {})
 }
 

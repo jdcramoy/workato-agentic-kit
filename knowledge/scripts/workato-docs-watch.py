@@ -21,6 +21,9 @@ import sys
 import urllib.request
 from datetime import datetime, timezone
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from atomic_io import atomic_append
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SNAP_DIR = os.path.expanduser('~/.claude/knowledge/garden-reports/docs-watch')
 DELTA_LOG = os.path.expanduser('~/.claude/knowledge/garden-reports/platform-delta.jsonl')
@@ -90,12 +93,10 @@ def main():
             print(json.dumps(e))
         return
     if events:
-        with open(DELTA_LOG, 'a') as fh:
-            for e in events:
-                fh.write(json.dumps(e) + '\n')
-        # gossip bus: docs-watch is the network's first poster each night
-        # (22:15); the gardener (22:43) reads these deltas off the bus.
-        post_to_gossip(today, events)
+        atomic_append(DELTA_LOG, events)
+        # gossip bus: docs-watch is the network's first poster each night;
+        # the gardener (22:43) reads these deltas off the bus.
+        post_to_gossip(events)
     baselines = sum(1 for e in events if e['kind'] == 'baseline')
     changed = sum(1 for e in events if e['kind'] == 'changed')
     errors = sum(1 for e in events if e['kind'] == 'error')
@@ -106,31 +107,37 @@ GOSSIP_OUTBOX = os.path.expanduser(
     '~/.claude/knowledge/dreams/bus/docs-watch.jsonl')
 
 
-def post_to_gossip(today, events):
+def post_to_gossip(events):
     """Append platform deltas to the docs-watch gossip outbox.
 
-    Single-writer file (maildir pattern); append-only, one event per line.
+    Single-writer file (maildir pattern); append-only, one event per line,
+    written atomically (temp + rename via atomic_io.atomic_append).
+    Timestamps are REAL UTC now — the old code stamped a hardcoded
+    T22:15:00Z "nightly slot" as if it were UTC, future-dating entries
+    written at any other time and corrupting bus --since windows.
     Never throws: bus failure must not break the docs-watch run.
     """
     try:
-        os.makedirs(os.path.dirname(GOSSIP_OUTBOX), exist_ok=True)
-        with open(GOSSIP_OUTBOX, 'a') as fh:
-            for e in events:
-                if e.get('kind') == 'error':
-                    continue  # transient fetch errors are not network findings
-                slug = 'platform-delta-' + re.sub(
-                    r'[^a-z0-9]+', '-', e.get('label', 'source').lower()).strip('-')
-                fh.write(json.dumps({
-                    'ts': today + 'T22:15:00Z',
-                    'agent': 'docs-watch',
-                    'kind': 'finding',
-                    'subject': slug,
-                    'line': f"Workato platform docs changed: {e.get('label')} — {e.get('added_excerpt', '')[:120]}",
-                    'refs': [e.get('url', '')],
-                    'thread_id': slug,
-                    'corroborations': 0,
-                    'ttl_days': 14,
-                }) + '\n')
+        now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        rows = []
+        for e in events:
+            if e.get('kind') == 'error':
+                continue  # transient fetch errors are not network findings
+            slug = 'platform-delta-' + re.sub(
+                r'[^a-z0-9]+', '-', e.get('label', 'source').lower()).strip('-')
+            rows.append({
+                'ts': now,
+                'agent': 'docs-watch',
+                'kind': 'finding',
+                'subject': slug,
+                'line': f"Workato platform docs changed: {e.get('label')} — {e.get('added_excerpt', '')[:120]}",
+                'refs': [e.get('url', '')],
+                'thread_id': slug,
+                'corroborations': 0,
+                'ttl_days': 14,
+            })
+        if rows:
+            atomic_append(GOSSIP_OUTBOX, rows)
     except Exception as ex:
         print(f'docs-watch: gossip post failed (non-fatal): {ex}')
 

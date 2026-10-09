@@ -13,7 +13,8 @@ Examples:
   wt recipes force-run 74094657
   wt jobs repeat 74094657 --ids job1,job2
   wt manifests assets 30275122
-  wt manifests create --name "HR batch" --folder 30275122 --assets-file m.json
+  wt manifests create --file m.json
+      (payload: {"export_manifest": {"name": ..., "assets": [...]}})
   wt packages export 356201 --out hr.zip
   wt packages import hr.zip 30275122 --restart-recipes
   wt properties upsert --file props.json
@@ -108,6 +109,13 @@ def request(host, token, method, path, query=None, data=None, headers=None,
         if content_type:
             hdrs["Content-Type"] = content_type
     elif data is not None:
+        if isinstance(data, str):
+            # --data arrives as a raw string; re-encoding it as-is would put
+            # a JSON string literal on the wire (double-encode). Parse once.
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError as e:
+                die(f"--data is not valid JSON: {e}")
         body = json.dumps(data).encode()
         hdrs["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
@@ -374,8 +382,6 @@ def cmd_manifests(a):
         status, result = request(host, token, "GET",
                                  "/api/export_manifests/folder_assets",
                                  query=query)
-    elif a.op == "list":
-        status, result = request(host, token, "GET", "/api/export_manifests")
     elif a.op == "get":
         status, result = request(host, token, "GET",
                                  f"/api/export_manifests/{a.manifest_id}")
@@ -386,6 +392,8 @@ def cmd_manifests(a):
                 data = json.load(f)
         if not data:
             die("create requires --file or --data JSON")
+        if isinstance(data, dict) and "export_manifest" not in data:
+            data = {"export_manifest": data}
         status, result = request(host, token, "POST", "/api/export_manifests",
                                  data=data)
     elif a.op == "update":
@@ -393,6 +401,8 @@ def cmd_manifests(a):
         if a.file:
             with open(a.file) as f:
                 data = json.load(f)
+        if isinstance(data, dict) and "export_manifest" not in data:
+            data = {"export_manifest": data}
         status, result = request(host, token, "PUT",
                                  f"/api/export_manifests/{a.manifest_id}",
                                  data=data)
@@ -419,7 +429,7 @@ def cmd_packages(a):
         with open(a.zipfile, "rb") as f:
             payload = f.read()
         status, result = request(host, token, "POST",
-                                 f"/api/packages/import/{a.folder_id}",
+                                 f"/api/packages/import/{a.id}",
                                  query=query, raw_body=payload,
                                  content_type="application/octet-stream")
         emit(result, a.raw)
@@ -442,6 +452,19 @@ def cmd_packages(a):
 # www.workato.com/api expose row access.
 
 DT_HOST = "https://data-tables.workato.com"
+
+
+def dt_record_body(body):
+    """Data-tables records API expects {"document": {<col>: value}}, not a
+    flat column map. Accept --data/--file flat JSON and add the envelope."""
+    if isinstance(body, str):
+        try:
+            body = json.loads(body)
+        except json.JSONDecodeError as e:
+            die(f"--data is not valid JSON: {e}")
+    if isinstance(body, dict) and "document" not in body:
+        return {"document": body}
+    return body
 
 
 def cmd_dt(a):
@@ -492,12 +515,13 @@ def cmd_dt(a):
         emit(result, a.raw)
     elif a.op == "create-record":
         status, result = request(DT_HOST, token, "POST",
-                                 f"/api/v1/tables/{tid}/records", data=a.body)
+                                 f"/api/v1/tables/{tid}/records",
+                                 data=dt_record_body(a.body))
         emit(result, a.raw)
     elif a.op == "update-record":
         status, result = request(DT_HOST, token, "PUT",
                                  f"/api/v1/tables/{tid}/records/{a.record_id}",
-                                 data=a.body)
+                                 data=dt_record_body(a.body))
         emit(result, a.raw)
     elif a.op == "delete-record":
         status, result = request(DT_HOST, token, "DELETE",
@@ -900,7 +924,7 @@ def main():
 
     p = sub.add_parser("manifests", help="export manifest management")
     add_common(p)
-    p.add_argument("op", choices=["assets", "list", "get", "create",
+    p.add_argument("op", choices=["assets", "get", "create",
                                   "update", "delete"])
     p.add_argument("manifest_id", nargs="?", type=int)
     p.add_argument("--folder", type=int,

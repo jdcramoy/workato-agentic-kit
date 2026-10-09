@@ -18,15 +18,14 @@ import datetime as dt
 import json
 from collections import defaultdict
 from pathlib import Path
+from atomic_io import atomic_append
 
 STORE = Path.home() / ".claude/knowledge/dreams/predictions.jsonl"
 BUS = Path.home() / ".claude/knowledge/dreams/bus"
 
 
 def _append(path: Path, rec: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a") as f:
-        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    atomic_append(path, rec)
 
 
 def _load() -> list[dict]:

@@ -153,11 +153,19 @@ fi
 mkdir -p "${KIT_HOME}/mods"
 cp -R mods/* "${KIT_HOME}/mods/"
 
-# --- Workato KB (RAG++ pipeline): cloned from its own repo (single source of truth) ---
+# --- Workato KB (RAG++ pipeline): local snapshot first, else clone ---
+# A zip distribution ships a code snapshot in kb-pipeline/kb (offline install);
+# a git clone of the kit carries no copy — the installer pulls from the repo
+# (single source of truth for git users).
 KB_HOME="${KIT_HOME}/Documents/workato-kb"
 if [ -d "$KB_HOME/.git" ]; then
   echo "kb: exists — pulling latest"
   git -C "$KB_HOME" pull --ff-only || echo "kb: pull skipped (local changes)"
+elif [ -d kb-pipeline/kb ]; then
+  echo "kb: using the snapshot bundled in this zip (kb-pipeline/kb)"
+  mkdir -p "${KIT_HOME}/Documents"
+  cp -R kb-pipeline/kb "$KB_HOME"
+  echo "kb: note — snapshot may lag the live repo; update later with: git -C $KB_HOME pull (needs GitHub access)"
 else
   echo "kb: cloning the pipeline (github.com/Workato-All/workato-kb)..."
   git clone --depth 1 "https://github.com/Workato-All/workato-kb.git" "$KB_HOME" \

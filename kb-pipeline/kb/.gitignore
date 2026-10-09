@@ -1,0 +1,8 @@
+corpus/
+manifest/
+index/
+diffs/
+.venv/
+__pycache__/
+*.log
+.DS_Store

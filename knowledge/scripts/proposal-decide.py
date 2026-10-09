@@ -15,6 +15,7 @@ Usage:
   proposal-decide.py replay-gym accept "build it as the nightly gym job"
 """
 import json, os, re, glob, sys, datetime as dt
+from atomic_io import atomic_append
 
 HOME = os.path.expanduser("~")
 K = os.path.join(HOME, ".claude", "knowledge")
@@ -45,8 +46,7 @@ def set_status(path, status):
 def log_outcome(title, action, note):
     row = {"date": dt.date.today().isoformat(), "proposal": title,
            "action": action, "notes": note or "", "by": "josh (proposal-decide)"}
-    with open(OUTCOMES, "a") as fh:
-        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    atomic_append(OUTCOMES, row)
     return row
 
 
