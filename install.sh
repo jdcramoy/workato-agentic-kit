@@ -14,14 +14,50 @@ cd "$(dirname "$0")"
 
 echo "== agentic-workato-kit installer =="
 
-# --- prerequisites ---------------------------------------------------------
-command -v git >/dev/null    || { echo "FAIL: git not found"; exit 1; }
-command -v python3 >/dev/null || { echo "FAIL: python3 not found"; exit 1; }
-command -v jq >/dev/null     || { echo "FAIL: jq not found (brew install jq)"; exit 1; }
+# --- prerequisites: check, offer to fix, re-verify -------------------------
+# Interactive: offers the one-command fix and re-checks. Headless: fail-fast
+# with the exact fix command printed (no prompting into a pipe).
+
+INTERACTIVE="[ -t 0 ]"
+
+fix_or_fail() {  # $1 what, $2 fix command
+  if $INTERACTIVE; then
+    printf "  %s is missing/outdated. Fix it now with: %s\n      [Y/n] " "$1" "$2"
+    read -r reply
+    if [[ ! "$reply" =~ ^[Nn] ]]; then
+      echo "  running: $2"
+      eval "$2" || { echo "FAIL: the fix command errored — fix '$1' manually and re-run ./install.sh"; exit 1; }
+    else
+      echo "FAIL: $1 is required. Install it, then re-run ./install.sh"; exit 1
+    fi
+  else
+    echo "FAIL: $1 missing/outdated (headless mode — run this yourself, then re-run): $2"
+    exit 1
+  fi
+}
+
+ensure() {  # $1 binary, $2 fix command
+  command -v "$1" >/dev/null || fix_or_fail "$1" "$2"
+  command -v "$1" >/dev/null || { echo "FAIL: $1 still not on PATH after the fix (PATH may need: export PATH=...); re-run ./install.sh"; exit 1; }
+  echo "  ok: $1 ($($1 --version 2>/dev/null | head -1 | head -c 60))"
+}
+
+# brew is the fix engine for everything below it
+if ! command -v brew >/dev/null; then
+  fix_or_fail "Homebrew" '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+fi
+ensure git "brew install git"
+ensure jq "brew install jq"
+if ! command -v python3.12 >/dev/null; then
+  fix_or_fail "python3.12 (the KB venv needs it; torch has no 3.14 wheels)" "brew install python@3.12"
+fi
+ensure python3.12 "brew install python@3.12"
+ensure claude "brew install --cask claude-code"
+
 CC_VERSION=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "0")
 echo "Claude Code: ${CC_VERSION}"
 python3 -c "import sys; v=tuple(int(x) for x in '$CC_VERSION'.split('.')); sys.exit(0 if v >= (2,1,287) else 1)" \
-  && echo "mod support: OK" || { echo "FAIL: mods need Claude Code >= 2.1.287"; exit 1; }
+  && echo "mod support: OK" || fix_or_fail "Claude Code >= 2.1.287 (mods need it)" "claude update"
 
 # --- config ----------------------------------------------------------------
 if [ ! -f config.sh ]; then
