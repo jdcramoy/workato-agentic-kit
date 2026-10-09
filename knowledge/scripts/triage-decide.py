@@ -47,6 +47,11 @@ ALLOWED = {
 }
 
 
+# statuses this recorder can issue; anything else in the queue is drift
+# (e.g. an agent hand-writing "done") and fails the read loudly.
+VALID_STATUSES = {"open", "accepted", "filed", "built", "rejected", "deferred"}
+
+
 def load():
     if not os.path.exists(QUEUE):
         sys.exit(f"no queue at {QUEUE} (agents append findings there first)")
@@ -57,9 +62,15 @@ def load():
             if not line:
                 continue
             try:
-                rows.append(json.loads(line))
+                row = json.loads(line)
             except json.JSONDecodeError:
                 sys.exit(f"{QUEUE}:{n}: not valid JSON — fix by hand or restore from git")
+            st = row.get("status", "open")
+            if st not in VALID_STATUSES:
+                sys.exit(f"{QUEUE}:{n}: unknown status '{st}' on '{row.get('slug', '?')}' "
+                         f"(valid: {', '.join(sorted(VALID_STATUSES))}) — repair via "
+                         f"triage-decide.py, never by hand")
+            rows.append(row)
     return rows
 
 
@@ -68,8 +79,14 @@ def find(rows, slug):
     if not hits:
         sys.exit(f"no finding matches '{slug}'")
     if len(hits) > 1:
-        sys.exit(f"ambiguous '{slug}': " + ", ".join(h["slug"] for h in hits))
-    return hits[0]
+        distinct = {h.get("slug", "") for h in hits}
+        if len(distinct) > 1:
+            sys.exit(f"ambiguous '{slug}': " + ", ".join(sorted(distinct)))
+        # duplicate seed (same slug seeded twice): one logical finding —
+        # the verdict fans out to every row on save; warn so dedupe gets fixed.
+        print(f"NOTE: {len(hits)} rows share slug '{slug}' (duplicate seed); "
+              f"verdict applies to all — dedupe belongs to the seeders", file=sys.stderr)
+    return hits
 
 
 def save(rows):
@@ -120,14 +137,17 @@ def main():
     if action == "filed" and not (jira or note):
         sys.exit("'filed' requires --jira KEY (the story/bug key)")
     rows = load()
-    row = find(rows, slug)
-    cur = row.get("status", "open")
-    if cur not in ALLOWED[action]:
-        sys.exit(f"{slug} is {cur}; '{action}' is only valid from "
-                 f"{'/'.join(sorted(ALLOWED[action]))} (final states are terminal; "
-                 f"file a NEW finding if the evidence changed)")
-    row["status"] = FM[action]
-    row["decided_ts"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    hits = find(rows, slug)
+    now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for row in hits:
+        cur = row.get("status", "open")
+        if cur not in ALLOWED[action]:
+            sys.exit(f"{slug} is {cur}; '{action}' is only valid from "
+                     f"{'/'.join(sorted(ALLOWED[action]))} (final states are terminal; "
+                     f"file a NEW finding if the evidence changed)")
+        row["status"] = FM[action]
+        row["decided_ts"] = now
+    row = hits[0]
     if jira:
         row["jira"] = jira
     if note:
