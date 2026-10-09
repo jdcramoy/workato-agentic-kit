@@ -143,3 +143,15 @@ CREATION era, backlog-hygiene closures (>60d) separated:
 18x cycle-time reduction on fresh work; 6x same-day rate; 28 stale backlog
 closures as a bonus. Re-runs monthly from one JQL — the claim is reproducible,
 not anecdotal.
+
+## The five learning modalities (Oct 9, v0.9.0)
+
+The harness so far learned by consolidation only. Five new channels — the other ways brains learn:
+
+- **Case-based reasoning** (`kb cases`): the medical model. Every incident/bug/fix becomes a CASE (presentation → diagnosis → treatment → outcome); at decision time, retrieve similar cases FIRST instead of re-deriving from facts. Ingests from the regression canon + autopsies + manual filing.
+- **Apprenticeship from the estate** (`kb apprentice`): the org's own recipes are a corpus nobody learns from. Pattern-level mining (error-handling idioms, retry patterns, safe-navigation usage — never business logic verbatim, read-only, sanitized) distilled into the KB: the fleet learns what colleagues already know.
+- **The judgment gym** (`kb gym_judgment`): spaced repetition for fleet judgment — past incidents re-presented as drills, answers graded against known outcomes, failed cases resurface sooner; the diagnosis-accuracy curve is the improvement metric.
+- **The curiosity engine** (`kb curiosity`): surprises MINT questions into a standing ledger (why did that prediction deviate? why is this metric anomalous?); the dreamer spends nightly effort on the highest-value open questions; answers bind back as claims. The harness goes from a system that answers to a system that wants to know.
+- **The competence map** (`kb competence`): questions route by measured track record per agent/model/domain — a division of labor that emerges from evidence, not assignment.
+
+All five report into `science-state.json` (read by the ops dashboard) and are gym-invariant-checked (A6: fresh < 36h).
