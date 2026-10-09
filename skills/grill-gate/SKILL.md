@@ -31,8 +31,10 @@ searched and what you found (or "no prior art") in the plan.
 
 ## Running the Grill
 
-- First mine every answerable question yourself (context exploration, docs, tickets). Track what you found and where.
+- First mine every answerable question yourself (context exploration, docs, the workato-kb KB, tickets). Track what you found and where.
+- **Test each self-answer before trusting it** (deep-grill's move): face it with the strongest objection and one concrete failure scenario; revise or reject weak answers rather than shipping them as facts.
 - Ask the remainder in ONE batched round, not a drip feed — each question with your recommended answer and the reason. Josh corrects or says "yes" once.
+- **Reopen on answers** (deep-grill's iterate-to-alignment): after each round, revisit the affected and newly-exposed questions the answers create; issue another batch if material choices remain, until the review converges.
 - Cap the batch at the questions that change the design. If nothing survives mining, there is no batch — proceed.
 - Never ask what the ticket/spec already states. Never invent business rules to fill a gap (that is a stop-and-ask, not a guess).
 
