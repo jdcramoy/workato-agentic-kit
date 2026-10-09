@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import re
 import hashlib
 import json
 import sqlite3
@@ -37,8 +38,10 @@ CREATE TABLE IF NOT EXISTS cases (
     outcome TEXT NOT NULL,
     tags TEXT DEFAULT '',
     source TEXT DEFAULT 'manual',
-    embedding BLOB
+    embedding BLOB,
+    dedupe_key TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cases_dedupe ON cases(dedupe_key);
 CREATE VIRTUAL TABLE IF NOT EXISTS cases_fts USING fts5(
     presentation, diagnosis, treatment, tags, content='cases', content_rowid='rowid'
 );
@@ -61,7 +64,11 @@ def _connect() -> sqlite3.Connection:
 
 
 def _cid(presentation: str) -> str:
-    return "case-" + hashlib.sha1(presentation.encode()).hexdigest()[:12]
+    # dedupe on the ticket key when present ([BSYS-xxxx] prefix) so re-seeds
+    # update rather than duplicate
+    m = re.match(r"\[([A-Z]+-\d+)\]", presentation)
+    basis = m.group(1) if m else presentation
+    return "case-" + hashlib.sha1(basis.encode()).hexdigest()[:12]
 
 
 def file_case(presentation: str, diagnosis: str, treatment: str, outcome: str = "worked",
@@ -69,11 +76,16 @@ def file_case(presentation: str, diagnosis: str, treatment: str, outcome: str = 
     db = _connect()
     try:
         cid = _cid(presentation)
+        m = re.match(r"\[([A-Z]+-\d+)\]", presentation)
+        dedupe = m.group(1) if m else cid
         emb = get_model("embed").encode([presentation], normalize_embeddings=True)[0].tolist()
         db.execute(
-            "INSERT OR REPLACE INTO cases(case_id,created,presentation,diagnosis,treatment,outcome,tags,source) "
-            "VALUES(?,?,?,?,?,?,?,?,)",
-            (cid, dt.datetime.now().isoformat(timespec="seconds"), presentation, diagnosis, treatment, outcome, tags, source),
+            "INSERT INTO cases(case_id,created,presentation,diagnosis,treatment,outcome,tags,source,dedupe_key) "
+            "VALUES(?,?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(dedupe_key) DO UPDATE SET diagnosis=excluded.diagnosis, "
+            "treatment=excluded.treatment, outcome=excluded.outcome, "
+            "presentation=excluded.presentation, created=excluded.created",
+            (cid, dt.datetime.now().isoformat(timespec="seconds"), presentation, diagnosis, treatment, outcome, tags, source, dedupe),
         )
         rowid = db.execute("SELECT rowid FROM cases WHERE case_id=?", (cid,)).fetchone()[0]
         db.execute("DELETE FROM cases_vec WHERE case_rowid=?", (rowid,))
@@ -103,8 +115,9 @@ def similar(presentation: str, k: int = 3) -> list[dict]:
         ).fetchall()
         # map rowids back to case_ids
         vec = [
-            (db.execute("SELECT case_id FROM cases WHERE rowid=?", (rid,)).fetchone()[0], d)
+            (hit[0], d)
             for rid, d in vec
+            if (hit := db.execute("SELECT case_id FROM cases WHERE rowid=?", (rid,)).fetchone())
         ]
         import re as _re
 
@@ -115,8 +128,9 @@ def similar(presentation: str, k: int = 3) -> list[dict]:
             (fts_match, k * 3),
         ).fetchall()
         fts = [
-            (db.execute("SELECT case_id FROM cases WHERE rowid=?", (rid,)).fetchone()[0], 0)
+            (hit[0], 0)
             for rid, in fts
+            if (hit := db.execute("SELECT case_id FROM cases WHERE rowid=?", (rid,)).fetchone())
         ]
         # RRF fusion
         scores: dict[str, float] = {}
@@ -163,13 +177,15 @@ def ingest_from_canon() -> dict:
             c = json.loads(line)
         except json.JSONDecodeError:
             continue
+        # canon schema: signature/line describe the failure; status fixed/tested
+        # = resolution evidence; only those become cases
         if c.get("status") in ("fixed", "tested"):
             file_case(
-                presentation=c.get("signature") or c.get("symptom") or c.get("title", "unknown failure"),
-                diagnosis=c.get("root_cause") or c.get("signature") or "",
-                treatment=c.get("guard") or c.get("fix") or "see canon",
+                presentation=f"{c.get('signature', '')}: {c.get('line', '')}"[:600],
+                diagnosis=c.get("line", c.get("signature", ""))[:500],
+                treatment=c.get("fix") or c.get("guard") or "canonized guard (see regression-canon)",
                 outcome=c.get("status", "fixed"),
-                tags=f"canon,{c.get('recipe_id', '')}",
+                tags=f"canon,{c.get('kind', '')},{c.get('recipe_id', '')}",
                 source="regression-canon",
             )
             n += 1

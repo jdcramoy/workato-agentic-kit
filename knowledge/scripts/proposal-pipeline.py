@@ -57,7 +57,7 @@ def latest_dream_inventions():
     """Count numbered inventions in the newest dream report (file-gate check)."""
     dreams = sorted(glob.glob(os.path.join(DREAMS, "2*.md")))
     if not dreams:
-        return os.path.basename("none") if dreams else "none", 0, None
+        return "none", 0, None
     f = dreams[-1]
     try:
         body = open(f, errors="replace").read()
@@ -102,20 +102,34 @@ def collect():
 def digest():
     items, dream_name, n_inv, n_outcomes = collect()
     proposed = [i for i in items if i["status"] == "proposed"]
+    incubating = [i for i in items if i["status"] == "incubating"]
     accepted = [i for i in items if i["status"] == "accepted"]
     built = [i for i in items if i["status"] == "built"]
     rejected = [i for i in items if i["status"] == "rejected"]
     today = dt.date.today()
     lines = []
     gate = ""
-    if n_inv and len(items):
-        filed_today = [i for i in items if i["date"] in dream_name or True]  # inventions cumulative
+    # file-gate: inventions in latest dream vs filed invention proposals that day.
+    # A dream report can legitimately have no "## Inventions" section — the dreamer
+    # files inventions straight into the proposals queue — so an empty section is
+    # only a miss when nothing was filed on the dream's date either.
+    if dream_name == "none":
+        gate = "file-gate: no dream report yet"
+    elif n_inv:
         gate = f"file-gate: latest dream ({dream_name}) has {n_inv} inventions"
     else:
-        gate = f"file-gate: latest dream ({dream_name}) has {n_inv} inventions — none filed yet" \
-            if n_inv else "file-gate: no dream report yet"
+        filed = [i for i in items if i["date"] == dream_name[:10]]
+        if filed:
+            gate = (f"file-gate: latest dream ({dream_name}) has no Inventions section; "
+                    f"{len(filed)} proposal(s) filed on that date")
+        else:
+            gate = (f"file-gate: latest dream ({dream_name}) has no Inventions section "
+                    f"and no proposals filed that day")
     lines.append(f"PROPOSAL PIPELINE — {len(items)} filed · {len(proposed)} proposed · "
-                 f"{len(accepted)} accepted-not-built · {len(built)} built · {len(rejected)} rejected")
+                 f"{len(incubating)} incubating · {len(accepted)} accepted-not-built · "
+                 f"{len(built)} built · {len(rejected)} rejected")
+    for i in incubating:
+        lines.append(f"  INCUBATING (not yet for Josh): {i['title']} (from {i['date']})")
     lines.append(gate)
     for i in accepted:
         lines.append(f"  NEEDS BUILDER: {i['title']} ({i['kind']}, risk {i['risk']}, from {i['date']})")

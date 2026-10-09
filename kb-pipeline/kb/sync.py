@@ -1,138 +1,65 @@
-"""Nightly orchestrator: sync all sources -> re-index changed docs -> diff report.
-
-    python3 -m kb.sync                 # everything
-    python3 -m kb.sync --no-embed      # crawl+chunk only
-Writes a diff report to ~/.claude/workato-kb/diffs/YYYY-MM-DD.json and (best effort)
-appends a one-line summary to the gossip bus outbox knowledge/dreams/bus/workato-kb.jsonl.
-"""
-
-from __future__ import annotations
-
-import datetime as dt
-import json
+#!/usr/bin/env python3
+"""jira_bulk_pull.py — refresh closed-bug corpus + case base (runs Sundays)."""
+import base64, json, subprocess, urllib.request, urllib.parse, time
 from pathlib import Path
 
-from .common import DATA_ROOT, fetch_cached
+tok = subprocess.run(["security", "find-generic-password", "-s", "atlassian-confluence", "-a", "josh.cramoy@workato.com", "-w"], capture_output=True, text=True).stdout.strip()
+AUTH = base64.b64encode(f"josh.cramoy@workato.com:{tok}".encode()).decode()
+BASE = "https://workato.atlassian.net"
+OUT = Path.home() / ".claude/workato-kb/corpus/jira-bugs"
+OUT.mkdir(parents=True, exist_ok=True)
+sys_path = Path(__file__).parent.parent
+import sys
+sys.path.insert(0, str(sys_path))
 
-
-def main() -> None:
-    import argparse
-
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--no-embed", action="store_true")
-    ap.add_argument("--sources", nargs="*", default=None)
-    a = ap.parse_args()
-    wanted = a.sources
-
-    results: dict = {}
-    errors: list[str] = []
-
-    def try_step(name: str, fn, *args, **kwargs):
-        if wanted and name not in wanted:
-            return
-        print(f"[sync] {name} ...", flush=True)
+def get(url):
+    req = urllib.request.Request(url, headers={"Authorization": f"Basic {AUTH}", "User-Agent": "workato-kb/0.1"})
+    for attempt in range(3):
         try:
-            results[name] = fn(*args, **kwargs)
-        except Exception as e:  # noqa: BLE001 - nightly job records, never dies silently
-            errors.append(f"{name}: {e}")
-            results[name] = {"error": str(e)}
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except Exception:
+            if attempt == 2: raise
+            time.sleep(2 * (attempt + 1))
 
-    from . import attachments, contextualize, docs_source, eip_source, github_source, llms_source, wp_source
-    from .entropy import score as entropy_score
-    from .indexer import build
-    from .pmi import build as pmi_build
+jql = '(project = BSYS OR project = BTSUP) AND issuetype = Bug AND statusCategory = Done AND resolved >= "2025-10-01"'
+token, pages, new = "", 0, 0
+while True:
+    params = {"jql": jql, "maxResults": 100, "fields": "key,summary,created,resolutiondate,comment,issuetype"}
+    if token:
+        params["nextPageToken"] = token
+    d = get(f"{BASE}/rest/api/3/search/jql?" + urllib.parse.urlencode(params))
+    issues = d.get("issues", [])
+    for i in issues:
+        f = OUT / f"{i['key']}.json"
+        if not f.exists():
+            new += 1
+        f.write_text(json.dumps(i, indent=1))
+    pages += 1
+    token = d.get("nextPageToken", "")
+    if not token or not issues:
+        break
+    time.sleep(0.2)
 
-    try_step("docs", docs_source.sync)
-    try_step("blog", wp_source.sync_blog)
-    try_step("changelog", wp_source.changelog_incremental)
-    try_step("inspiration", wp_source.sync_inspiration)
-    try_step("github", github_source.sync)
-    try_step("eip", eip_source.sync)
-    try_step("claude", llms_source.sync, "claude")
-    try_step("confluence", _confluence_best_effort)
-    try_step("attachments", attachments.sync)
-    try_step("contextualize", contextualize.run, 400)
-    try_step("index", build, with_embeddings=not a.no_embed)
-    try_step("pmi", pmi_build)
-    try_step("entropy", entropy_score)
-
-    # dream-team feedstock: concept graph + memory-entropy report
-    if not wanted or "lateral" in wanted:
-        try:
-            from .lateral import build as lateral_build
-
-            results["lateral"] = lateral_build()
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"lateral: {e}")
-    if not wanted or "memory-entropy" in wanted:
-        try:
-            from .dream_entropy import main as de_main
-
-            de_main()
-            results["memory-entropy"] = "written"
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"memory-entropy: {e}")
-
-    today = dt.date.today().isoformat()
-    report = {"date": today, "results": results, "errors": errors}
-    diff_dir = DATA_ROOT / "diffs"
-    diff_dir.mkdir(parents=True, exist_ok=True)
-    (diff_dir / f"{today}.json").write_text(json.dumps(report, indent=2))
-
-    # science-layer state -> the ops dashboard reads this
+from kb.jira_seeder import extract
+from kb.cases import file_case, _cid
+already = set()
+import sqlite3
+_cdb = sqlite3.connect(str(Path.home() / ".claude/workato-kb/index/cases.db"))
+already = {r[0] for r in _cdb.execute("SELECT case_id FROM cases")}
+_cdb.close()
+filed = 0
+for tf in OUT.glob("*.json"):
     try:
-        from .cases import stats as case_stats
-        from .curiosity import open_questions
-        from .gym_judgment import history as gym_history
-        from .model_routing import stats as routing_stats
-        state = {
-            "updated": dt.datetime.now().isoformat(timespec="seconds"),
-            "cases": case_stats(),
-            "curiosity_open": len(open_questions()),
-            "judgment_gym": gym_history(),
-            "model_routing": routing_stats().get("models", {}),
-        }
-        (DATA_ROOT / "science-state.json").write_text(json.dumps(state, indent=2))
-    except Exception as e:  # noqa: BLE001
-        print(f"[science-state write failed: {e}]", file=__import__("sys").stderr)
-
-    # gossip bus (best effort)
-    try:
-        bus = Path.home() / ".claude/knowledge/dreams/bus"
-        bus.mkdir(parents=True, exist_ok=True)
-        changed_total = sum(
-            r.get("changed", 0) for r in results.values() if isinstance(r, dict)
-        )
-        with (bus / "workato-kb.jsonl").open("a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "ts": dt.datetime.now().isoformat(),
-                        "agent": "workato-kb",
-                        "type": "sync_report",
-                        "summary": f"KB sync {today}: {changed_total} docs changed across {len(results)} sources; errors: {len(errors)}",
-                        "details": {"changed": changed_total, "errors": errors},
-                    }
-                )
-                + "\n"
-            )
-    except Exception:  # noqa: BLE001
-        pass
-
-    print(json.dumps(report, indent=2))
-
-
-def _confluence_best_effort():
-    from . import confluence_sync
-
-    out = {}
-    for space in ("extbt", "intbt"):
-        try:
-            out[space] = confluence_sync.sync_space(space)
-        except SystemExit as e:
-            out[space] = {"skipped": str(e).strip().splitlines()[0]}
-    return out
-
-
-if __name__ == "__main__":
-    main()
+        c = extract(json.loads(tf.read_text()))
+        if not c: continue
+        pres = f"[{c['key']}] {c['presentation']}"
+        if _cid(pres) in already:
+            continue  # already filed — skip re-embedding
+        file_case(presentation=pres, diagnosis=c["diagnosis"],
+                  treatment=c["treatment"], outcome="worked", tags=c["tags"], source=c["source"])
+        filed += 1
+    except Exception:
+        continue
+from kb.cases import stats
+print(f"refreshed: {pages} pages, {new} new tickets, {filed} cases upserted; total {stats()['cases']}")

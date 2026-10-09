@@ -11,9 +11,14 @@
 # Success writes the heartbeat MECHANICALLY (the model's own check-in stays
 # allowed but is no longer the enforcement layer).
 #
-# Usage: run-job.sh <name>
+# Usage: run-job.sh <name> [extra claude args...]
+# Args after <name> are passed through to the claude invocation, so a job's
+# plist can carry dispatch-level flags (e.g. --add-dir for cortex).
 set -u
 NAME="$1"
+shift
+# ${1+...} guard: bash 3.2 + set -u treats empty "$@" as unbound
+PASS_ARGS="${1+"$@"}"
 DIR="$(dirname "$0")"
 JOB="$DIR/jobs/$NAME"
 LOG="$HOME/.local/state/fleet/$NAME.log"
@@ -66,7 +71,7 @@ OUT="$LOG.run"   # per-attempt output capture: the stub test is emptiness
 run_job() {
   if [ "${CLAUDE_JOB:-yes}" = "yes" ]; then
     perl -e 'alarm shift; exec @ARGV' "${TIMEOUT:-1200}" "$CLAUDE_BIN" -p "$(cat "$JOB.prompt")" < /dev/null \
-      ${EXTRA_ARGS:-} > "$OUT" 2>&1
+      ${EXTRA_ARGS:-} ${PASS_ARGS:-} > "$OUT" 2>&1
   else
     perl -e 'alarm shift; exec @ARGV' "${TIMEOUT:-1200}" bash "$JOB.script" >> "$OUT" 2>&1
   fi
