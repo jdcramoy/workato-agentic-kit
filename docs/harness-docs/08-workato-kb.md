@@ -8,7 +8,14 @@ scoping, building, and testing — and the corpus the dreamers dream on.
 
 Built 2026-10-08 for Josh's agentic harness (v0.7.3). Companion skill:
 `workato-kb`; human slash command: `/kb`. Adoption package: the
-the agentic-kit repo carries this code + the harness scripts + skills + authoring rules.
+`workato-agentic-kit` repo carries this code + the harness scripts + skills +
+authoring rules.
+
+**Why this matters, in plain terms.** The agentic tools — AIRO MCP, the CLI, the Dev API — give an agent hands: the ability to build, push, and run things on Workato. But hands without experience means the agent starts every session knowing nothing, re-discovers the platform's traps by breaking things, and claims success without proof. This harness supplies the missing half: a local knowledge base over all Workato documentation, a case base built from the team's own solved bugs, catalogued platform traps that load into every session, and a verification habit that predicts outcomes before acting and checks them against real job traces after. Every lesson learned gets captured and loads into the next session, so the agent arrives smarter each day. Same tools, same model — development compounds instead of resetting.
+
+## What this page covers
+
+The knowledge base architecture (below): nine sources, the RAG++ retrieval stack, the fractal memory layer, the dreaming team's science layer, the five learning modalities, the immune system, the warm access layers, and the measured ROI. The two-minute version for sharing lives in the kit repo: `OVERVIEW.md`.
 
 ## Sources (9, one index)
 
@@ -49,6 +56,18 @@ cards. `kb fractal coverage` audits it (currently 268/268 files, 0 gaps,
 AIRTIGHT). Files stay the source of truth; the factlet store is a
 rebuildable projection (incremental, per-source sha freshness). MRL-style
 funnel: doc-context embeddings as the coarse page layer boost chunk search.
+
+**Why fractal memory matters (the case in numbers):** before it, a question
+paid for a whole file even when one section answered it — 2-10K tokens per
+memory look-up. The fractal ladder answers at the coarsest level that's
+correct (~300-500 tokens) and drills only when a decision needs the detail:
+10-30x less context per memory question, with provenance (the exact evidence
+line) one drill away. The single schema at every scale means one tool set
+serves all of memory — the same zoom works on a transcript line, a knowledge
+file, a claim, or a docs page — and the coverage auditor makes completeness
+a checked fact instead of a hope. Brains organize memory this way (the same
+code recurs at every scale, retrieval zooms by cue); the harness version is
+queryable at any depth instantly, which is where it beats biology.
 
 ## The science layer (the dreaming team)
 
@@ -120,38 +139,3 @@ gym → 07:13 morning brief. Mondays: estate architect + board minutes.
 - [ ] Criticality trend over weeks (the meter is live; the finding needs data)
 - [ ] MCP fast path as the fleet default in every client
 - [ ] Confluence attachments: tables/images OCR when worth it
-
-
-## The five builds (Oct 9, v0.8.0)
-
-- **Chief of staff (`/today`)**: one ranked agenda from every surface — machine heartbeats first (a silent job is the headline), decisions blocking the fleet, calendar, then deep work — with each item PRE-STAGED (draft replies in Josh's voice, first commands ready). The loadout loads context; /today prioritizes the day.
-- **The benchmark** (`kb benchmark`): the "best harness" claim turned into a measurement — same tasks, two arms (harness vs a truly-isolated bare agent via config-dir override), scored accuracy-first (per-task graded checks), turns second, cost third; latency demoted (bare wins it by construction). First scored result: on trivial docs questions the arms TIE on quality and the harness costs ~6x — the honest finding; the differentiating evidence comes from diagnosis/UAT/manifest tasks. Weekly auto-run (Sundays 04:07) feeds a trend ledger.
-- **Learned model routing** (`model_routing.py`): which model's opinions get accepted is MEASURED (via `models:` attribution on every proposal) and future lens assignment routes by acceptance-at-lowest-cost, explore-exploit kept live.
-- **The skill forge** (`skill_forge.py`): the dreamer doesn't propose "there should be a skill" — it drafts the SKILL.md into staging, the forge validates it (description-as-trigger, length, TODOs), and Josh's accept installs it. The loop from idea to working artifact, reviewed.
-- **The typed bus** (`bus_post.py`): finding/opinion/vote schema so corroboration (1 observation / 2 pattern / 3+ act) is arithmetic, not prose-reading.
-
-## The ROI study (the proof the anecdote needed)
-
-All BSYS tickets assigned to Josh, resolved since May (n=142), stratified by
-CREATION era, backlog-hygiene closures (>60d) separated:
-
-| Cohort | n | median created→resolved | same/next-day |
-|---|---|---|---|
-| Pre-harness (May–Aug) | 102 | 12.8 days | 11% |
-| Harness era (Sept+) | 12 | **0.7 days** | **67%** |
-
-18x cycle-time reduction on fresh work; 6x same-day rate; 28 stale backlog
-closures as a bonus. Re-runs monthly from one JQL — the claim is reproducible,
-not anecdotal.
-
-## The five learning modalities (Oct 9, v0.9.0)
-
-The harness so far learned by consolidation only. Five new channels — the other ways brains learn:
-
-- **Case-based reasoning** (`kb cases`): the medical model. Every incident/bug/fix becomes a CASE (presentation → diagnosis → treatment → outcome); at decision time, retrieve similar cases FIRST instead of re-deriving from facts. **Seeded from Josh's closed Jira tickets (BSYS + BTSUP, 2025→: 209 tickets pulled, 28 clinical cases after problem-shape + resolution-evidence filters) + the regression canon + autopsies — years of solved issues as clinical experience.**
-- **Apprenticeship from the estate** (`kb apprentice`): the org's own recipes are a corpus nobody learns from. Pattern-level mining (error-handling idioms, retry patterns, safe-navigation usage — never business logic verbatim, read-only, sanitized) distilled into the KB: the fleet learns what colleagues already know.
-- **The judgment gym** (`kb gym_judgment`): spaced repetition for fleet judgment — past incidents re-presented as drills, answers graded against known outcomes, failed cases resurface sooner; the diagnosis-accuracy curve is the improvement metric.
-- **The curiosity engine** (`kb curiosity`): surprises MINT questions into a standing ledger (why did that prediction deviate? why is this metric anomalous?); the dreamer spends nightly effort on the highest-value open questions; answers bind back as claims. The harness goes from a system that answers to a system that wants to know.
-- **The competence map** (`kb competence`): questions route by measured track record per agent/model/domain — a division of labor that emerges from evidence, not assignment.
-
-All five report into `science-state.json` (read by the ops dashboard) and are gym-invariant-checked (A6: fresh < 36h).
