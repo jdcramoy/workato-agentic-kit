@@ -38,6 +38,36 @@ real workspaces, Jira project, and field IDs by design; they give a new
 teammate a working starting point. Do not publish externally without a
 sanitization pass (untrack config.sh, genericize the org identifiers).
 
+## The Workato KB and the fractal memory system
+
+The kit's knowledge layer has two halves, and together they are the part most
+people end up most excited about.
+
+**The KB (RAG++)** is a local, nightly-synced corpus of everything worth
+knowing about the platform: all Workato product documentation (the docs site
+publishes clean Markdown twins of every page — no scraping), the product
+changelog, the blog, the Enterprise Integration Patterns catalog, the
+architecture-canon repos, the Claude platform docs, and your own team's
+Confluence spaces. A question runs full-text and vector search in parallel,
+fuses the rankings, reranks with a local cross-encoder, then two modulation
+layers (information density and term concentration) push distinctive content
+above boilerplate before a confidence gate decides whether to search again
+harder. Every answer carries its source URL.
+
+**The fractal memory layer** indexes all of it — plus your own knowledge
+tree, every agent SOP, every skill, every project's memory — as one
+self-similar schema at every scale. A question is answered at the coarsest
+depth that works (~300-500 tokens) and drills to the exact evidence only
+when the decision needs it: roughly 10x less context per memory question.
+Completeness is mechanically audited (the coverage check reads AIRTIGHT or
+lists its gaps).
+
+Everything is local and free to run: the models are local, queries cost no
+API spend, and the nightly sync only downloads what changed. The KB's
+readme (`kb-pipeline/README.md`) has the full architecture, the performance
+measurements, and the science layer that trains the fleet's judgment on
+the team's own incident history.
+
 ## Quick start (5 minutes)
 
     git clone https://github.com/Workato-All/workato-agentic-kit.git
