@@ -98,6 +98,11 @@ Work products cluster under their governing project/epic, not loose:
      "not auto-remediated: hotfix class".
 3. **Learn.** Canonize failures, append earned capabilities, note the taste
    signal (what Josh approved or rejected) for the dreamer.
+4. **Comment markup is MARKDOWN, never Jira wiki notation.** Comments post
+   via the Atlassian MCP with contentFormat=markdown: headings are `## Text`
+   / `### Text` (never `h2.` / `h3.` — that renders as literal text), lists
+   use `-`, bold is `**bold**`. h2./h3. notation is Jira SERVER wiki style
+   and is wrong here — it has shipped broken comments (BSYS-28296, 2026-10-09).
 4. **Hand back.** Every comment ends with what's verified, what's pending, and
    the next step. Quiet queue = one line, exit.
 
