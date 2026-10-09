@@ -62,6 +62,31 @@ updating Jira work.
 - Link each Story to its Epic (parent field); attach the milestone comment
   with verified facts only (efficient-airo-delivery's milestone-only rule).
 
+## Status workflow (standing rule, Josh 2026-10-08)
+
+- The moment a dev build is complete AND unit/regression tested, move the
+  ticket to **UAT** — always, without being asked. Do not leave tested work
+  in Backlog or In Progress.
+- The BSYS workflow has no direct Backlog → UAT transition: step through
+  **In Progress** first (transition id 71), then **In UAT** (transition id
+  301). Verify the final status on read-back.
+- Later statuses (Closed after UAT sign-off, Change Review) stay
+  human-gated with Josh; only the dev-tested → UAT move is autonomous.
+
+## Comment markup (standing rule, Josh 2026-10-09)
+
+- ALL comments (milestone, plan, evidence, status) post via the Atlassian
+  MCP with `contentFormat=markdown`, and the CLOUD renderer is standard
+  markdown — Jira SERVER wiki notation renders as literal text.
+- Conversions: `h2.`→`## `, `h3.`→`### `, `h4.`→`#### ` (never `h2.`-style
+  headings), `{{code}}`→`` `code` ``, `[text|url]`→`[text](url)`, wiki
+  `# item` numbered lists→`1.` (a bare `#` line becomes an H1 under
+  markdown). Bold `**bold**`, italic `*italic*`, lists `-`.
+- This defect class shipped broken comments on 6 tickets (BSYS-28296 et al)
+  before the 2026-10-09 repair sweep. If a legacy comment contains wiki
+  notation, fix it in place with `addCommentToJiraIssue` + `commentId`
+  rather than posting a new comment.
+
 ## Writing spirit
 
 - Write with the weight of the work: these tickets document systems meant

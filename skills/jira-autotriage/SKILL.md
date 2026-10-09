@@ -99,11 +99,15 @@ Work products cluster under their governing project/epic, not loose:
 3. **Learn.** Canonize failures, append earned capabilities, note the taste
    signal (what Josh approved or rejected) for the dreamer.
 4. **Comment markup is MARKDOWN, never Jira wiki notation.** Comments post
-   via the Atlassian MCP with contentFormat=markdown: headings are `## Text`
-   / `### Text` (never `h2.` / `h3.` — that renders as literal text), lists
-   use `-`, bold is `**bold**`. h2./h3. notation is Jira SERVER wiki style
-   and is wrong here — it has shipped broken comments (BSYS-28296, 2026-10-09).
-4. **Hand back.** Every comment ends with what's verified, what's pending, and
+   via the Atlassian MCP with contentFormat=markdown, and the CLOUD markdown
+   renderer is standard markdown — Jira SERVER wiki notation renders as
+   literal text. Conversions: `h2.`→`## `, `h3.`→`### `, `h4.`→`#### `,
+   `{{code}}`→`` `code` ``, `[text|url]`→`[text](url)`, wiki `# item`
+   numbered lists→`1.` (a bare `#` line becomes an H1 under markdown!),
+   bold is `**bold**`, italic is `*italic*`. This class shipped broken
+   comments on 6 tickets before the 2026-10-09 sweep (BSYS-28296 et al) —
+   never write `h2.`/`h3.`/`{{...}}`/`[text|url]` again.
+5. **Hand back.** Every comment ends with what's verified, what's pending, and
    the next step. Quiet queue = one line, exit.
 
 ## Triage findings (only AUTHORITY items, one place)
