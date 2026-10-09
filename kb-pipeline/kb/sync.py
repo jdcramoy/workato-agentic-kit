@@ -79,6 +79,23 @@ def main() -> None:
     diff_dir.mkdir(parents=True, exist_ok=True)
     (diff_dir / f"{today}.json").write_text(json.dumps(report, indent=2))
 
+    # science-layer state -> the ops dashboard reads this
+    try:
+        from .cases import stats as case_stats
+        from .curiosity import open_questions
+        from .gym_judgment import history as gym_history
+        from .model_routing import stats as routing_stats
+        state = {
+            "updated": dt.datetime.now().isoformat(timespec="seconds"),
+            "cases": case_stats(),
+            "curiosity_open": len(open_questions()),
+            "judgment_gym": gym_history(),
+            "model_routing": routing_stats().get("models", {}),
+        }
+        (DATA_ROOT / "science-state.json").write_text(json.dumps(state, indent=2))
+    except Exception as e:  # noqa: BLE001
+        print(f"[science-state write failed: {e}]", file=__import__("sys").stderr)
+
     # gossip bus (best effort)
     try:
         bus = Path.home() / ".claude/knowledge/dreams/bus"

@@ -78,7 +78,7 @@ def run_task(task_id: int, arm: str, timeout: int = 600) -> dict:
     except json.JSONDecodeError:
         text = r.stdout[:2000]
     checks = spec.get("checks", {})
-    low = text.lower()
+    low = (text + " " + json.dumps(out) if isinstance(out, dict) else text).lower()
     needs = sum(1 for k in checks.get("needs", []) if k.lower() in low)
     bonus = sum(1 for k in checks.get("bonus", []) if k.lower() in low)
     n_needed = max(len(checks.get("needs", [])), 1)
