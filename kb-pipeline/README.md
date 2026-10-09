@@ -1,3 +1,8 @@
+**Single source of truth:** the pipeline CODE lives in
+github.com/Workato-All/workato-kb — `install.sh` clones it automatically.
+This directory carries the documentation only (this README + INSTALL.md);
+a frozen code copy here drifted from the live one, so it's gone.
+
 # workato-kb
 
 Local RAG++ knowledge base over all Workato documentation and the BT team's

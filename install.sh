@@ -116,6 +116,17 @@ fi
 # --- 3. mods ----------------------------------------------------------------
 mkdir -p "${KIT_HOME}/mods"
 cp -R mods/* "${KIT_HOME}/mods/"
+
+# --- Workato KB (RAG++ pipeline): cloned from its own repo (single source of truth) ---
+KB_HOME="${KIT_HOME}/Documents/workato-kb"
+if [ -d "$KB_HOME/.git" ]; then
+  echo "kb: exists — pulling latest"
+  git -C "$KB_HOME" pull --ff-only || echo "kb: pull skipped (local changes)"
+else
+  echo "kb: cloning the pipeline (github.com/Workato-All/workato-kb)..."
+  git clone --depth 1 "https://github.com/Workato-All/workato-kb.git" "$KB_HOME" \
+    || echo "WARN: kb clone failed — the RAG++ layer won't be available (see kb-pipeline/README.md for manual setup)"
+fi
 # render hardcoded homes inside the hooks
 for f in "${KIT_HOME}/mods/"*/hooks/register.js; do
   sed -i '' "s|{{HOME}}|${KIT_HOME}|g" "$f" 2>/dev/null || \
