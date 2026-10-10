@@ -4,8 +4,9 @@
 Tails the ACTIVE Claude session transcript (~/.claude/projects/*/<uuid>.jsonl,
 appended live every turn) and maintains knowledge/now/josh-now.{json,md} so
 any parallel session/agent starts knowing what Josh is working on RIGHT NOW
-without a handoff file. Mechanical only: zero LLM tokens. Context shifts
-(new ticket, new focus files, gap-then-activity) post one gossip-bus line.
+without a handoff file. Mechanical only: zero LLM tokens. A real focus shift
+(new ticket set or top focus files, min 60 min between posts) posts one
+gossip-bus line; liveness heartbeats stay per-run.
 
 launchd: com.josh.session-shadow, StartInterval 60. Read-only observer:
 never posts to Slack, never acts.
@@ -23,7 +24,7 @@ STATE_PATH = os.path.join(NOW_DIR, 'shadow-state.json')
 BUS_OUT = os.path.expanduser('~/.claude/knowledge/dreams/bus/session-shadow.jsonl')
 HEARTBEAT = os.path.expanduser('~/.claude/knowledge/garden-reports/heartbeat.jsonl')
 STALE_SESSION_SECONDS = 600      # newest file must have been touched in 10 min
-GAP_SHIFT_SECONDS = 1800         # activity after a 30-min gap = a shift
+FOCUS_MIN_INTERVAL = 3600        # min seconds between focus bus posts
 TICKET_RE = re.compile(r'\b((?:BSYS|BTSUP|HROPS|PSM|MCP|AAI|CT)-\d+)\b')
 JOB_RE = re.compile(r'\bj-[A-Za-z0-9]{6,}(-[A-Za-z0-9]{4,})?-CD\b|\bj-[A-Za-z0-9-]{8,}\b')
 
@@ -222,26 +223,29 @@ def main():
     if files:
         state['last_files'] = list(set(files + state.get('last_files', [])))[-8:]
 
-    sig = '|'.join(tickets) + '#' + ','.join(focus_files[:2])
+    # Focus VALUE: ticket set + canonical top-2 of the ACCUMULATED focus-file
+    # set. This-tick `files` churn on every active turn, so the gate must key
+    # on the stable value, not the tick's new activity.
+    focus_top = sorted(state.get('last_files', []))[:2]
+    sig = '|'.join(tickets) + '#' + ','.join(focus_top)
     prev_sig = state.get('topic_sig')
-    prev_ts = state.get('last_ts', 0)
-    try:
-        this_ts = time.mktime(time.strptime(
-            last_ts, '%Y-%m-%dT%H:%M:%S.%fZ')) if last_ts else time.time()
-    except (ValueError, TypeError):
-        this_ts = time.time()
-    gap_shift = prev_ts and (this_ts - prev_ts) > GAP_SHIFT_SECONDS
+    now_t = time.time()
+    interval_ok = (now_t - state.get('last_focus_post_ts', 0)) >= \
+        FOCUS_MIN_INTERVAL
 
-    if sig != prev_sig or gap_shift:
+    # Shift gate: a bus post happens only when the focus VALUE actually
+    # changed AND the min-interval floor elapsed. A change inside a blocked
+    # window is deferred, not dropped (topic_sig stays on the posted value).
+    if sig != prev_sig and interval_ok:
         if prev_sig is not None:  # don't announce the shadow's own bootstrap
             bus_post('focus',
                      f"Josh's focus shifted: tickets {tickets or ['none']} — "
                      f"last said: {last_user[:140]}",
                      {'session': session_id, 'now': 'knowledge/now/josh-now.md'})
-            heartbeat()
+            state['last_focus_post_ts'] = now_t
         state['topic_sig'] = sig
 
-    state['last_ts'] = this_ts or prev_ts
+    heartbeat()  # liveness stays per-run, independent of the focus gate
     save_state(state)
     write_now(session_id, state.get('last_user', ''), state.get('tool_buffer', []),
               tickets, state.get('last_files', [])[:4],
