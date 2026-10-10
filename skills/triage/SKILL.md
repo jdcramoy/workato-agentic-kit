@@ -40,8 +40,13 @@ time, ready to become work).
      evidence for BSYS/BTSUP/other keys — a card may reference more
      than one. `triage-decide.py list` already prints these under
      `Jira:`; copy them through, never drop them.
-   - the finding's own title, proposed work line, and evidence field
-     VERBATIM and UNTRUNCATED (not your paraphrase, not "see evidence")
+   - the finding's own title and evidence anchor (its strongest ref:
+     ticket, job ID, file path, ledger line) verbatim, not your
+     paraphrase. Verbosity dial: full ISSUE/EVIDENCE/PROPOSED WORK text
+     and the Jira URLs go in the CHAT MESSAGE above the question block
+     (that's where they're readable); the AskUserQuestion option labels
+     stay one short line each — never wall-of-text options (Josh
+     2026-10-10: linked and informative, not bloated).
    - for anything touching a live Workato asset: run the blast-radius
      skill and put the radius on the card
    - for anything touching a live Workato asset: run the blast-radius
