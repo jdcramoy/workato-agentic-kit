@@ -140,6 +140,7 @@ def _doc_iter():
         "claude": "claude",
         "confluence-extbt": "confluence/extbt",
         "confluence-intbt": "confluence/intbt",
+        "harness": "harness",  # Josh's knowledge tree + skills (kb.harness_source)
     }
     corpus = DATA_ROOT / "corpus"
     for source, subdir in sources.items():

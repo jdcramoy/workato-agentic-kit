@@ -11,7 +11,7 @@ Built 2026-10-08 for Josh's agentic harness (v0.7.3). Companion skill:
 `workato-agentic-kit` repo carries this code + the harness scripts + skills +
 authoring rules.
 
-## Sources (9, one index)
+## Sources (10, one index)
 
 | Source | What it holds | Sync mechanism |
 |---|---|---|
@@ -24,6 +24,7 @@ authoring rules.
 | `claude` | Claude platform docs (llms.txt Markdown twins) | ETag conditional |
 | `confluence` | BT spaces extbt + intbt — **LOCAL-ONLY: never committed, backed up, or transmitted** | v2 API pagination + content-hash compare |
 | `attachments` | text-bearing Confluence attachments (PDF/Office) → markdown | per-page scan |
+| `harness` | Josh's own curation: knowledge domains/projects/claims + every deployed skill, as `harness://` URIs | `kb/harness_source.py` re-mirrors the live trees each sync (people/ never ingested) |
 
 Data root: `~/.claude/workato-kb/` (gitignored everywhere) — `corpus/`,
 `manifest/*.jsonl`, `index/kb.db` (FTS5 + sqlite-vec + entropy + coarse layers),
@@ -36,8 +37,30 @@ rerank (bge-reranker-base) → **entropy modulation** (information-density
 bits/word lifts distinctive chunks among relevant ones) → **PMI** (query-term
 concentration, log2 P(t|chunk)/P(t|corpus)) → **confidence gate** (Shannon
 entropy of the final-score distribution; weak+flat triggers one expanded
-second round). Chunking is contextual: a deterministic header
+second round) → **`_finalize()`** (doc-level dedupe — one document can never
+fill a whole top-k with duplicate chunks — plus per-source caps,
+`SOURCE_CAPS = {"harness": 2}`: the owner's curation surfaces, never
+monopolizes). Chunking is contextual: a deterministic header
 `[source|section|page|url]` plus a local-LLM situating line per document.
+
+## Graph linkage (Obsidian-visible connectivity)
+
+Three layers, all pipeline steps so nightly syncs can never undo them:
+
+1. `kb/links.py` (sync step `links`) — rewrites website-native links to
+   corpus-resolvable relative `.md` links: `](Page.html)` by stem match,
+   absolute `docs.workato.com` URLs to their md twins. Dead links stay dead
+   (harmless) rather than lying. Also refreshes manifest shas — the indexer
+   compares manifest shas, not live files, so an out-of-band corpus rewrite
+   is invisible to the index until shas refresh (`--refresh-shas` exists for
+   one-time reconciliation).
+2. `kb/bridges.py` — embedding+rerank pass appending an idempotent,
+   marker-delimited "Related (KB bridges)" section to knowledge
+   domains/projects notes and deployed skills, linking each to its top-4
+   corpus neighbors via the normal search stack. Re-runs replace in place.
+3. `obsidian-vault.sh` — one vault of symlinks (knowledge, skills, kb repo,
+   memory, kb-corpus) so the whole brain is browsable and graphable in
+   Obsidian. Keep it local-only; see the header notes in the script.
 
 ## The fractal memory layer
 

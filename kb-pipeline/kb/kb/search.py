@@ -211,6 +211,36 @@ def _distribution_entropy(hits: list[Hit]) -> float:
     return -sum(p * math.log2(p) for p in ps if p > 0)
 
 
+# per-source result caps in the final top-k: the harness source (Josh's own
+# curation) must surface, never monopolize — doc-heavy queries keep their
+# corpus baseline while harness hits still appear.
+SOURCE_CAPS = {"harness": 2}
+
+
+def _finalize(pool: list[Hit], k: int) -> list[Hit]:
+    """Doc-level dedupe + per-source caps over an already-scored pool.
+
+    Keeps the best chunk per document (near-duplicate chunks of one doc were
+    able to fill the whole top-k), enforces SOURCE_CAPS, and never returns
+    fewer than the pool allows.
+    """
+    out: list[Hit] = []
+    seen_urls: set[str] = set()
+    src_counts: dict[str, int] = {}
+    for h in sorted(pool, key=lambda x: getattr(x, "final", x.fused), reverse=True):
+        if h.url in seen_urls:
+            continue
+        cap = SOURCE_CAPS.get(h.source)
+        if cap is not None and src_counts.get(h.source, 0) >= cap:
+            continue
+        seen_urls.add(h.url)
+        src_counts[h.source] = src_counts.get(h.source, 0) + 1
+        out.append(h)
+        if len(out) == k:
+            break
+    return out
+
+
 def search(
     query: str, k: int = 8, source: str | None = None, section: str | None = None,
     rerank: bool = True, use_entropy: bool = True, use_pmi: bool = True,
@@ -223,13 +253,16 @@ def search(
         bm25_hits = _bm25(db, expanded, k * 5, source, section)
         vec_hits = _vec(db, expanded, k * 5, source, section)
         fused = _rrf_fuse(bm25_hits, vec_hits)
-        ranked = sorted(fused.values(), key=lambda h: h.fused, reverse=True)[: k * 2]
+        # k*4 pool: _finalize dedupes chunks to docs + enforces source caps, so a
+        # wider pool is needed to still fill k unique results (was k*2, thin after dedupe)
+        ranked = sorted(fused.values(), key=lambda h: h.fused, reverse=True)[: k * 4]
 
         if not rerank:
-            return ranked[:k], meta
+            return _finalize(ranked, k), meta
 
         _hydrate_entropy(db, ranked)
-        hits = _rerank(query, ranked, k, use_entropy, use_pmi)
+        hits = _rerank(query, ranked, len(ranked), use_entropy, use_pmi)
+        hits = _finalize(hits, k)
         meta["confidence_bits"] = round(_distribution_entropy(hits), 3)
 
         # --- retrieval-distribution entropy gate: uncertain (flat distribution AND
@@ -250,7 +283,7 @@ def search(
             if extra:
                 _hydrate_entropy(db, extra)
                 more = _rerank(second_query, extra[: k * 2], k // 2, use_entropy, use_pmi)
-                hits = sorted(hits + more, key=lambda h: h.final, reverse=True)[:k]
+                hits = _finalize(hits + more, k)
                 meta["confidence_bits"] = round(_distribution_entropy(hits), 3)
                 meta["second_query"] = second_query
         return hits, meta
