@@ -27,7 +27,7 @@ from atomic_io import atomic_append
 HERE = os.path.dirname(os.path.abspath(__file__))
 SNAP_DIR = os.path.expanduser('~/.claude/knowledge/garden-reports/docs-watch')
 DELTA_LOG = os.path.expanduser('~/.claude/knowledge/garden-reports/platform-delta.jsonl')
-UA = {'User-Agent': 'workato-docs-watch/1.0 (gardener; contact: joshcramoy@workato.com)'}
+UA = {'User-Agent': 'workato-docs-watch/1.0 (knowledge gardener)'}
 
 HTML_TAG = re.compile(r'<[^>]+>')
 WS = re.compile(r'\s+')
