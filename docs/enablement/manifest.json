@@ -1,0 +1,54 @@
+{
+  "space_key": "BTI",
+  "space_name": "[External] BT-Business Technology",
+  "parent_page_id": "2942992465",
+  "parent_page_title": "Builder Enablement",
+  "parent_of_parent_page_id": "2553184311",
+  "status": "DRAFT - all pages created as unpublished Confluence drafts 2026-10-10, pending Josh review before publish (BSYS-25529 Phase A)",
+  "last_synced_commit": null,
+  "sync_schedule": "weekly session-cron, Tuesdays 06:57, carries this folder after Josh approves the pages",
+  "policy": {
+    "updates_to_existing_pages": "autonomous (sanitized content only, read-back required)",
+    "new_pages_or_reparenting": "needs Josh approval first",
+    "sanitizer": "no workspace IDs, cloudIds, real recipe/folder/job IDs, tokens, or keychain specifics in published content"
+  },
+  "phase_b_gates": {
+    "dependency": "BSYS-25526 platform procurement/configuration",
+    "unblocks": [
+      "onboarding guide per approved platform",
+      "starter templates per platform (docs/enablement/templates/<platform>/)",
+      "replacing 'approved platform' placeholder nodes in the decision tree with real tier-to-platform names"
+    ]
+  },
+  "pages": [
+    {
+      "file": "00-builder-enablement.md",
+      "page_id": "2942992465",
+      "title": "Builder Enablement",
+      "confluence_status": "draft",
+      "draft_url": "https://workato.atlassian.net/wiki/pages/resumedraft.action?draftId=2942992465&draftShareId=adb97a3e-5c24-454e-b5db-72918dfeb8f5"
+    },
+    {
+      "file": "01-tier-sdlc-quick-reference.md",
+      "page_id": "2943254533",
+      "title": "Tier and SDLC Quick Reference",
+      "confluence_status": "draft",
+      "draft_url": "https://workato.atlassian.net/wiki/pages/resumedraft.action?draftId=2943254533&draftShareId=04aee585-62db-4e32-a766-fc746ddb6106"
+    },
+    {
+      "file": "02-platform-decision-tree.md",
+      "page_id": "2942632094",
+      "title": "Platform Decision Tree",
+      "confluence_status": "draft",
+      "draft_url": "https://workato.atlassian.net/wiki/pages/resumedraft.action?draftId=2942632094&draftShareId=455de856-c376-4bf3-99d1-7b8081c86c96",
+      "note": "mermaid stored as code macro on Confluence; source .mmd verified rendered at /tmp/bsys25529-decision-tree.png; swap to a mermaid macro or embed rendered SVG at publish time"
+    },
+    {
+      "file": "03-faq.md",
+      "page_id": "2942894180",
+      "title": "Builder Enablement FAQ",
+      "confluence_status": "draft",
+      "draft_url": "https://workato.atlassian.net/wiki/pages/resumedraft.action?draftId=2942894180&draftShareId=889481ed-f39e-4c30-8e54-36e08a12b7ab"
+    }
+  ]
+}
