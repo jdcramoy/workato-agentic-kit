@@ -295,8 +295,11 @@ async function ledgerChurn($, recipeId) {
 
 export function register(on) {
   // Session state: standards text, prod-write counters, /guardrails command.
+  // prodWrites is THIS SESSION ONLY (register runs per session; never seeded
+  // from the store). lifetimeWrites persists across sessions via the store.
   let standards = null
   let prodWrites = 0
+  let lifetimeWrites = 0
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -336,7 +339,7 @@ export function register(on) {
       standards = null
     }
     const saved = await $.store.get('prodWrites')
-    if (typeof saved === 'number') prodWrites = saved
+    if (typeof saved === 'number') lifetimeWrites = saved
     return next(e)
   })
 
@@ -346,7 +349,8 @@ export function register(on) {
       text:
         'workato-guardrails v0.7.0 active hooks:\n' +
         '1. secret redaction on tool results (outermost)\n' +
-        '2. prod-write audit → ' + AUDIT_FILE + ' (this session: ' + prodWrites + ')\n' +
+        '2. prod-write audit → ' + AUDIT_FILE + ' (this session: ' + prodWrites +
+          ' · all time: ' + lifetimeWrites + ')\n' +
         '3. Jira story-points gate (customfield_10057; BTSUP/HROPS/PSM/MCP exempt)\n' +
         '4. Workato asset URL linker (AIRO + dependency-tracker results)\n' +
         '5. jira-story-standards prompt injection (' +
@@ -381,7 +385,8 @@ export function register(on) {
   on('tool.call', { tool: /^mcp__workato-airo-mcp-prod__/ }, async ($, e, next) => {
     if (PROD_WRITE.test(e.tool)) {
       prodWrites += 1
-      await $.store.set('prodWrites', prodWrites)
+      lifetimeWrites += 1
+      await $.store.set('prodWrites', lifetimeWrites)
       const stamp = new Date().toISOString()
       const line = stamp + ' PROD-WRITE ' + e.tool + '\n'
       // Append via shell: $.fs.write overwrites, and the audit log must grow.
@@ -747,7 +752,8 @@ export function register(on) {
           }
         }
         prodWrites += 1
-        await $.store.set('prodWrites', prodWrites)
+        lifetimeWrites += 1
+        await $.store.set('prodWrites', lifetimeWrites)
         await $.process.run(['sh', '-c', 'mkdir -p ' + AUDIT_DIR + ' && cat >> ' + AUDIT_FILE], {
           stdin: new Date().toISOString() + ' PROD-WRITE(' + surface + ') ' + cmd.slice(0, 200) + '\n',
         })
@@ -1094,7 +1100,7 @@ export function register(on) {
     const label =
       (bypass ? '⚠️ PROD BYPASS ACTIVE · ' : '') +
       '🛡 guardrails · prod writes this session: ' + prodWrites +
-      ' · /guardrails for status'
+      ' · all time: ' + lifetimeWrites + ' · /guardrails for status'
     return Box({
       flexDirection: 'row',
       columnGap: 2,

@@ -37,7 +37,11 @@ rsync -a --delete --max-size='50M' \
   "$CLAUDE/agents/"     "$REPO/harness/agents/"
 rsync -a --delete --max-size='50M' \
   --exclude '.git' --exclude '__pycache__' --exclude 'usage-ledger.jsonl' \
+  --exclude 'people' \
   "$CLAUDE/knowledge/"  "$REPO/harness/knowledge/"
+# people/ = employee personnel files (names, titles, org data, comms-style
+# notes). PII: local-only, CONFIRMED by Josh 2026-10-09 — never syncs to the
+# org GitHub repo (conversational leak risk). Do not remove this exclude.
 # Recipe snapshot history: the rollback payload for every pushed recipe.
 # Its own git history is per-snapshot commits and does not travel; the
 # snapshot files are the asset.
