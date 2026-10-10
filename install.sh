@@ -8,15 +8,169 @@
 # You must ALSO connect these MCP servers in Claude Code before anything
 # Workato-facing works: your AIRO MCP (dev + prod), the dependency tracker,
 # and Atlassian. See README.md.
+#
+# Failure behavior: every run logs to ./install-logs/install-<timestamp>.log.
+# A non-zero exit prints which step failed, what completed, what did not, and
+# the log path. The installer is idempotent — fix the cause and re-run; file
+# copies are safe to repeat and there is no automatic rollback (none needed).
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
+# --- logging: capture every step's output to a timestamped log ---------------
+# Everything the installer prints (stdout + stderr) is tee'd to the log, so a
+# failed run can be triaged after the fact. The path is echoed up front and
+# again on any failure.
+LOG_DIR="$(pwd)/install-logs"
+mkdir -p "$LOG_DIR"
+LOG="${LOG_DIR}/install-$(date +%Y%m%d-%H%M%S).log"
+# tee in process substitution: output still lands on the user's terminal
+exec > >(tee -a "$LOG" 2>&1)
+echo "install log: $LOG"
+
+# --- step tracking, degraded-items list, temp cleanup, failure trap ----------
+# STEPS is the ordered install pipeline. CURRENT_STEP is the one in flight.
+# COMPLETED accumulates finished steps; DEGRADED accumulates non-fatal
+# failures (installed-but-partial) that get a fix-it summary at the end.
+STEPS=(prereqs config agents knowledge+dreams mods+kb skills cli-tools)
+CURRENT_STEP="startup"
+COMPLETED=()
+DEGRADED=()
+TMPFILES=()
+
+begin_step() { # begin_step <name> — move to the next pipeline step
+  CURRENT_STEP="$1"
+  echo
+  echo "== step: $1 =="
+}
+
+finish_step() { # finish_step <name> — mark it completed
+  COMPLETED+=("$1")
+}
+
+degraded() { # degraded <description including the exact fix command>
+  echo "  DEGRADED: $1"
+  DEGRADED+=("$1")
+}
+
+fail_step() { # fail_step <message> — fatal; the EXIT trap adds context
+  echo "FAIL: $1"
+  exit 1
+}
+
+cleanup_tmp() { # remove any temp files this run created (never returns nonzero:
+               # a 1 here would trip set -e inside the EXIT trap)
+  local t
+  [ "${#TMPFILES[@]}" -gt 0 ] || return 0
+  for t in "${TMPFILES[@]}"; do
+    if [ -n "$t" ] && [ -e "$t" ]; then rm -f "$t"; fi
+  done
+  return 0
+}
+
+on_exit() { # single place that reports a failed run
+  local rc=$?
+  cleanup_tmp
+  [ "$rc" -eq 0 ] && return
+  local not_done="" seen=0 s
+  for s in "${STEPS[@]}"; do
+    [ "$s" = "$CURRENT_STEP" ] && seen=1
+    [ "$seen" = 1 ] && not_done="$not_done $s"
+  done
+  echo
+  echo "INSTALL FAILED (exit $rc) at step: $CURRENT_STEP"
+  if [ "${#COMPLETED[@]}" -gt 0 ]; then
+    echo "  completed before failure:${COMPLETED[*]/#/ }"
+  else
+    echo "  completed before failure: none"
+  fi
+  echo "  not completed:$not_done"
+  echo "  file copies already made are idempotent — no rollback was attempted and"
+  echo "  none is needed; re-running ./install.sh repeats or skips them safely."
+  if [ "${#DEGRADED[@]}" -gt 0 ]; then
+    echo "  degraded items from this run (fix these too):"
+    local d
+    for d in "${DEGRADED[@]}"; do echo "    - $d"; done
+  fi
+  echo "  Full output: $LOG"
+  echo "  Resume: fix the cause above, then re-run ./install.sh (safe to re-run)."
+}
+trap on_exit EXIT
+trap 'echo "install.sh: command failed at line $LINENO (step: $CURRENT_STEP)" >&2' ERR
+
+# --- retries + error classification for network-shaped steps -----------------
+classify_failure() { # classify_failure <desc> <rc> <output-file>
+  local desc="$1" rc="$2" out="$3" hint
+  if grep -qiE 'could not resolve host|connection (timed out|refused)|failed to connect|network|SSL|curl: \([0-9]+\)' "$out" 2>/dev/null; then
+    hint="network — check your connection/proxy/VPN and try again"
+  elif grep -qiE 'permission denied|EACCES' "$out" 2>/dev/null; then
+    hint="permissions — check ownership of the target directory"
+  elif grep -qiE 'authentication|401|403|invalid credentials' "$out" 2>/dev/null; then
+    hint="auth — a token or credential is missing/rejected"
+  elif grep -qiE 'command not found|not a git repository' "$out" 2>/dev/null; then
+    hint="tool/version — a required command is missing or too old"
+  else
+    hint="unclassified — the full output above is in the log"
+  fi
+  echo "FAIL: $desc (exit $rc) — $hint"
+}
+
+with_retry() { # with_retry <desc> <attempts> <cmd...> — bounded retries with
+               # short sleeps; classifies the failure after exhaustion
+  local desc="$1" attempts="$2"; shift 2
+  local i rc=0
+  local out; out="$(mktemp -t kitretry)"; TMPFILES+=("$out")
+  for i in $(seq 1 "$attempts"); do
+    echo "  attempt $i/$attempts: $desc"
+    if "$@" >"$out" 2>&1; then
+      cat "$out"
+      rm -f "$out"
+      return 0
+    else
+      # capture INSIDE the else: after `fi`, $? is the if-statement's status (0)
+      rc=$?
+    fi
+    cat "$out"
+    if [ "$i" -lt "$attempts" ]; then
+      echo "  retrying in 3s..."
+      sleep 3
+    fi
+  done
+  classify_failure "$desc" "$rc" "$out"
+  rm -f "$out"
+  return "$rc"
+}
+
+run_fixed() { eval "$1"; }  # lets with_retry wrap a command string
+
+with_retry_stream() { # with_retry_stream <desc> <attempts> <cmd...> — same
+                      # bounded retries, but output streams live (needed for
+                      # interactive fixers like the Homebrew installer that
+                      # prompt for a password; no capture, so no classify)
+  local desc="$1" attempts="$2"; shift 2
+  local i rc=0
+  for i in $(seq 1 "$attempts"); do
+    echo "  attempt $i/$attempts: $desc"
+    if "$@"; then
+      return 0
+    else
+      rc=$?
+    fi
+    if [ "$i" -lt "$attempts" ]; then
+      echo "  retrying in 3s..."
+      sleep 3
+    fi
+  done
+  echo "FAIL: $desc (exit $rc) — see the output above; full log: $LOG"
+  return "$rc"
+}
+
 echo "== agentic-workato-kit installer =="
 
-# --- prerequisites: check, offer to fix, re-verify -------------------------
+# --- step: prereqs — check, offer to fix, re-verify --------------------------
 # Interactive: offers the one-command fix and re-checks. Headless: fail-fast
-# with the exact fix command printed (no prompting into a pipe).
+# with the exact fix command printed (no prompting into a pipe). The fix
+# command itself gets bounded retries so a flaky network does not kill the run.
 
 INTERACTIVE="[ -t 0 ]"
 
@@ -26,12 +180,15 @@ fix_or_fail() {  # $1 what, $2 fix command
     read -r reply
     if [[ ! "$reply" =~ ^[Nn] ]]; then
       echo "  running: $2"
-      eval "$2" || { echo "FAIL: the fix command errored — fix '$1' manually and re-run ./install.sh"; exit 1; }
+      if ! with_retry_stream "fix: $1" 3 run_fixed "$2"; then
+        fail_step "the fix command for '$1' failed after retries — run it yourself ('${2}') and re-run ./install.sh"
+      fi
     else
-      echo "FAIL: $1 is required. Install it, then re-run ./install.sh"; exit 1
+      fail_step "$1 is required. Install it ('${2}'), then re-run ./install.sh"
     fi
   else
-    echo "FAIL: $1 missing/outdated (headless mode — run this yourself, then re-run): $2"
+    echo "FAIL: $1 missing/outdated (headless mode — run this yourself, then re-run ./install.sh):"
+    echo "  ${2}"
     exit 1
   fi
 }
@@ -41,6 +198,8 @@ ensure() {  # $1 binary, $2 fix command
   command -v "$1" >/dev/null || { echo "FAIL: $1 still not on PATH after the fix (PATH may need: export PATH=...); re-run ./install.sh"; exit 1; }
   echo "  ok: $1 ($($1 --version 2>/dev/null | head -1 | head -c 60))"
 }
+
+begin_step prereqs
 
 # brew is the fix engine for everything below it
 if ! command -v brew >/dev/null; then
@@ -59,7 +218,9 @@ echo "Claude Code: ${CC_VERSION}"
 python3 -c "import sys; v=tuple(int(x) for x in '$CC_VERSION'.split('.')); sys.exit(0 if v >= (2,1,287) else 1)" \
   && echo "mod support: OK" || fix_or_fail "Claude Code >= 2.1.287 (mods need it)" "claude update"
 
-# --- config ----------------------------------------------------------------
+finish_step prereqs
+
+# --- step: config ------------------------------------------------------------
 if [ ! -f config.sh ]; then
   if [ -t 0 ]; then
     echo "No config.sh found — starting onboarding (answer ~14 questions, get config.sh):"
@@ -72,6 +233,8 @@ if [ ! -f config.sh ]; then
   fi
 fi
 source config.sh
+# KIT_HOME guard: a hand-written config.sh may have dropped the default
+: "${KIT_HOME:=${HOME}}"
 # placeholder guard: empty workspace IDs produce agents that point at nothing
 if [ -z "${WORKSPACE_DEV:-}" ]; then
   echo "WARNING: WORKSPACE_DEV is empty — agents will reference blank workspace IDs."
@@ -81,10 +244,15 @@ if [ "${WORKSPACE_DEV:-}" = "3535597" ] || [ "${WORKSPACE_PROD:-}" = "3535597" ]
   echo "NOTE: workspace 3535597 is the kit author's dev workspace; make sure that is intended."
 fi
 
+finish_step config
+
 render() {
   # render <src> <dest>: token substitution via python (config values may
-  # contain |, /, [] — sed delimiters are not safe here)
-  python3 - "$1" "$2" << 'PYEOF'
+  # contain |, /, [] — sed delimiters are not safe here).
+  # FATAL on failure: a silently missing or truncated render corrupts the
+  # install, so a bad template, missing file, or unwritable dest stops the run.
+  local src="$1" dest="$2"
+  if ! python3 - "$src" "$dest" << 'PYEOF'
 import sys, os
 src, dest = sys.argv[1], sys.argv[2]
 text = open(src).read()
@@ -112,26 +280,37 @@ for k, v in repl.items():
 os.makedirs(os.path.dirname(dest) or '.', exist_ok=True)
 open(dest, 'w').write(text)
 PYEOF
+  then
+    fail_step "render failed: template '${src}' -> destination '${dest}'. A bad template, a missing file, or an unwritable destination corrupts the install — fix the cause (the python error is above) and re-run ./install.sh"
+  fi
 }
 
-# --- 1. agents -------------------------------------------------------------
+# --- step: agents ------------------------------------------------------------
+begin_step agents
 mkdir -p "${KIT_HOME}/.claude/agents"
 for a in agents/*.md; do
+  [ -f "$a" ] || continue  # no-match glob under set -u must not render a literal path
   render "$a" "${KIT_HOME}/.claude/agents/$(basename "$a")"
   echo "agent installed: $(basename "$a" .md)"
 done
+finish_step agents
 
-# --- 2. knowledge tree + scripts -------------------------------------------
+# --- step: knowledge + dreams -------------------------------------------------
+begin_step knowledge+dreams
 K="${KIT_HOME}/.claude/knowledge"
 mkdir -p "${K}/domains" "${K}/projects" "${K}/scripts" "${K}/claims" \
          "${K}/garden-reports" "${K}/architecture" "${K}/replay-fixtures"
-for f in knowledge/scripts/*; do render "$f" "${K}/scripts/$(basename "$f")"; done
-chmod +x "${K}/scripts/"*.py 2>/dev/null || true
-[ -f "${K}/claims/claims.jsonl" ] || echo '[]' > /dev/null # claims seeded empty
+for f in knowledge/scripts/*; do
+  [ -f "$f" ] || continue  # skip dirs (e.g. __pycache__) and no-match literals
+  render "$f" "${K}/scripts/$(basename "$f")"
+done
+if ! chmod +x "${K}/scripts/"*.py 2>/dev/null; then
+  degraded "knowledge scripts not marked executable (permissions?) — fix: chmod +x ${K}/scripts/*.py"
+fi
 touch "${K}/claims/claims.jsonl"
 [ -f "${K}/INDEX.md" ] || render "knowledge/INDEX.template.md" "${K}/INDEX.md"
 
-# --- 2b. dreams scaffold (dreamer + gossip bus) ------------------------------
+# dreams scaffold (dreamer + gossip bus)
 D="${K}/dreams"
 mkdir -p "${D}/bus" "${D}/proposals" "${D}/data" "${D}/visions"
 mkdir -p "${KIT_HOME}/.claude/knowledge/cortex" "${KIT_HOME}/.claude/knowledge/regression-canon"
@@ -148,54 +327,83 @@ if [ ! -d "${K}/.git" ]; then
   git -C "${K}" add -A
   git -C "${K}" -c user.name="agentic-workato-kit" -c user.email="kit@local" commit -q -m "Knowledge tree scaffold" --allow-empty
 fi
+finish_step knowledge+dreams
 
-# --- 3. mods ----------------------------------------------------------------
+# --- step: mods + kb ----------------------------------------------------------
+begin_step mods+kb
 mkdir -p "${KIT_HOME}/mods"
-cp -R mods/* "${KIT_HOME}/mods/"
+if ! cp -R mods/* "${KIT_HOME}/mods/"; then
+  fail_step "mod source copy failed: mods/* -> ${KIT_HOME}/mods/ (check the cp error above and directory permissions)"
+fi
 
-# --- Workato KB (RAG++ pipeline): local snapshot first, else clone ---
+# Workato KB (RAG++ pipeline): local snapshot first, else clone
 # A zip distribution ships a code snapshot in kb-pipeline/kb (offline install);
 # a git clone of the kit carries no copy — the installer pulls from the repo
-# (single source of truth for git users).
+# (single source of truth for git users). Both network paths get retries.
 KB_HOME="${KIT_HOME}/Documents/workato-kb"
 if [ -d "$KB_HOME/.git" ]; then
   echo "kb: exists — pulling latest"
-  git -C "$KB_HOME" pull --ff-only || echo "kb: pull skipped (local changes)"
+  if ! with_retry "kb pull (git -C $KB_HOME pull --ff-only)" 3 git -C "$KB_HOME" pull --ff-only; then
+    degraded "kb pull failed — the KB may be stale. Fix: git -C $KB_HOME stash && git -C $KB_HOME pull --ff-only (or investigate local changes)"
+  fi
 elif [ -d kb-pipeline/kb ]; then
   echo "kb: using the snapshot bundled in this zip (kb-pipeline/kb)"
   mkdir -p "${KIT_HOME}/Documents"
-  cp -R kb-pipeline/kb "$KB_HOME"
-  echo "kb: note — snapshot may lag the live repo; update later with: git -C $KB_HOME pull (needs GitHub access)"
+  if ! cp -R kb-pipeline/kb "$KB_HOME"; then
+    degraded "kb snapshot copy failed — manual fix: cp -R kb-pipeline/kb $KB_HOME"
+  else
+    echo "kb: note — snapshot may lag the live repo; update later with: git -C $KB_HOME pull (needs GitHub access)"
+  fi
 else
   echo "kb: cloning the pipeline (github.com/Workato-All/workato-kb)..."
-  git clone --depth 1 "https://github.com/Workato-All/workato-kb.git" "$KB_HOME" \
-    || echo "WARN: kb clone failed — the RAG++ layer won't be available (see kb-pipeline/README.md for manual setup)"
+  if ! with_retry "kb clone" 3 git clone --depth 1 "https://github.com/Workato-All/workato-kb.git" "$KB_HOME"; then
+    degraded "kb clone failed after retries — the RAG++ layer will be unavailable. Fix: git clone --depth 1 https://github.com/Workato-All/workato-kb.git $KB_HOME (or see kb-pipeline/README.md for manual setup)"
+  fi
 fi
+
 # render hardcoded homes inside the hooks
 for f in "${KIT_HOME}/mods/"*/hooks/register.js; do
+  [ -e "$f" ] || continue
   sed -i '' "s|{{HOME}}|${KIT_HOME}|g" "$f" 2>/dev/null || \
-  sed -i "s|{{HOME}}|${KIT_HOME}|g" "$f"
+  sed -i "s|{{HOME}}|${KIT_HOME}|g" "$f" || \
+    degraded "hook sed failed for $f — '{{HOME}}' will be unresolved. Fix: sed -i '' 's|{{HOME}}|${KIT_HOME}|g' $f"
 done
 for m in workato-guardrails brain-guard; do
   if [ "${KIT_SKIP_INSTALL:-0}" = "1" ]; then
     echo "mod: ${m} (KIT_SKIP_INSTALL=1 — skipped claude plugin install)"
   else
-    claude plugin marketplace add "${KIT_HOME}/mods" >/dev/null 2>&1 || true
-    claude plugin install "${m}@josh-mods" >/dev/null 2>&1 && echo "mod installed: ${m}" || \
-      echo "mod: ${m} — run: claude plugin install ${m}@josh-mods"
+    MOD_OUT="$(mktemp -t kitmod)"; TMPFILES+=("$MOD_OUT")
+    if ! claude plugin marketplace add "${KIT_HOME}/mods" >"$MOD_OUT" 2>&1; then
+      cat "$MOD_OUT"
+      degraded "plugin marketplace add failed — mods may not register. Fix: claude plugin marketplace add ${KIT_HOME}/mods"
+    fi
+    MOD_OUT="$(mktemp -t kitmod)"; TMPFILES+=("$MOD_OUT")
+    if claude plugin install "${m}@josh-mods" >"$MOD_OUT" 2>&1; then
+      echo "mod installed: ${m}"
+    else
+      cat "$MOD_OUT"
+      degraded "mod ${m} not installed (claude CLI error above) — fix: claude plugin install ${m}@josh-mods, then /reload-plugins"
+    fi
   fi
 done
+finish_step mods+kb
 
-# --- 4. skills (playbooks + conventions) ------------------------------------
+# --- step: skills (playbooks + conventions) ----------------------------------
+begin_step skills
 mkdir -p "${KIT_HOME}/.claude/skills"
-# render skill files too (they reference home paths)
-find skills -type f \( -name "*.md" -o -name "*.yaml" \) | while read -r f; do
+# render skill files too (they reference home paths). Process substitution
+# keeps the loop in the main shell so a render failure is loud and fatal.
+[ -d skills ] || fail_step "skills/ directory missing from the kit checkout — the kit is incomplete; re-clone or re-unzip"
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
   dest="${KIT_HOME}/.claude/skills/${f#skills/}"
   render "$f" "$dest"
-done
+done < <(find skills -type f \( -name "*.md" -o -name "*.yaml" \))
 echo "skills installed: airo-mcp-playbook, workato-development-playbook, jira-story-standards"
+finish_step skills
 
-# --- 4b. wt — Workato Toolbox (Developer API wrapper) ------------------------
+# --- step: cli tools (wt, prod wrappers, brain MCP) ---------------------------
+begin_step cli-tools
 mkdir -p "${KIT_HOME}/.local/bin"
 cp bin/wt "${KIT_HOME}/.local/bin/wt"
 chmod +x "${KIT_HOME}/.local/bin/wt"
@@ -210,33 +418,44 @@ case ":$PATH:" in
 esac
 echo "wt auth: set WORKATO_API_TOKEN or store a token via workato-platform-cli (keychain)."
 
-# --- 4c. brain MCP server (read-only knowledge access for any agent) ---------
+# brain MCP server (read-only knowledge access for any agent)
 cp bin/brain-mcp "${KIT_HOME}/.local/bin/brain-mcp"
 chmod +x "${KIT_HOME}/.local/bin/brain-mcp"
 if [ "${KIT_SKIP_INSTALL:-0}" != "1" ]; then
-  claude mcp add brain --scope user -- "${KIT_HOME}/.local/bin/brain-mcp" >/dev/null 2>&1 \
-    && echo "mcp registered: brain (read-only)" || echo "mcp: brain — register later with: claude mcp add brain -- ~/.local/bin/brain-mcp"
+  MCP_OUT="$(mktemp -t kitmcp)"; TMPFILES+=("$MCP_OUT")
+  if claude mcp add brain --scope user -- "${KIT_HOME}/.local/bin/brain-mcp" >"$MCP_OUT" 2>&1; then
+    echo "mcp registered: brain (read-only)"
+  else
+    cat "$MCP_OUT"
+    degraded "mcp brain not registered (claude CLI error above) — fix: claude mcp add brain --scope user -- ${KIT_HOME}/.local/bin/brain-mcp"
+  fi
+fi
+finish_step cli-tools
+
+# --- step: done ---------------------------------------------------------------
+if [ "${#DEGRADED[@]}" -gt 0 ]; then
+  echo
+  echo "== installed with ${#DEGRADED[@]} degraded item(s) — NOT everything is working =="
+  echo "Fix each item (the exact command is in the list), then re-run ./install.sh"
+  echo "to retry just what is missing. Full output: $LOG"
+  for d in "${DEGRADED[@]}"; do echo "  - $d"; done
+else
+  echo
+  echo "== installed clean. Log: $LOG =="
 fi
 
-# --- 5. done -----------------------------------------------------------------
-cat << 'NEXT'
+cat << NEXT
 
-== Installed. Next steps (manual, one-time): ==
-1. Connect MCP servers in Claude Code: AIRO MCP (dev + prod), dependency
-   tracker, Atlassian. The kit cannot do this — it needs YOUR accounts.
-2. /reload-plugins (or restart) so the mods load.
-3. Fill config.sh if you skipped it, re-run ./install.sh, restart again.
-4. Run ./verify.sh — 32 checks; fix any FAIL it reports.
-5. Smoke test: /guardrails (lists the hooks), /builds (ledger, starts empty),
-   then ask for a "watchdog run" for your workspaces.
-Schedules (docs-watch 22:31 + launchd 22:15, brain gardener 22:43, watchdog
-23:13, harness backup 23:33, harness dreamer 23:43, corpus Mon 06:07, estate
-architect Mon 06:37) are per-project cron tasks — create them from your
-default work project; the prompts live in schedules/ in this kit. The
-nightly order matters: docs-watch feeds the gossip bus first, the dreamer
-runs last as reader-in-chief.
-5. Prod CLI access: store the prod API token in the keychain
+== Installed. Next steps: ==
+1. Run ./getting-started.sh — the guided walkthrough (connect MCP servers,
+   /reload-plugins, fill config.sh if you skipped it, verify, smoke tests).
+2. Prod CLI access: store the prod API token in the keychain
    (security add-generic-password -s workato-platform-cli -a ${PROFILE_PROD:-josh-prod}
    -w <token> -U), then workato-prod / wt-prod target production; every prod
    write is held for confirmation by guardrails hook 13.
+3. Schedules (docs-watch 22:31 + launchd 22:15, brain gardener 22:43, watchdog
+   23:13, harness backup 23:33, harness dreamer 23:43, corpus Mon 06:07, estate
+   architect Mon 06:37) are per-project cron tasks — create them from your
+   default work project; the prompts live in schedules/. Nightly order matters:
+   docs-watch feeds the gossip bus first, the dreamer runs last.
 NEXT

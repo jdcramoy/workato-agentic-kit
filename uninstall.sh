@@ -15,7 +15,7 @@ PURGE=0
 
 KIT_AGENTS="brain-gardener workato-watchdog estate-architect promotion-orchestrator harness-dreamer cortex"
 KIT_SKILLS="airo-mcp-playbook workato-development-playbook jira-story-standards squad-build platform-onboarding harness-dreamer"
-KIT_BINS="wt-prod workato-prod brain-mcp dream-mini harness-backup"
+KIT_BINS="wt-prod workato-prod prod-bypass brain-mcp dream-mini harness-backup"
 # wt is kit-installed but may be customized; remove only the kit's copy
 KIT_LANES="com.josh.dream-mini com.josh.workato-docs-watch"
 
@@ -110,4 +110,6 @@ echo
 echo "== done =="
 echo "Left in place: keychain tokens, shell profile env vars, Claude Code itself,"
 echo "and the kit checkout ($(pwd)). Delete those by hand if you want them gone."
+echo "Install run logs live in $(pwd)/install-logs/ — delete the folder if you"
+echo "want the triage logs gone too."
 [ "$PURGE" = "0" ] && echo "Reinstall any time: ./onboard.sh && ./install.sh && ./verify.sh"

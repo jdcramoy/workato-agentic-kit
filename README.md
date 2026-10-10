@@ -429,6 +429,33 @@ the exact prompts.
    `python3 ~/.claude/knowledge/scripts/dream-config.py set-mode propose`
    (and later `auto-safe`). `auto-dev` is the destination rung: agents act on the dev estate overnight and Josh wakes to fixed, verified, revertable work plus a triage queue. `never_auto` is constitutional in every mode.
 
+## Getting started walkthrough
+
+The next-steps block install.sh prints at the end is the short form;
+`./getting-started.sh` is the guided version. Run it after `./verify.sh`:
+it walks the eight things that stand between a fresh install and actually
+driving the harness. Each step explains what the layer is for, probes your
+machine for its real current state (every run probes live, never a memory of
+the last run), offers the exact command or the manual part, re-probes, and
+records what the probe actually showed. The steps: run verify.sh and read
+where you are; connect and OAuth the four MCP servers (AIRO dev, AIRO prod,
+dependency tracker, Atlassian; brain self-registers). The kit cannot do
+your authentication and this is the step people skip; check settings.json
+parses and carries the prod-write permission rule (it prints a merge
+snippet, never edits your file); store and live-test the wt / wt-prod
+keychain tokens; confirm both mods loaded and run the /guardrails, /builds,
+/cockpit smoke tests; read schedules/README.md and the load-bearing nightly
+order; set the dreamer trust-ladder mode (start at report); and run your
+first real session, including the first harness-backup run.
+
+The walkthrough is resumable. Progress lives in
+`~/.claude/getting-started-state.json` (chmod 600, step statuses only,
+never tokens or IDs); re-running shows progress and re-probes each step;
+`--status` prints the checklist non-interactively and `--reset` clears
+state. Re-run it any time, since every run probes live it doubles as a
+second doctor. Verdict: onboard collects the config, verify reports the
+state, getting-started is the part that gets you driving.
+
 ## The self-improvement loop (dreamer + gossip bus)
 
 This is the layer that makes the kit compound instead of decay: the harness
