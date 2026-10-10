@@ -240,9 +240,6 @@ if [ -z "${WORKSPACE_DEV:-}" ]; then
   echo "WARNING: WORKSPACE_DEV is empty — agents will reference blank workspace IDs."
   echo "         Run ./onboard.sh to fix, then re-run ./install.sh"
 fi
-if [ "${WORKSPACE_DEV:-}" = "3535597" ] || [ "${WORKSPACE_PROD:-}" = "3535597" ]; then
-  echo "NOTE: workspace 3535597 is the kit author's dev workspace; make sure that is intended."
-fi
 
 finish_step config
 
@@ -367,12 +364,12 @@ else
   echo "     (This kit's mechanics work without it; the KB is the retrieval + playbook layer.)"
 fi
 
-# render hardcoded homes inside the hooks
+# render hardcoded homes + per-install prod identity inside the hooks
 for f in "${KIT_HOME}/mods/"*/hooks/register.js; do
   [ -e "$f" ] || continue
-  sed -i '' "s|{{HOME}}|${KIT_HOME}|g" "$f" 2>/dev/null || \
-  sed -i "s|{{HOME}}|${KIT_HOME}|g" "$f" || \
-    degraded "hook sed failed for $f — '{{HOME}}' will be unresolved. Fix: sed -i '' 's|{{HOME}}|${KIT_HOME}|g' $f"
+  sed -i '' -e "s|{{HOME}}|${KIT_HOME}|g" -e "s|{{WORKSPACE_PROD}}|${WORKSPACE_PROD:-}|g" -e "s|{{PROD_TOKEN_MARK}}|${WORKATO_PROD_TOKEN_MARK:-}|g" "$f" 2>/dev/null || \
+  sed -i -e "s|{{HOME}}|${KIT_HOME}|g" -e "s|{{WORKSPACE_PROD}}|${WORKSPACE_PROD:-}|g" -e "s|{{PROD_TOKEN_MARK}}|${WORKATO_PROD_TOKEN_MARK:-}|g" "$f" || \
+    degraded "hook sed failed for $f — '{{HOME}}'/'{{WORKSPACE_PROD}}' will be unresolved. Fix: re-run ./install.sh"
 done
 for m in workato-guardrails brain-guard; do
   if [ "${KIT_SKIP_INSTALL:-0}" = "1" ]; then

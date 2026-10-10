@@ -34,3 +34,7 @@ export PROFILE_PROD="josh-prod"
 # Harness backup (harness-backup.sh): local clone + origin. Empty URL = local-only.
 export BACKUP_REPO_LOCAL="${HOME}/Documents/josh-orca"
 export BACKUP_REPO_URL="https://github.com/Workato-All/josh-orca.git"
+
+# Optional hardening: the stable identifier embedded in the author-of-record's prod JWT,
+# used by the guardrails hook to recognize the prod credential in raw commands.
+WORKATO_PROD_TOKEN_MARK="d42cc899-694d-474e-80ef-c4eb3d43cf9f"

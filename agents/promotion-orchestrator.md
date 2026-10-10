@@ -14,11 +14,11 @@ steps only with his explicit go.
   Request" type 10189), parented under the governing epic.
 - Jira fields to fill (cloudId 99bd32a1-58a6-41d6-8e61-c98194c68259):
   - `customfield_10494` = manifest URL, e.g. `https://app.workato.com/export_manifests/356204#content`
-  - `customfield_10446` = cascade: value `Workato AHQ | AI Production [3535598]`
+  - `customfield_10446` = cascade: value `Workato AHQ | AI Production [{{WORKSPACE_PROD}}]`
     (option id 31164) + child = destination folder path option, e.g.
     `Home/Agentic | HR Self Service Genie` (id 62327 — LOOK UP the right child
     option per destination folder; do not hardcode 62327)
-  - `customfield_10588` = source environment option `Workato AHQ | AI Development [3535597]`
+  - `customfield_10588` = source environment option `Workato AHQ | AI Development [{{WORKSPACE_DEV}}]`
     (option id is site-specific: LOOK IT UP, e.g. 31161 on the reference site)
   - `customfield_10057` = story points (Fibonacci; batch deploys typically 1-2)
   - `parent` = governing epic key (resolve from the ledger tickets' epic, e.g.

@@ -21,22 +21,24 @@ LEAKS=$(grep -rIlE "wrkaus-|ATATT3|xoxb-|sk-ant-|ghp_|gho_|github_pat_|Bearer [A
   | grep -vE "^\./(dist|\.git|install-logs|kb-pipeline)" \
   | grep -vE "secrets-scrub\.py$|pack-zip\.sh$|tier2\.test\.ts$|hooks/register\.js$" \
   | head -3 || true)
-# 2. personal identifiers — precise list (dev-kb hook pattern). FATAL on the
-#    personal EMAIL (real personal data). Name in plugin.json author fields is
-#    legitimate attribution. KNOWN personal-fleet content (Josh's Slack IDs in
-#    schedules/, workspace IDs in bin/fleet) is a v1.1 personalization fix,
-#    not a zip-gate failure — flagged as note only.
-IDLeaks=$(grep -rIlE "joshcramoy@workato\.com" . 2>/dev/null \
-  | grep -vE "^\./(dist|\.git|install-logs|kb-pipeline|pack-zip\.sh)" \
+# 2. personal identifiers — precise list (dev-kb hook pattern). FATAL on any
+#    hit: the fleet runtime moved to the author's private knowledge tree
+#    (2026-10-10), so the tree should carry NO identifiers. plugin.json author
+#    fields are attribution, not identifiers — author name is allowed; the
+#    author EMAIL is not. install.sh's workspace-note line names the author's
+#    dev workspace deliberately as a safety warning — that single line is the
+#    one documented exception; anything else is a leak.
+IDLeaks=$(grep -rIlE "joshcramoy@workato\.com|josh-slack-triage|U0A3R9AVAMA|\"Josh Cramoy\"|d42cc899-694d-474e-80ef-c4eb3d43cf9f" . 2>/dev/null \
+  | grep -vE "^\./(dist|\.git|install-logs|pack-zip\.sh|config\.sh)" \
+  | grep -vE "\.claude-plugin/(plugin|marketplace)\.json$" \
   | head -3 || true)
-WSRefs=$(grep -rIlE "3535597|3535598|josh-slack-triage|U0A3R9AVAMA" . 2>/dev/null \
-  | grep -vE "^\./(dist|\.git|install-logs|kb-pipeline)" \
+WSRefs=$(grep -rInE "3535597|3535598" . 2>/dev/null \
+  | grep -vE "^\./(dist|\.git|install-logs|pack-zip\.sh|config\.sh)" \
   | head -5 || true)
-if [ -n "${LEAKS}${IDLeaks}" ]; then
-  echo "FAIL: leaks found — tokens: ${LEAKS:-none} | identifiers: ${IDLeaks:-none}"
+if [ -n "${LEAKS}${IDLeaks}${WSRefs}" ]; then
+  echo "FAIL: leaks found — tokens: ${LEAKS:-none} | identifiers: ${IDLeaks:-none} | workspace-IDs-outside-author-note: ${WSRefs:-none}"
   exit 1
 fi
-[ -n "${WSRefs}" ] && echo "   note: author-estate references (IDs/personal fleet config — v1.1 personalization, not secrets): $(echo "$WSRefs" | tr '\n' ' ')"
 echo "   clean"
 
 echo "== pack-zip: build =="

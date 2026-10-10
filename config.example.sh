@@ -35,3 +35,8 @@ export PROFILE_PROD="prod"
 # origin. Leave URL empty to commit locally without pushing.
 export BACKUP_REPO_LOCAL="${HOME}/Documents/josh-orca"
 export BACKUP_REPO_URL="https://github.com/Workato-All/josh-orca.git"
+
+# Optional hardening for the guardrails prod-write gate: the stable identifier
+# embedded in YOUR prod JWT (not the secret) — lets the hook recognize your
+# prod credential in raw commands. Leave empty to disable that one signal.
+#WORKATO_PROD_TOKEN_MARK=""

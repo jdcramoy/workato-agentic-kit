@@ -643,10 +643,15 @@ export function register(on) {
   //     carrying the prod credential, and Orca browser actions aimed at prod.
   //     Reads pass through untouched; only mutations hold for confirmation,
   //     and a dismissed dialog fails closed (deny).
-  const PROD_WORKSPACE = '3535598'
+  // Prod identity is PER-INSTALL: install.sh renders these tokens from the
+  // consumer's gitignored config.sh (WORKSPACE_PROD; WORKATO_PROD_TOKEN_MARK
+  // optional — empty mark = that one signal inert, other gate paths fire).
+  // In the repo the token literals are the identity, which is what the tests
+  // match against.
+  const PROD_WORKSPACE = '{{WORKSPACE_PROD}}'
   // Stable identifier embedded in the prod JWT (not the secret itself) — lets
   // the gate recognise the prod credential when it appears in a raw command.
-  const PROD_TOKEN_MARK = 'd42cc899-694d-474e-80ef-c4eb3d43cf9f'
+  const PROD_TOKEN_MARK = '{{PROD_TOKEN_MARK}}'
   const PROD_URL_RE = new RegExp(
     '(environments?|workspaces?)/' + PROD_WORKSPACE + '\\b|env=Production|environment_name=Production')
   const HTTP_WRITE_RE = /(-X\s*|--request[= ])(POST|PUT|PATCH|DELETE)\b|(^|\s)(-d|--data|--data-raw|--data-binary)\b/i

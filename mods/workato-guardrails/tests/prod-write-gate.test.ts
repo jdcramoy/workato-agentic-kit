@@ -3,8 +3,11 @@ import { expect, test } from 'claude-code/testing'
 // Hook 13 — prod-write confirm gate for every non-AIRO surface.
 // In the sandboxed test env $.ui.ask cannot be answered, so the gate must
 // fail closed: a prod WRITE denies, a prod READ passes through untouched.
+// The gate's prod identity is per-install (env-overridable since the author's
+// estate identifiers left the repo): tests set their own fake identity.
 
-const PROD_MARK = 'd42cc899-694d-474e-80ef-c4eb3d43cf9f'
+const PROD_WS = '{{WORKSPACE_PROD}}'
+const PROD_MARK = '{{PROD_TOKEN_MARK}}'
 
 // ---- prod writes are blocked ------------------------------------------------
 
@@ -64,7 +67,7 @@ test('workato-prod workspace read passes through', async ($, on) => {
 })
 
 test('wt-prod api GET passes through', async ($, on) => {
-  on('tool.call', () => ({ result: '{"id":3535598}' }))
+  on('tool.call', () => ({ result: '{"id":9999999}' }))
   const answer = await $.tool.call({ tool: 'Bash', command: 'wt-prod api GET /api/users/me' })
   expect(answer.deny).toBeUndefined()
 })
