@@ -336,16 +336,21 @@ if ! cp -R mods/* "${KIT_HOME}/mods/"; then
   fail_step "mod source copy failed: mods/* -> ${KIT_HOME}/mods/ (check the cp error above and directory permissions)"
 fi
 
-# Workato KB (RAG++ pipeline): local snapshot first, else clone
-# A zip distribution ships a code snapshot in kb-pipeline/kb (offline install);
-# a git clone of the kit carries no copy — the installer pulls from the repo
-# (single source of truth for git users). Both network paths get retries.
+# Workato KB (RAG++ pipeline): the shareable KB ships as its OWN pack now
+# (Workato-All/workato-dev-kb: curated content + sanitized pipeline + its own
+# hardened installer). This kit no longer clones the pipeline repo for fresh
+# installs — workato-kb.git is the author's private upstream (estate-entangled
+# code) and was never the consumer path. Existing KB homes keep getting pulls;
+# zip distributions still carry their bundled snapshot.
 KB_HOME="${KIT_HOME}/Documents/workato-kb"
 if [ -d "$KB_HOME/.git" ]; then
   echo "kb: exists — pulling latest"
   if ! with_retry "kb pull (git -C $KB_HOME pull --ff-only)" 3 git -C "$KB_HOME" pull --ff-only; then
     degraded "kb pull failed — the KB may be stale. Fix: git -C $KB_HOME stash && git -C $KB_HOME pull --ff-only (or investigate local changes)"
   fi
+elif [ -d "$KIT_HOME/Documents/workato-dev-kb" ]; then
+  echo "kb: dev-kb pack found — it manages the pipeline and its content"
+  echo "     (update it with: git -C $KIT_HOME/Documents/workato-dev-kb pull && ./install.sh)"
 elif [ -d kb-pipeline/kb ]; then
   echo "kb: using the snapshot bundled in this zip (kb-pipeline/kb)"
   mkdir -p "${KIT_HOME}/Documents"
@@ -355,10 +360,11 @@ elif [ -d kb-pipeline/kb ]; then
     echo "kb: note — snapshot may lag the live repo; update later with: git -C $KB_HOME pull (needs GitHub access)"
   fi
 else
-  echo "kb: cloning the pipeline (github.com/Workato-All/workato-kb)..."
-  if ! with_retry "kb clone" 3 git clone --depth 1 "https://github.com/Workato-All/workato-kb.git" "$KB_HOME"; then
-    degraded "kb clone failed after retries — the RAG++ layer will be unavailable. Fix: git clone --depth 1 https://github.com/Workato-All/workato-kb.git $KB_HOME (or see kb-pipeline/README.md for manual setup)"
-  fi
+  echo "kb: not installed — the RAG++ KB ships as its own pack, separate from this kit."
+  echo "     Install it (content + sanitized pipeline + hardened installer, ~10 min):"
+  echo "       git clone git@github.com:Workato-All/workato-dev-kb.git ${KIT_HOME}/Documents/workato-dev-kb"
+  echo "       cd ${KIT_HOME}/Documents/workato-dev-kb && ./install.sh"
+  echo "     (This kit's mechanics work without it; the KB is the retrieval + playbook layer.)"
 fi
 
 # render hardcoded homes inside the hooks

@@ -55,6 +55,13 @@ sanitization pass (untrack config.sh, genericize the org identifiers).
 The kit's knowledge layer has two halves, and together they are the part most
 people end up most excited about.
 
+**Where to get it:** the KB ships as its own installable pack —
+[Workato-All/workato-dev-kb](https://github.com/Workato-All/workato-dev-kb) —
+with the curated playbooks, the sanitized pipeline, and its own hardened
+installer (`git clone` + `./install.sh`). This kit's mechanics work without
+it; the pack is the supported way to add it. The `workato-kb` repo itself is
+the author's private upstream and not the consumer path.
+
 **The KB (RAG++)** is a local, nightly-synced corpus of everything worth
 knowing about the platform: all Workato product documentation (the docs site
 publishes clean Markdown twins of every page — no scraping), the product
