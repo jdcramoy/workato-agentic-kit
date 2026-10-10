@@ -25,7 +25,7 @@ jira-autotriage) as one JSON line:
    "source":"workato-watchdog","title":"one line","evidence":"path or job id",
    "work":"the proposed fix, one line","points":2,"status":"open"}
 """
-import json, os, sys, datetime as dt
+import json, os, re, sys, datetime as dt
 from atomic_io import atomic_append
 
 HOME = os.path.expanduser("~")
@@ -106,6 +106,26 @@ def log_outcome(row, action, note, jira):
     atomic_append(OUTCOMES, rec)
 
 
+JIRA_BROWSE = "https://workato.atlassian.net/browse/"
+# ticket keys referenced anywhere in a finding (BSYS, BTSUP, and the other
+# known BT projects) — the card must be able to link the actual work item
+# even when the seeder only mentioned it in prose (Josh, 2026-10-10)
+KEY_RE = re.compile(r"\b((?:BSYS|BTSUP|HROPS|PSM|MCP|AAI|CT)-\d+)\b")
+
+
+def jira_keys(row):
+    """Deduped ticket keys for a finding: explicit jira field first, then
+    any keys found in slug/title/evidence/work prose."""
+    keys = []
+    if row.get("jira"):
+        keys.append(row["jira"])
+    for field in ("slug", "title", "evidence", "work"):
+        for m in KEY_RE.findall(str(row.get(field, ""))):
+            if m not in keys:
+                keys.append(m)
+    return keys
+
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help", "list"):
@@ -116,10 +136,14 @@ def main():
         for r in open_rows:
             age = (dt.date.today() - dt.date.fromisoformat(r["ts"][:10])).days
             urg = r.get("urgency", "")
-            jira = f", {r['jira']}" if r.get("jira") else ""
-            print(f"[{r.get('kind','?')}{'/' + urg if urg else ''}] {r['slug']} "
-                  f"(age {age}d, {r.get('points','?')}pts, source {r.get('source','?')}{jira}): "
-                  f"{r.get('title','')} | {r.get('work','')}")
+            keys = jira_keys(r)
+            print(f"[{r.get('kind','?')}{'/' + urg if urg else ''}] {r['slug']}")
+            print(f"    age {age}d, {r.get('points','?')}pts, source {r.get('source','?')}")
+            for k in keys:
+                print(f"    Jira: {JIRA_BROWSE}{k}")
+            print(f"    ISSUE: {r.get('title','')}")
+            print(f"    EVIDENCE: {r.get('evidence','(none given)')}")
+            print(f"    PROPOSED WORK: {r.get('work','')}")
         print(f"queue: {len(open_rows)} open / {len(rows)} total at {QUEUE}")
         return
     # flags: --jira KEY may appear anywhere after the action

@@ -27,13 +27,23 @@ time, ready to become work).
    signals: new tickets assigned to you, new comments, tickets aging
    without movement).
 
-2. **Build one decision card per open finding.** Compact, scannable:
+2. **Build one decision card per open finding.** Compact, scannable —
+   but never at the cost of the ticket link or the full finding text
+   (Josh, 2026-10-10: every card MUST carry the Jira URL and the
+   verbatim description; "you had to be there" cards are a defect):
 
    - slug, `kind` (bugfix | playbook | test | hygiene | build), source
      agent, age in days, points estimate
-   - the finding's own title and proposed work line (not your paraphrase)
-   - the evidence anchor (its strongest ref: Jira key + link, job ID,
-     file path, ledger line)
+   - **direct Jira link(s)**: every ticket the finding touches, as the
+     full clickable URL `https://workato.atlassian.net/browse/<KEY>`.
+     Take keys from the finding's `jira` field AND scan slug/title/
+     evidence for BSYS/BTSUP/other keys — a card may reference more
+     than one. `triage-decide.py list` already prints these under
+     `Jira:`; copy them through, never drop them.
+   - the finding's own title, proposed work line, and evidence field
+     VERBATIM and UNTRUNCATED (not your paraphrase, not "see evidence")
+   - for anything touching a live Workato asset: run the blast-radius
+     skill and put the radius on the card
    - for anything touching a live Workato asset: run the blast-radius
      skill and put the radius on the card
    - urgency: from the finding's `urgency` field if set, upgraded by
@@ -85,6 +95,8 @@ time, ready to become work).
       Criteria `- [ ]`, UAT Evidence section naming what WILL be
       recorded), labels reusing the epic's set, and the finding's
       evidence refs inline (real asset URLs, job IDs, file paths).
+      Descriptions are Josh's prose: draft through `josh-writing-voice`
+      (first person, no fleet/process framing; Josh 2026-10-10).
    d. Batch story creation; don't ask per-story. After creation, record
       `triage-decide.py <slug> filed "story created" --jira KEY` and
       include the key + URL in the summary table.
@@ -119,3 +131,12 @@ time, ready to become work).
 - Batch, don't drip: one AskUserQuestion round per ≤4 findings, then move.
 - Nothing in this skill bypasses a prod-write gate, a UAT sign-off, or
   the promotion pipeline; those boundaries are constitutional.
+
+## Related (KB bridges)
+
+<!-- kb-bridges:v1 begin -->
+- [The Workato KB: RAG++ over all documentation, and the dreaming team](../../kb-corpus/confluence/extbt/2938929237-the-workato-kb-rag-over-all-documentation-and-the-dreaming-team.md)
+- [2025/04 April Lookback](../../kb-corpus/confluence/intbt/1082851751-202504-april-lookback.md)
+- [BT Ops Workflow Guide](../../kb-corpus/confluence/intbt/2060451866-bt-ops-workflow-guide.md)
+- [2025/08 August Lookback](../../kb-corpus/confluence/intbt/1419411547-202508-august-lookback.md)
+<!-- kb-bridges:end -->
