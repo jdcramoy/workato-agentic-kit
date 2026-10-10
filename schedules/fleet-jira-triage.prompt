@@ -1,0 +1,9 @@
+You are running the jira-triage fleet job. Invoke the jira-autotriage skill and execute its loop across Josh's WHOLE open Jira queue — not just the agent-triage label.
+
+Scope: every open ticket ASSIGNED TO JOSH (account id 712020:112eb7d5-8a97-41a3-ae23-05513ca0ad72) — Josh ruling 2026-10-09: never pull in work that isn't assigned to him specifically, so every JQL must filter `assignee = 712020:112eb7d5-8a97-41a3-ae23-05513ca0ad72`; creator/watcher/mentioned/reporter tickets are read-only context, never queued. BSYS Stories, bugs, BTSUP service-desk requests, and anything else Workato-related in his assignee scope. Work as many as the time budget allows, in priority order (customer-facing and high first, then aging, then background), one ticket at a time.
+
+Per ticket, AUTONOMOUSLY (no permission, no cap): read it fully; triage it; investigate or autopsy it (workato-autopsy skill; read the estate via wt/AIRO, job traces, the KB, the corpus, blast radius); produce a technical plan (architecture, assets, contracts, risks, points estimate) in Josh's standards format; post the plan as a ticket comment AND file it under knowledge/projects/<epic>/; mark the ticket "plan ready — awaiting build authorization".
+
+You NEVER develop: no recipe edits, no builds, no dev remediation, not even in dev. Development is Josh's gate — your job ends at a finished, build-ready plan he approves in one word. Never a prod write. Never auto-fix a hotfix-class bug (autopsy + propose only). Never transition a ticket to Done. BTSUP requests still get a customer-tone reply in Josh's voice (that is not development).
+
+Empty queue = one quiet line. When done, Bash-append {"ts":"<now ISO>","job":"jira-triage"} to ~/.claude/knowledge/garden-reports/heartbeat.jsonl.

@@ -1,0 +1,12 @@
+[antigen-drill-weekly] Chaotic-drill day. Execute ONE antigen drill end-to-end against the canary:
+
+1. Pick the antigen (kb antigen history shows what was survived least recently; pool: null-payload, schema-drift, timeout-gateway, duplicate-write).
+2. Snapshot: `python3 ~/.claude/knowledge/scripts/state_hasher.py snap --label "pre-antigen-<name>"` — record the id.
+3. Inject via the AIRO MCP: recipe 82934208 ([CANARY] Antigen Drill, dev): recipe_builder_pull (session_id antigen-drill-<date>) → set step 3 `value` (mode ruby, path value) to the antigen's fault expression (null-payload: the constant 'virus-active'; others per the pool's mutation notes) → push (stop the recipe via wt recipes stop first if running).
+4. Fire: wt recipes start 82934208 → wt recipes force-run 82934208 → verify the job FAILED and the trace contains "ANTIGEN SIGNATURE" (wt jobs get). If the canary did NOT fail, that is a FINDING (the drill must always fail when infected) — record it.
+5. Revert: stop → push step-3 value back to `get_records_2.length > 0 ? 'virus-active' : 'clear'` → start → force-run → verify the job SUCCEEDED.
+6. Observe detection: run the detection pipeline the fleet actually has (the watchdog's failure-autopsy logic — wt job-counts/jobs on the canary) and score whether the failure would have been noticed by anything but the drill itself.
+7. Record: append the antigen ledger (~/.claude/workato-kb/index/antigen-ledger.jsonl: antigen, snapshot, failed job id, clean job id, detection verdict), file a case (kb cases file --source antigen-drill), post a typed bus finding.
+8. Report 3 lines: antigen name, detected-by (or detection gap), immunity verdict.
+
+Never touch any other recipe. The canary exists solely for this.
