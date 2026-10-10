@@ -76,6 +76,17 @@ def main() -> None:
     from .entropy import score as entropy_score
     from .indexer import build
     from .pmi import build as pmi_build
+    # optional graph-layer steps: a missing module records an error in the
+    # report instead of crashing the nightly sync
+    hubs_mod = edges_mod = None
+    try:
+        from . import hubs as hubs_mod  # noqa: PLC0415
+    except ImportError as e:
+        errors.append(f"hubs import: {e}")
+    try:
+        from . import edges as edges_mod  # noqa: PLC0415
+    except ImportError as e:
+        errors.append(f"edges import: {e}")
 
     try_step("docs", docs_source.sync)
     try_step("blog", wp_source.sync_blog)
@@ -100,8 +111,15 @@ def main() -> None:
             r = _sp_run([_sys.executable, str(Path(__file__).parent / "jira_bulk_pull.py")], timeout=1800)
             return {"refresh": r.strip().splitlines()[-1] if r.strip() else "done"}
         try_step("jira-cases", _jira_case_refresh)
+    # cluster hubs -> corpus/hubs BEFORE index so hubs are ingested as a source
+    # in the same sync (hubs must not cluster themselves: self-pollution guard)
+    if hubs_mod is not None:
+        try_step("hubs", hubs_mod.build)
     try_step("contextualize", contextualize.run, 400)
     try_step("index", build, with_embeddings=not a.no_embed)
+    # entity edges read the freshly-built chunks table; must run after index
+    if edges_mod is not None:
+        try_step("edges", edges_mod.build)
     try_step("pmi", pmi_build)
     try_step("entropy", entropy_score)
 

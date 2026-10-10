@@ -21,8 +21,11 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import re
 import sqlite3
 import struct
+import sys
 from dataclasses import dataclass
 
 from .indexer import DB_PATH, MODEL_NAME, get_db
@@ -217,20 +220,32 @@ def _distribution_entropy(hits: list[Hit]) -> float:
 SOURCE_CAPS = {"harness": 2}
 
 
+def _active_caps() -> dict[str, int]:
+    """Static SOURCE_CAPS plus runtime additions via KB_CAPS ("github:3,claude:3")."""
+    caps = dict(SOURCE_CAPS)
+    extra = os.environ.get("KB_CAPS", "")
+    for part in filter(None, extra.split(",")):
+        source, _, n = part.partition(":")
+        if n.isdigit():
+            caps[source.strip()] = int(n)
+    return caps
+
+
 def _finalize(pool: list[Hit], k: int) -> list[Hit]:
     """Doc-level dedupe + per-source caps over an already-scored pool.
 
     Keeps the best chunk per document (near-duplicate chunks of one doc were
-    able to fill the whole top-k), enforces SOURCE_CAPS, and never returns
-    fewer than the pool allows.
+    able to fill the whole top-k), enforces SOURCE_CAPS (+KB_CAPS additions),
+    and never returns fewer than the pool allows.
     """
+    caps = _active_caps()
     out: list[Hit] = []
     seen_urls: set[str] = set()
     src_counts: dict[str, int] = {}
     for h in sorted(pool, key=lambda x: getattr(x, "final", x.fused), reverse=True):
         if h.url in seen_urls:
             continue
-        cap = SOURCE_CAPS.get(h.source)
+        cap = caps.get(h.source)
         if cap is not None and src_counts.get(h.source, 0) >= cap:
             continue
         seen_urls.add(h.url)
@@ -239,6 +254,115 @@ def _finalize(pool: list[Hit], k: int) -> list[Hit]:
         if len(out) == k:
             break
     return out
+
+
+def _chunk_cosine(db: sqlite3.Connection, a: int, b: int) -> float:
+    """Cosine similarity of two chunks' stored vectors; 0.0 when either is missing."""
+    try:
+        va = db.execute("SELECT embedding FROM chunks_vec WHERE chunk_id = ?", (a,)).fetchone()
+        vb = db.execute("SELECT embedding FROM chunks_vec WHERE chunk_id = ?", (b,)).fetchone()
+        if not va or not vb:
+            return 0.0
+        fa = struct.unpack(f"{len(va[0]) // 4}f", va[0])
+        fb = struct.unpack(f"{len(vb[0]) // 4}f", vb[0])
+        num = sum(x * y for x, y in zip(fa, fb))
+        da = math.sqrt(sum(x * x for x in fa)) or 1.0
+        dbn = math.sqrt(sum(x * x for x in fb)) or 1.0
+        return num / (da * dbn)
+    except sqlite3.OperationalError:
+        return 0.0
+
+
+def _title_overlap(query: str, title: str | None) -> float:
+    """Fraction of query content tokens present in the doc title (0..1)."""
+    q = {t for t in re.findall(r"[a-z0-9]+", query.lower()) if len(t) > 2}
+    if not q:
+        return 0.0
+    t = set(re.findall(r"[a-z0-9]+", (title or "").lower()))
+    return len(q & t) / len(q)
+
+
+def _edge_neighbors(db: sqlite3.Connection, seed_urls: list[str], per_seed: int = 2) -> list[Hit]:
+    """One-hop doc_neighbors from the doc_edges side-car table (entity edges).
+
+    Edges are stored canonically (sorted url pair, direction implied), so both
+    sides are probed. Each neighbor enters the rerank pool as its first chunk.
+    Missing table = expansion not built yet = clean no-op.
+    """
+    try:
+        neighbors: list[Hit] = []
+        seen: set[str] = set()
+        for seed in seed_urls:
+            rows = db.execute(
+                "SELECT src_url, dst_url, rationale FROM doc_edges "
+                "WHERE src_url = ? OR dst_url = ? ORDER BY score DESC LIMIT ?",
+                (seed, seed, per_seed),
+            ).fetchall()
+            for src_url, dst_url, rationale in rows:
+                nurl = dst_url if src_url == seed else src_url
+                if nurl in seen or nurl == seed:
+                    continue
+                seen.add(nurl)
+                doc = db.execute(
+                    "SELECT doc_id, title, source FROM docs WHERE url = ?", (nurl,)
+                ).fetchone()
+                if not doc:
+                    continue
+                doc_id, title, nsource = doc
+                chunk = db.execute(
+                    "SELECT chunk_id, context, text FROM chunks WHERE doc_id = ? "
+                    "ORDER BY chunk_ord LIMIT 1",
+                    (doc_id,),
+                ).fetchone()
+                if not chunk:
+                    continue
+                cid, context, text = chunk
+                neighbors.append(
+                    Hit(
+                        chunk_id=cid,
+                        doc_id=doc_id,
+                        url=nurl,
+                        title=title,
+                        source=nsource,
+                        section=nsource,
+                        context=context or "",
+                        text=text,
+                    )
+                )
+        return neighbors
+    except Exception as e:  # noqa: BLE001 - neighbor failure must never kill a search
+        print(f"[edge expansion unavailable: {e}]", file=sys.stderr)
+        return []  # doc_edges not built yet: expansion is a no-op
+
+
+def _top_duplicate_score(db: sqlite3.Connection, hits: list[Hit], probes: int = 3) -> float:
+    """Max pairwise cosine among the first `probes` unique-url hits (torn-signal probe)."""
+    uniq: list[Hit] = []
+    seen: set[str] = set()
+    for h in hits:
+        if h.url not in seen:
+            seen.add(h.url)
+            uniq.append(h)
+        if len(uniq) == probes:
+            break
+    best = 0.0
+    for i in range(len(uniq)):
+        for j in range(i + 1, len(uniq)):
+            best = max(best, _chunk_cosine(db, uniq[i].chunk_id, uniq[j].chunk_id))
+    return best
+
+
+def _apply_title_boost(hits: list[Hit], query: str) -> None:
+    """Sibling tiebreak: scale rerank score by title-overlap squared.
+
+    Near-identical sibling pages have near-identical bodies, so the cross-encoder
+    ties and the tree position loses. Title match with the query is the one signal
+    that separates `sessions/delete.md` from `sessions/resources/delete.md`.
+    """
+    weight = 0.6
+    for h in hits:
+        base = getattr(h, "final", None) or h.fused
+        h.final = base * (1.0 + weight * (_title_overlap(query, h.title) ** 2))
 
 
 def search(
@@ -253,15 +377,52 @@ def search(
         bm25_hits = _bm25(db, expanded, k * 5, source, section)
         vec_hits = _vec(db, expanded, k * 5, source, section)
         fused = _rrf_fuse(bm25_hits, vec_hits)
-        # k*4 pool: _finalize dedupes chunks to docs + enforces source caps, so a
-        # wider pool is needed to still fill k unique results (was k*2, thin after dedupe)
-        ranked = sorted(fused.values(), key=lambda h: h.fused, reverse=True)[: k * 4]
+        # pool width multiplier (k*4 default): _finalize dedupes chunks to docs +
+        # enforces source caps, so a wide pool is needed to fill k unique results;
+        # tiny reference pages buried by big pages need KB_POOL>=8 to surface at all
+        pool_mult = int(os.environ.get("KB_POOL", "4"))
+        ranked = sorted(fused.values(), key=lambda h: h.fused, reverse=True)[: k * pool_mult]
 
         if not rerank:
             return _finalize(ranked, k), meta
 
+        # graph expansion: recruit 1-hop neighbors of the top fused seeds along
+        # the doc_edges table (entity edges) into the rerank pool. Gated off by
+        # default (KB_EXPAND=1 enables) so ablation can measure the lift.
+        if os.environ.get("KB_EXPAND") == "1" and source != "harness":
+            # top-3 UNIQUE urls: chunk duplicates of one doc must not eat the seed budget
+            seeds: list[str] = []
+            for h in ranked:
+                if h.url not in seeds:
+                    seeds.append(h.url)
+                if len(seeds) == 3:
+                    break
+            neighbors = _edge_neighbors(db, seeds, per_seed=2)
+            if neighbors:
+                known_urls = {h.url for h in ranked}
+                added = [n for n in neighbors if n.url not in known_urls]
+                if added:
+                    ranked = ranked + added
+                    meta["graph_expanded"] = len(added)
+
         _hydrate_entropy(db, ranked)
         hits = _rerank(query, ranked, len(ranked), use_entropy, use_pmi)
+
+        # sibling tiebreak / torn-signal pass. ON BY DEFAULT (measured 2026-10-10:
+        # MRR@10 +0.22 overall, +0.34 on hard-sibling slice, zero recall losses);
+        # disable with KB_SIBLING=0. KB_TORN=1: also boost when the top unique
+        # hits are measured near-duplicates (confidently-torn family). Both act
+        # on the WHOLE pool so _finalize re-selects with the signal applied.
+        sibling_on = os.environ.get("KB_SIBLING", "1") != "0"
+        torn_on = os.environ.get("KB_TORN") == "1"
+        if sibling_on or torn_on:
+            dup = _top_duplicate_score(db, hits)
+            if sibling_on or (torn_on and dup > 0.93):
+                _apply_title_boost(hits, query)
+                meta["sibling_boost"] = True
+                if torn_on and not sibling_on:
+                    meta["torn_trigger"] = round(dup, 3)
+
         hits = _finalize(hits, k)
         meta["confidence_bits"] = round(_distribution_entropy(hits), 3)
 

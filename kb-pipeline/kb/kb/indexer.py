@@ -141,6 +141,7 @@ def _doc_iter():
         "confluence-extbt": "confluence/extbt",
         "confluence-intbt": "confluence/intbt",
         "harness": "harness",  # Josh's knowledge tree + skills (kb.harness_source)
+        "hubs": "hubs",  # generated cluster hub notes (kb.hubs) — fractal topic layer
     }
     corpus = DATA_ROOT / "corpus"
     for source, subdir in sources.items():
