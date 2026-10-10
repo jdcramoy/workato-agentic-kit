@@ -1,5 +1,0 @@
-cron: 43 23 * * *
-durable: true
-recurring: true
-prompt:
-[harness-dreamer-nightly] FIRST: self-rearm — read {{HOME}}/Documents/workbench/.claude/scheduled_tasks.json (project-scoped); find the task whose prompt starts with "[harness-dreamer-nightly]"; if createdAt is older than 5 days, CronDelete it and CronCreate an identical one (cron 43 23 * * *, durable, recurring, same prompt) so the 7-day auto-expiry never lapses. THEN: spawn the harness-dreamer subagent (Agent tool, subagent_type "harness-dreamer"; if unavailable, general-purpose with ~/.claude/agents/harness-dreamer.md as its brief) — it executes the full dream loop (config-first, bus reader-in-chief, mine, two mandates, report, mode-gated proposals) and returns the report path + verdict. Relay what it returned in 2-3 lines; quiet night = one quiet line. LAST STEP (never skip): Bash-append one line {"ts":"<now ISO>","job":"harness-dreamer"} to {{HOME}}/.claude/knowledge/garden-reports/heartbeat.jsonl.

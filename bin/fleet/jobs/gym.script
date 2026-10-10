@@ -1,7 +1,0 @@
-#!/bin/bash
-# replay gym: nightly harness-regression replay; Sundays add the immune fire drill
-if [ "$(date +%u)" = "7" ]; then
-  python3 ~/.claude/knowledge/scripts/replay-gym.py --firedrill
-else
-  python3 ~/.claude/knowledge/scripts/replay-gym.py
-fi

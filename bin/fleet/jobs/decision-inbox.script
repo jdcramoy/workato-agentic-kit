@@ -1,5 +1,0 @@
-#!/bin/bash
-# decision-inbox: one ranked, budgeted decision surface; routes harness-meta
-# out of Josh's way. Runs in the morning, before the brief.
-python3 "$HOME/.claude/knowledge/scripts/decision-inbox.py"
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"decision-inbox\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"

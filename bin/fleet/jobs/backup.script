@@ -1,4 +1,0 @@
-#!/bin/bash
-"$HOME/.local/bin/harness-backup" 2>&1 | tail -5
-# heartbeat check-in so the dashboard chip shows ok (dream-nightly.sh pattern)
-printf '{"ts":"%s","job":"harness-backup"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"

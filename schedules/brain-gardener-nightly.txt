@@ -1,5 +1,0 @@
-cron: 43 22 * * *
-durable: true
-recurring: true
-prompt:
-[brain-gardener-nightly] FIRST: self-rearm — read {{HOME}}/Documents/workbench/.claude/scheduled_tasks.json (project-scoped, NOT ~/.claude/); find the task whose prompt starts with "[brain-gardener-nightly]"; if its createdAt is older than 5 days, CronDelete it and CronCreate an identical one (same cron 43 22 * * *, durable, recurring, same prompt) so the 7-day auto-expiry never lapses. THEN: spawn the brain-gardener subagent (Agent tool, subagent_type "brain-gardener"; if unavailable, general-purpose with ~/.claude/agents/brain-gardener.md as its brief) scoped to this project (workbench) — review only TODAY's session transcript(s) plus whatever changed since the last garden report in ~/.claude/knowledge/garden-reports/ (don't redo the full inventory every night; full review weekly). Relay the report path and top priorities to Josh concisely, noting what needs his approval. LAST STEP (never skip): Bash-append one line {"ts":"<now ISO>","job":"brain-gardener"} to ~/.claude/knowledge/garden-reports/heartbeat.jsonl — the watchdog uses this to detect skipped nights.

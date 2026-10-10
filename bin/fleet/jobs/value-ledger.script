@@ -1,8 +1,0 @@
-#!/bin/bash
-# value-ledger: the missing VALUE half of the ROI loop. Derives value rows
-# nightly; rolls the value-vs-cost report on the 1st of the month.
-python3 "$HOME/.claude/knowledge/scripts/value-ledger.py" derive
-if [ "$(date +%d)" = "01" ]; then
-  python3 "$HOME/.claude/knowledge/scripts/value-report.py"
-fi
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"value-ledger\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"

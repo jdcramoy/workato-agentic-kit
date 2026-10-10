@@ -1,2 +1,0 @@
-#!/bin/bash
-python3 ~/.claude/knowledge/scripts/command-canary.py

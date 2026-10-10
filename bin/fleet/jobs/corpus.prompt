@@ -1,1 +1,0 @@
-Weekly corpus maintenance: check ~/.claude/knowledge for index drift (INDEX.md lines vs files), run dedup and docs-watch sweeps per knowledge/domains/brain-gardener.md, report deltas to knowledge/garden-reports/corpus-$(date +%F).md. Proposal-only; never auto-mutates.

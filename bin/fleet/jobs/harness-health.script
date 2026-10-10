@@ -1,6 +1,0 @@
-#!/bin/bash
-# harness-health: the watchdog for the harness itself — fleet liveness,
-# ledger freshness, queue dedup, known tooling defects. Files findings to
-# harness-fix/queue.jsonl (the auto lane).
-python3 "$HOME/.claude/knowledge/scripts/harness-health.py"
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"harness-health\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"

@@ -1,4 +1,0 @@
-#!/bin/bash
-# room-sweep: read #josh-slack-triage via slack-workato MCP (headless claude),
-# pipe strict JSON of messages to room-sweep.py which queues directives.
-claude -p "Read the last 20 messages of Slack channel C0C7JHJKHRU using the slack-workato MCP tool read_channel_messages (channel_id C0C7JHJKHRU, limit 20). Output STRICT JSON only — a JSON array of objects [{\"ts\": \"<message ts>\", \"text\": \"<message text>\", \"user\": \"<user id>\"}] — no markdown fences, no commentary, nothing else." 2>/dev/null | python3 ~/.claude/knowledge/scripts/room-sweep.py
