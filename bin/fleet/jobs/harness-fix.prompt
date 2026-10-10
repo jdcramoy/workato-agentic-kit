@@ -27,9 +27,11 @@ ESCALATE (do not touch): anything mentioning prod, hotfix, customer,
 Close-out: for each fixed item, close it through the sanctioned recorder, never
 by hand-editing:
   - triage item:  python3 ~/.claude/knowledge/scripts/triage-decide.py <slug> build "<what you did>"
-  - harness-fix item: append a status-change row
-    {"ts":"<now ISO>","slug":"<slug>","status":"fixed","note":"<what you did>"}
-    to ~/.claude/knowledge/harness-fix/queue.jsonl.
+  - harness-fix item: append the status change through the helper (never
+    hand-compose JSON):
+    python3 ~/.claude/knowledge/scripts/queue-append.py --queue harness-fix \
+      --slug <slug> --status fixed --source harness-fix \
+      --title "<slug>" --note "<what you did>"
 
 Never edit a file you have not read this run. One bounded fix per item; if a fix
 needs more than ~10 minutes, escalate instead. If you fix nothing, that is a
