@@ -11,6 +11,26 @@
 # Success writes the heartbeat MECHANICALLY (the model's own check-in stays
 # allowed but is no longer the enforcement layer).
 #
+# Zero-LLM probe gate (2026-10-11, proposal #2): if jobs/<name>.probe exists
+# and is executable it runs BEFORE any claude spawn:
+#   exit 0            -> SIGNAL: there is work, run the job normally
+#   exit 7            -> NO SIGNAL: write a skip-heartbeat row
+#                        (status "skipped-no-signal") and exit. Zero tokens,
+#                        zero claude spawn. The skip row keeps harness-health
+#                        liveness green (the probe itself is the liveness
+#                        signal) while the status field keeps it distinct
+#                        from a stub.
+#   any other nonzero -> BROKEN probe: log it and RUN the job anyway (fail
+#                        open). A buggy probe must never silently suppress a
+#                        job — the 2026-10-07 stub-night lesson.
+#
+# DEPLOY CHECKLIST: the canonical source of this file and jobs/ is the
+# KNOWLEDGE tree (~/.claude/knowledge/config/fleet). Deploy = copy to
+# ~/Documents/agentic-workato-kit/bin/fleet (kit sync) AND to
+# ~/.local/bin/fleet (what the plists execute). All three identical, or a
+# job resolves a diverged copy (the 2026-10-10 partial-deploy incident:
+# 7 jobs' files missing -> exit 1/127 for 2 days).
+#
 # Usage: run-job.sh <name> [extra claude args...]
 # Args after <name> are passed through to the claude invocation, so a job's
 # plist can carry dispatch-level flags (e.g. --add-dir for cortex).
@@ -23,8 +43,11 @@ DIR="$(dirname "$0")"
 JOB="$DIR/jobs/$NAME"
 LOG="$HOME/.local/state/fleet/$NAME.log"
 LOCK="/tmp/fleet-$NAME.lock"
-HEARTBEAT="$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"
-VALIDATE_LEDGER="$HOME/.claude/knowledge/garden-reports/fleet-validation.jsonl"
+# Ledger paths are overridable for probe testing (FLEET_HEARTBEAT /
+# FLEET_VALIDATE_LEDGER): a throwaway test job must not write rows into the
+# real append-only ledgers.
+HEARTBEAT="${FLEET_HEARTBEAT:-$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl}"
+VALIDATE_LEDGER="${FLEET_VALIDATE_LEDGER:-$HOME/.claude/knowledge/garden-reports/fleet-validation.jsonl}"
 
 # mkdir lock: atomic on macOS; stale locks (host crash) older than 6h are broken
 if ! mkdir "$LOCK" 2>/dev/null; then
@@ -56,6 +79,31 @@ if [ -f "$HOME/.zshenv" ]; then
 fi
 CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude || echo "$HOME/.local/bin/claude")}"
 
+# ---- zero-LLM probe gate (contract in the header comment) -------------------
+PROBE="$JOB.probe"
+PROBE_NOSIGNAL=7
+if [ -f "$PROBE" ] && [ -x "$PROBE" ]; then
+  PROBE_OUT="$LOG.probe-out"
+  # 60s cap: a hung probe must not hang the runner. Timeout (SIGALRM) is a
+  # nonzero that is not the no-signal code -> broken -> fail open, run.
+  perl -e 'alarm shift; exec @ARGV' 60 "$PROBE" > "$PROBE_OUT" 2>&1
+  prc=$?
+  if [ "$prc" -eq "$PROBE_NOSIGNAL" ]; then
+    # skip-heartbeat row: same append mechanism as the success heartbeat.
+    # ts carries the LOCAL offset (iso-with-offset) so it parses correctly
+    # next to the Z-format rows; probe stdout is collapsed to one line.
+    pmsg="$(tr -d '\r' < "$PROBE_OUT" | tr '\n' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g' | cut -c1-200)"
+    off="$(date +%z)"; off="${off:0:3}:${off:3}"
+    mkdir -p "$(dirname "$HEARTBEAT")"
+    echo "{\"ts\":\"$(date +%Y-%m-%dT%H:%M:%S)${off}\",\"job\":\"$NAME\",\"status\":\"skipped-no-signal\",\"probe\":\"$pmsg\"}" >> "$HEARTBEAT"
+    echo "$(date '+%F %T') $NAME: probe no signal — skipped (zero tokens)" >> "$LOG"
+    exit 0
+  elif [ "$prc" -ne 0 ]; then
+    echo "$(date '+%F %T') $NAME: PROBE BROKEN (rc=$prc, out: $(head -c 200 "$PROBE_OUT" | tr '\n' ' ')) — failing open, running job" >> "$LOG"
+  fi
+  # prc=0 -> signal: fall through to the normal run below
+fi
+
 hb_count() { # heartbeat lines for this job (always a single number)
   local n=""
   [ -f "$HEARTBEAT" ] && n="$(grep -c "\"job\": *\"$NAME\"" "$HEARTBEAT" 2>/dev/null || true)"
@@ -75,7 +123,12 @@ run_job() {
   else
     perl -e 'alarm shift; exec @ARGV' "${TIMEOUT:-1200}" bash "$JOB.script" >> "$OUT" 2>&1
   fi
+  # capture the SPAWN's rc, not cat's — cat previously masked the claude exit
+  # code here, so an alarm-killed spawn logged "stub rc=0" (found 2026-10-11
+  # during the probe-gate tests; the stub contract requires the real rc)
+  local jrc=$?
   cat "$OUT" >> "$LOG"
+  return "$jrc"
 }
 
 validated() { # $1 = heartbeat count before; real output file or a fresh heartbeat

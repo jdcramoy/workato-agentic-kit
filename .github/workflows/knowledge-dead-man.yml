@@ -1,0 +1,57 @@
+# knowledge-dead-man — external dead-man switch for the fleet's nightly
+# knowledge backup (proposal #2, harness-next10 review 2026-10-11).
+#
+# WHY OFF THE LAPTOP: the 2026-10-09/11 incident — the whole morning fleet was
+# silently dead ~2 days while harness-health rendered "(ok, daily)". Every
+# liveness check ran inside the failure domain (same laptop, same runner).
+# This workflow runs on GitHub's infra and fails (red X) when the latest
+# commit on the knowledge backup repo (Workato-All/josh-knowledge) is older
+# than 48h — independent evidence the nightly backup job (com.josh.fleet.backup)
+# stopped producing.
+#
+# SECRETS JOSH MUST ADD (kit repo -> Settings -> Secrets and variables ->
+# Actions -> New repository secret), neither of which exists yet:
+#   1. KNOWLEDGE_REPO_TOKEN — a fine-grained or classic PAT with READ access
+#      to Workato-All/josh-knowledge (the repo is private; github.token of
+#      THIS repo cannot read it across repos). Red-X-only without it: the
+#      api call 401s and the step fails, which is still a visible alarm.
+#   2. SLACK_WEBHOOK_URL — an incoming-webhook URL to page Josh. Without it
+#      the workflow only turns red on GitHub; nobody gets pinged.
+#
+# This file is scaffold: the red X works on merge, the page does not until
+# the secrets above exist. Do not deploy-and-forget the paging claim.
+name: knowledge dead-man
+
+on:
+  schedule:
+    - cron: "23 * * * *" # hourly, 37min offset from the ~03:3xZ backup window
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dead-man:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check knowledge backup freshness (fail when >48h stale)
+        env:
+          GH_TOKEN: ${{ secrets.KNOWLEDGE_REPO_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -eu
+          last="$(gh api repos/Workato-All/josh-knowledge/commits/HEAD --jq '.commit.committer.date')"
+          age_h=$(( ( $(date -u +%s) - $(date -u -d "$last" +%s) ) / 3600 ))
+          echo "last backup commit: $last (${age_h}h ago; threshold 48h)"
+          if [ "$age_h" -gt 48 ]; then
+            echo "::error::knowledge backup STALE ${age_h}h (last commit $last) — nightly backup job likely dead"
+            if [ -n "$SLACK_WEBHOOK_URL" ]; then
+              curl -sf -X POST -H 'Content-type: application/json' \
+                --data "{\"text\":\"DEAD-MAN: josh-knowledge backup is ${age_h}h stale (last commit $last). The nightly fleet backup job has not produced in 2+ days.\"}" \
+                "$SLACK_WEBHOOK_URL" || echo "slack page failed (webhook error); red X stands"
+            else
+              echo "SLACK_WEBHOOK_URL not set — red X only, nobody paged. Add the secret to enable paging."
+            fi
+            exit 1
+          fi
+          echo "backup fresh — dead-man passes"

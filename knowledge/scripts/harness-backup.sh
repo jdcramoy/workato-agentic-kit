@@ -25,6 +25,14 @@ STAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 
 mkdir -p "$REPO"
 
+# --- dream-mine pre-backup (next-10 #7, germination trials) ------------------
+# The day's transcript digest (dreams/data/<date>-mine.json) must be INSIDE
+# the backup even when the dreamer LLM pass stubs. Guarded: a mining failure
+# is logged and the backup CONTINUES — backup must not depend on mining.
+DIGEST_OUT="$(python3 "$CLAUDE/knowledge/scripts/dream-mine.py" --days 1 2>&1)" \
+  || DIGEST_OUT="DREAM-MINE FAILED (backup continues): $(printf '%s' "$DIGEST_OUT" | tail -1)"
+echo "harness-backup: dream-mine --days 1 -> $(printf '%s' "$DIGEST_OUT" | tail -1) ($STAMP)"
+
 # --- canonical -> repo -------------------------------------------------------
 # --max-size: large regenerable data artifacts (e.g. wql_aliases.db, 132MB)
 # exceed GitHub's 100MB limit and don't belong in git. Excluded, not lost.
@@ -37,11 +45,7 @@ rsync -a --delete --max-size='50M' \
   "$CLAUDE/agents/"     "$REPO/harness/agents/"
 rsync -a --delete --max-size='50M' \
   --exclude '.git' --exclude '__pycache__' --exclude 'usage-ledger.jsonl' \
-  --exclude 'people' \
   "$CLAUDE/knowledge/"  "$REPO/harness/knowledge/"
-# people/ = employee personnel files (names, titles, org data, comms-style
-# notes). PII: local-only, CONFIRMED by Josh 2026-10-09 — never syncs to the
-# org GitHub repo (conversational leak risk). Do not remove this exclude.
 # Recipe snapshot history: the rollback payload for every pushed recipe.
 # Its own git history is per-snapshot commits and does not travel; the
 # snapshot files are the asset.

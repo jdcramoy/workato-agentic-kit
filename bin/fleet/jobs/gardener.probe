@@ -1,0 +1,37 @@
+#!/bin/bash
+# gardener.probe — zero-LLM gate for the nightly gardener (proposal #2, 2026-10-11).
+# Exit 0 = SIGNAL: at least one knowledge-tree content file was modified today
+#   -> there is something to garden.
+# Exit 7 = NO SIGNAL: tree untouched today -> skip-heartbeat row, zero tokens.
+# Any other exit = broken -> run-job.sh fails open and runs the job anyway.
+# Pure find/stat — no claude, no network.
+K="$HOME/.claude/knowledge"
+
+# Exclude mechanical/self-output surfaces or the probe never sleeps:
+#   garden-reports/ (gardener + fleet heartbeats + reports),
+#   dreams/bus/     (gossip outboxes, written every pulse),
+#   now/            (session-shadow tailer, every 60s),
+#   triage/, harness-fix/ (queue ledgers the gardener only reads),
+#   .git, .DS_Store noise.
+hit="$(find "$K" -type f -newermt "$(date +%Y-%m-%d)" \
+  -not -path "$K/garden-reports/*" \
+  -not -path "$K/dreams/bus/*" \
+  -not -path "$K/now/*" \
+  -not -path "$K/triage/*" \
+  -not -path "$K/harness-fix/*" \
+  -not -path "$K/dreams/*/bus/*" \
+  -not -path "*/.git/*" \
+  -not -name ".DS_Store" \
+  -not -name "*.lock" 2>/dev/null | head -5)"
+
+if [ -n "$hit" ]; then
+  n="$(find "$K" -type f -newermt "$(date +%Y-%m-%d)" \
+    -not -path "$K/garden-reports/*" -not -path "$K/dreams/bus/*" \
+    -not -path "$K/now/*" -not -path "$K/triage/*" -not -path "$K/harness-fix/*" \
+    -not -path "$K/dreams/*/bus/*" -not -path "*/.git/*" \
+    -not -name ".DS_Store" -not -name "*.lock" 2>/dev/null | wc -l | tr -d ' ')"
+  echo "signal: $n knowledge file(s) modified today, e.g. $(echo "$hit" | head -2 | tr '\n' ' ')"
+  exit 0
+fi
+echo "no knowledge-tree changes today"
+exit 7

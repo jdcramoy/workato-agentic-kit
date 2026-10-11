@@ -1,0 +1,51 @@
+#!/bin/bash
+# cortex.probe — zero-LLM gate for the hourly cortex pulse (proposal #2, 2026-10-11).
+# Exit 0 = SIGNAL: new material since the last cortex heartbeat (bus posts,
+#   heartbeat deltas from other jobs, ledger appends) -> run the cortex.
+# Exit 7 = NO SIGNAL: nothing new -> run-job.sh writes a skip-heartbeat row,
+#   zero tokens.
+# Any other exit = broken -> run-job.sh fails open and runs the job anyway.
+# Pure find/grep/stat/date — no claude, no network.
+K="$HOME/.claude/knowledge"
+HB="$K/garden-reports/heartbeat.jsonl"
+BUS="$K/dreams/bus"
+REF="/tmp/fleet-cortex-probe-ref.$$"
+trap 'rm -f "$REF" 2>/dev/null' EXIT
+
+[ -f "$HB" ] || { echo "no heartbeat ledger — fail open"; exit 0; }
+
+# Last cortex heartbeat ts -> naive 19-char stamp. Z rows (the normal
+# run-job.sh/harness-health format) are exact UTC; local-offset rows parse
+# 4h conservative (older ref -> more signal -> fail open).
+last="$(grep '"job": *"cortex"' "$HB" 2>/dev/null | tail -1)"
+ts="$(printf '%s' "$last" | grep -o '"ts": *"[^"]*"' | head -1 | cut -d'"' -f4)"
+[ -n "$ts" ] || { echo "no cortex heartbeat yet — fail open"; exit 0; }
+ref="${ts:0:19}"
+
+# heartbeat deltas: rows from OTHER jobs newer than ref (session-shadow is a
+# 60s mechanical tailer, not agent work — excluded or the probe never sleeps).
+n_new="$(awk -F'"' -v r="$ref" '
+  /"job": *"cortex"/ { next }
+  /"job": *"session-shadow"/ { next }
+  { t = ""
+    for (i = 2; i <= NF; i += 2) if ($i ~ /^20[0-9][0-9]-/) { t = $i; break }
+    if (substr(t, 1, 19) > r) n++
+  }
+  END { print n + 0 }' "$HB" 2>/dev/null)"
+
+# file-mtime signals: bus outboxes + ledgers newer than ref
+c="${ref:0:4}${ref:5:2}${ref:8:2}${ref:11:2}${ref:14:2}.${ref:17:2}"
+touch -t "$c" "$REF" 2>/dev/null
+hit="$(find "$BUS" -name '*.jsonl' -type f -newer "$REF" 2>/dev/null; \
+      find "$K/build-ledger.jsonl" "$K/triage/queue.jsonl" \
+           "$K/harness-fix/queue.jsonl" \
+           "$K/garden-reports/triage-outcomes.jsonl" \
+           "$K/garden-reports/proposal-outcomes.jsonl" \
+           -type f -newer "$REF" 2>/dev/null | head -3)"
+
+if [ "${n_new:-0}" -gt 0 ] || [ -n "$hit" ]; then
+  echo "signal: $n_new new heartbeat row(s) since $ref${hit:+; changed: $(echo "$hit" | tr '\n' ' ')}"
+  exit 0
+fi
+echo "no new material since $ref"
+exit 7
