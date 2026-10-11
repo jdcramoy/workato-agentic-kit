@@ -1,0 +1,6 @@
+#!/bin/bash
+# KB corpus/pipeline integrity audit — memory/knowledge/skills coverage,
+# index parity, entropy, coarse vecs, fractal, live retrieval probes.
+# Zero LLM. Findings post to the gossip bus; report in workato-kb/audit/.
+# Uses the KB venv only when touching vec tables (not needed for audit reads).
+python3 "$HOME/.claude/knowledge/scripts/kb-audit.py"

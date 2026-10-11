@@ -1,0 +1,1 @@
+Run the estate-architect weekly review on the Workato dev workspace (read-only via AIRO dev MCP + wt): cost heatmap, zombie hygiene, config parity, lineage deltas, security posture, deprecation radar. Write the report to ~/.claude/knowledge/estate-reviews/$(date +%F).md. Actionable findings only: what broke, is it new, what's next.
