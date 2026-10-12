@@ -63,6 +63,36 @@ repeatable SOP extracted from real work:
   governing epic, and dispatches approved dev-scoped fixes with the full
   snapshot-verify-ledger cycle.
 
+## The governance trio (added 2026-10-09)
+
+- **jira-autotriage**: a standing grant (not a per-ticket ask) to triage,
+  autopsy, and technical-plan every ticket in the queue autonomously and in
+  bulk. The loop's decision matrix keeps development work gated: agents plan,
+  the human approves the plan before anything is built, and hotfix-class
+  items always escalate.
+- **grill-gate**: during planning, requirements get stress-tested before
+  work starts — the loop self-answers everything the repo, docs, and tools
+  can answer (with citations), then asks the human only the genuine judgment
+  calls in one batched round, each with a recommended answer.
+- **fusion**: a surgical multi-model cross-check. When a decision is
+  hard to reverse, production-facing, and subtle in its failure mode,
+  the same prompt goes to N model families on the gateway and the answers
+  are diffed before the human signs. Deliberately NOT the default: single-
+  model with role-routed pins covers most cases at zero cost.
+
+## The human-interface skills
+
+- **today**: the chief-of-staff command — assembles the day's ranked agenda
+  from every harness surface (proposal queue, triage, machine health, dream
+  verdict, calibration, calendar, messages) with work pre-staged: drafts
+  written, branches cut, decisions batched.
+- **josh-writing-voice**: anything the human will send (mail, chat, tickets,
+  documents) is drafted in a learned personal writing voice, so agent-drafted
+  prose does not need a rewrite pass.
+- **handoff**: writes the resumable state document at the end of any
+  multi-session build: what was touched (with links), what is verified with
+  evidence, what is blocked and on whom, and the exact next command.
+
 ## Why skills rather than documentation
 
 Documentation describes; skills change behavior. A skill is loaded at the
@@ -76,6 +106,12 @@ The team knowledge angle matters most: skills are installed from the kit
 repo, so every teammate's sessions load the same accumulated experience.
 When one person's session discovers a new platform bug, the fix ships to
 everyone as a skill update.
+
+The catalogue now runs to 57 skills (2026-10-11), from the two playbooks
+through estate operations (arch-diagram, blast-radius, manifest-hygiene,
+post-deploy-smoke, promotion-readiness, workato-browser-editor) to personal
+ops. A telemetry loop (see the memory page) measures which skills earn their
+load, so the catalogue can be pruned by evidence instead of accreting.
 
 Verdict: skills are the difference between an assistant that is smart and
 a harness that is experienced.

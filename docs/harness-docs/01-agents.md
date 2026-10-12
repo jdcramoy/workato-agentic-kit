@@ -86,6 +86,26 @@ night, each with the exact change drafted and the rollback stated, and it
 never touches project code: advisory-only is constitutional, and that arm
 does not exist even at the auto-dev rung.
 
+**evidence** (on demand, and nightly in the background). The claim hunter.
+It finds every "done / built / fixed / verified" statement from the last 24
+hours — in reports, on the bus, in ledgers — and re-checks each against live
+evidence: a Workato read, a job trace, a file, a Jira state. A FALSE verdict
+routes the claim to a dissenter review automatically. It never mutes and
+never edits the things it audits.
+
+**spec-distiller** (at the start of any build). Writes the build spec before
+any code: goal, scope in and out, objectively verifiable acceptance criteria,
+a design-gate note, and risks. Advisory only — it never builds. The point is
+that requirements get pinned into a contract while changing them is still
+cheap.
+
+**librarian** (weekly, and on demand). The fleet's first producer. Two jobs:
+organize the knowledge corpus (consolidation of related docs, distilled
+documentation, position pieces written collaboratively with the dissenter —
+every position carries a dissent log), and procure external content on a
+beat list (AI advancements, platform releases, engineering best practices),
+synthesized rather than pasted.
+
 **cortex** (hourly pulse, inside the hidden lane). The brain. The other agents
 are specialists; the cortex attends. Three jobs: attention (a ranked queue of
 what deserves focus, capped at 7 items, rebuilt every pulse), coherence
@@ -122,6 +142,15 @@ network property:
 - **Nothing self-approves.** No agent may approve its own proposal, and the
   humans' only required reading, the morning brief, leads with what the
   whole network corroborated.
+- **The evidence agent closes the loop.** Claims are spot-checked against
+  live state within a day of being made, and the reconciler cross-checks
+  internal ledgers against external systems nightly (see the memory page).
+- **Every agent runs on a pinned model family.** Each agent's frontmatter
+  pins the gateway model its role needs (a watchdog on the cost-efficient
+  flagship, the dissenter on a different family than the dreamer it
+  reviews, and so on), chosen from a benchmarked roster with a ledgered
+  bench script. Advisers and reviewers on different model lineages catch
+  errors that a single-family fleet shares blind.
 
 Verdict: individually each agent is a competent specialist with no memory;
 together they are a system that notices its own gaps, argues with itself

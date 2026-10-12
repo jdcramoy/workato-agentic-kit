@@ -25,6 +25,19 @@ updates a file.
   config, and the gossip bus.
 - **`garden-reports/`**: dated reports from every agent run, plus the
   proposal-outcomes log the gardener grades itself against.
+- **`integrity/`**: claim receipts and the nightly reconciliation reports.
+- **`predictions/`**: the calibration ledger (falsifiable predictions and
+  their Brier resolutions).
+- **`coverage/`**: denominator declarations ("green" = coverage, not exit code).
+- **`sagas/`**: hash-chained, resumable mission journals.
+- **`policies/`**: standing orders (human-approved decision rules) and the
+  regret ledger for deferred decisions.
+- **`skills-telemetry/`**: per-skill usage and fitness reports.
+- **`twin/`**: the offline snapshot of the whole estate (recipes,
+  connections, schedulers).
+- **`instruction-patches/`**: self-learning corrections to instruction
+  files, mined nightly by a zero-LLM script.
+- **`now/`**: the decision inbox and the day's ranked agenda.
 
 The scope test decides where knowledge lives: something that makes any
 project better goes to `domains/`; something that makes this project's
@@ -49,6 +62,49 @@ last-verified dates. A claim that keeps getting refuted gets superseded.
 Synthetic probe harnesses are deliberately parked; verification as a side
 effect of real work covers most of the value at none of the cost.
 
+## The integrity layer (added 2026-10-11)
+
+Three mechanisms now attack "the estate that lies to itself" at the source
+rather than by spot-check:
+
+- **Proof-carrying claims.** A claim of action ("deployed", "fixed",
+  "verified") carries a re-fetchable proof artifact: a job ID with a
+  row-count delta, a file hash, an API response digest, or a tracker
+  transition with a postcondition result. Claims without proofs are tier
+  "asserted" and rendered second-class everywhere; the nightly reconciler
+  flags any asserted claim older than a day.
+- **The reconciler.** A nightly diff of internal ledgers (claims, the
+  build ledger) against live external state (tracker statuses, the
+  platform API), flagging orphans (internal entry, no external proof) and
+  ghosts (external state, no internal record). Its first live run found
+  fifteen legacy claims without proof — the class this exists to kill.
+- **The denominator oracle.** Every job declares its expected population
+  (computed independently from the source), and "green" requires coverage
+  at or above a threshold, not exit code zero. Coverage numbers are
+  ledgered per run, so under-collection is arithmetic, not a hunch.
+
+## The calibration ledger (added 2026-10-11)
+
+Agents file falsifiable predictions with a confidence and a resolution
+date ("this recipe fails again within 7 days"; "this promotion passes
+first try"). A nightly resolver grades every due prediction and computes a
+Brier score per agent. Calibration becomes measured trust: the scores feed
+the trust ladder, adversarial-review fast-paths, and (planned) autonomy
+sizing. The first backfill mined twenty real predictions out of the
+watchdog, dream, and claim records; the first table already separates
+well-calibrated reporters from the rest. The precursor radar rides the
+same ledger: leading indicators over the estate's health history fire
+pre-failure predictions, so the radar's hit rate is itself scored.
+
+## The estate twin (added 2026-10-11)
+
+A nightly zero-LLM snapshot of the whole estate — every recipe, connection,
+and scheduler — into an offline, queryable twin. Questions like "what
+depends on this connection" are answered offline in a second; every answer
+stamps its snapshot age and refuses when older than a day. The twin is
+also the rehearsal surface: fault scenarios are injected into copies of it,
+and detection latency is measured against it (schedules page).
+
 ## Telemetry: which knowledge is load-bearing
 
 brain-guard logs every skill load, knowledge read, and knowledge write to
@@ -57,6 +113,13 @@ whose subject has moved on (candidate tombstones) and heavily-loaded
 knowledge (candidate hardening: verify its claims live). The same ledger
 feeds MCP cost and failure reporting, so context economics is measured,
 not guessed.
+
+The Skill League (added 2026-10-11) extends this to the skill catalogue
+itself: every skill invocation is logged with an outcome, backfilled from
+session transcripts, and rolled into a fitness table (usage, applied-ratio,
+trend). Bottom performers become reversible quarantine candidates and top
+performers get cited in the morning loadout — the catalogue is a managed
+portfolio instead of a junk drawer.
 
 ## The gardener's two mandates
 

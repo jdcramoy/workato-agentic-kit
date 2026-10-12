@@ -6,7 +6,7 @@ Repo: https://github.com/Workato-All/workato-agentic-kit
 
 A development harness wrapped around Claude Code that turns AI-assisted
 Workato development from "a smart intern with amnesia" into a compound
-asset. It is built from seven layers: enforcement mods that make the
+asset. It is built from these layers: enforcement mods that make the
 standing rules mechanical, playbook skills that pass everything already
 learned into every new session, a Developer API wrapper for the operations
 the platform tools do not expose, watcher agents that inspect the estate
@@ -20,7 +20,12 @@ self-similar schema at every scale — zoom retrieval answers memory questions
 at 10-30x less context and drills to exact evidence on demand), and a
 science layer for the dreaming team: prediction-error protocol,
 neuromodulation, per-agent calibration, an adversarial dissenter triad, and
-counterfactual rehearsal.
+counterfactual rehearsal. The newest layer (added 2026-10-11) turns the
+fleet from observers into an economy: an offline digital twin of the whole
+estate, proof-carrying claims, a denominator for every "done", a calibration
+ledger that measures trust instead of declaring it, standing orders that
+let the human legislate once instead of adjudicating forever, and a chaos
+canary that rehearses failures against the twin.
 **Why fractal memory matters (the case in numbers):** before it, a question
 paid for a whole file even when one section answered it — 2-10K tokens per
 memory look-up. The fractal ladder answers at the coarsest level that's
@@ -69,6 +74,8 @@ modes, and this harness exists because we hit all of them:
 | Learn | nightly and weekly | A curator agent reviews the knowledge base for drift, conflicts, and rot, mines session transcripts for unrecorded lessons, measures the harvest rate, and files proposals as git branches. Behavioral claims get re-verified as a side effect of real work. |
 | Operate | any time | The `wt` CLI wraps the Workato Developer API for what the platform tools do not expose: manifests, packages, recipe lifecycle, job reruns, connection CRUD, property upserts, plus full API self-discovery (302 endpoints across 32 groups harvested from the docs). |
 | Promote | on demand | A promotion orchestrator assembles batches from the build ledger, files the deployment story with real field IDs, and stages production execution behind explicit approval, one stage at a time. |
+| Model | per agent, always on | A multi-model gateway layer: every agent runs on a pinned model family chosen from a benchmarked roster (a bench script with a ledgered eval keeps the verdicts honest), and a surgical fusion command cross-checks any hard-to-reverse decision across model families before the human signs. |
+| Prove & predict | nightly | An integrity mesh requires a re-fetchable receipt behind every claim and reconciles claims against live external state nightly; a denominator oracle turns "it ran" into coverage arithmetic; a precursor radar mines health history for failure precursors; a calibration ledger scores every agent's predictions (Brier) so trust is measured, not declared. |
 | Dream | nightly | A backup job snapshots the whole harness (secrets redacted) so agent-made changes are reversible, and two dreamers read the record: the harness-dreamer mines recent transcripts for corrections, repeats, and recurring errors, and the project-dreamer (00:37 nightly) studies the busiest project's actual architecture and proposes what it should become. Both report and propose under a trust ladder, gated by the dissenter, and their queues are reviewed in one pass through the /proposals command. The agents talk over a race-free gossip bus; the dreamers read the whole night and synthesize it last. |
 
 ## The agents, as anatomy
@@ -83,6 +90,9 @@ modes, and this harness exists because we hit all of them:
 | project architect | project-dreamer | the nightly dreamer for the projects themselves: architecture debt, features, better solutions; dissenter-gated; advisory-only constitutional |
 | immune system | dissenter | adversarial review: attacks every proposal before it reaches a human |
 | the brain | cortex | attention, coherence, curiosity: reads everything, asks the questions nobody is asking, directs the network's focus |
+| testimony | evidence | the claim hunter: finds "done/fixed/verified" statements from the last 24 hours and re-checks each against live evidence; FALSE claims get a dissenter review |
+| spec distiller | spec-distiller | writes the build spec (goal, scope, verifiable acceptance criteria) BEFORE any build starts; advisory only |
+| technical writer | librarian | the first producer: consolidates docs, procures external content on a beat list, writes position pieces collaboratively with the dissenter |
 
 No agent mutates the estate or the knowledge base on its own authority.
 They report, propose, corroborate, and challenge each other; a human
@@ -145,6 +155,7 @@ agent-applied change a `git revert` away.
 5. [The nightly machine: schedules and the morning brief]
 6. [The gossip bus: how the agents talk]
 7. [The dreamer and the trust ladder: self-improvement with a human in the loop]
+8. [The Workato KB: RAG++ over all documentation, and the dreaming team]
 
 Verdict: this is a working system, not a proposal. It runs nightly, it
 documents itself, and every layer of it exists because a specific

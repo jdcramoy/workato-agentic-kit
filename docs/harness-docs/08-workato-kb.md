@@ -1,7 +1,14 @@
 # workato-kb
 
 Local RAG++ knowledge base over all Workato documentation and the BT team's
-Confluence, plus the dreaming-team science layer: fractal memory, the
+Confluence — grown (2026-10-10/11) into a general engineering canon: AI
+engineering (the major AI labs' cookbooks and docs, MCP specification,
+leading AI newsletters and blogs), systems architecture (cloud providers'
+architecture centers, SRE and distributed-systems canon, database design
+classics), integration patterns (enterprise integration patterns, webhook
+and event specs), durable execution engines, and performance engineering —
+24.6k documents and 165k+ chunks with the team's Confluence aboard — plus
+the dreaming-team science layer: fractal memory, the
 prediction-error protocol, neuromodulation, agent calibration, the dissenter
 triad, and the rehearsal cortex. The agent's daily companion for planning,
 scoping, building, and testing — and the corpus the dreamers dream on.

@@ -98,6 +98,43 @@ the reports, upgrade to propose and review the proposals for another week,
 then decide on auto-safe. The destination rung, auto-dev, exists and is
 defined, and only a human can switch it on.
 
+## What changed since the ladder was written
+
+**The Jira autonomy grant (2026-10-09).** Triage, investigation, autopsies,
+and technical planning became a standing grant: the loop works every ticket
+in the queue autonomously and in bulk, because a plan is a work product,
+not an approval item. The gate moved to where the risk is: development
+itself, hotfixes, and production writes stay human-gated. The queue got
+smaller without the authority getting larger.
+
+**Standing orders: legislate once (2026-10-11).** The decision inbox
+exposed the real bottleneck: the human re-adjudicating the same classes of
+decisions. Standing orders are the fix — a decision rule (scope, cap,
+expiry, a ratchet that auto-expires on any breach) is drafted from real
+decision history, attacked by the dissenter, approved once, and every
+future matching decision is pre-sorted. The unit of interaction shifts
+from decisions to policies. Three draft policies exist and await review;
+the matcher only ever shows what it would do.
+
+**Measured trust (2026-10-11).** The calibration ledger scores every
+agent's falsifiable predictions (Brier), so the ladder's rungs can
+eventually be sized by evidence instead of instinct: a well-calibrated
+watchdog earns wider autonomy; a poorly calibrated one gets its findings
+cross-checked. The shadow estate supports this with a regret ledger —
+deferred decisions are counterfactually checked against live state, so
+over-caution and under-caution both become visible.
+
+**Surgical fusion (2026-10-10).** For the decisions where a wrong answer
+is expensive and subtle — production-facing, hard to reverse — a fusion
+command puts the same question to several model families on the gateway
+and diffs the answers before the human signs. Gated, not default: most
+work runs single-model with role-routed model pins.
+
+**The pipeline today.** The replay gym (rehearsing past incidents as
+replays) is accepted and next to build; the proposal pipeline stands at 26
+filed, 8 built, and an incubation queue that the new evidence and
+calibration layers are designed to drain.
+
 ## Why autonomy scales with blast radius
 
 The ladder is not a single yes-or-no switch because risk is not uniform.

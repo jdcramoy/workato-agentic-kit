@@ -25,7 +25,10 @@ human the entire night with corroboration counts as the trust signal.
 | Mon 06:27 | Board minutes (fleet job) | renders the dreaming team's week through the sanitizer and publishes a reviewable draft page in the team space |
 | Mon 06:37 | Estate architect | full weekly estate review |
 | 00:13 | Regression harness | runs every recipe's test cases through the Test Automation API, reports failures with job IDs |
-| 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits |
+| 04:43 | Frontier nightly (zero-LLM) | no model is spawned: refresh the estate twin, resolve due predictions and publish the calibration table, run the precursor radar, backfill and report skill fitness. Five python scripts, one log, zero tokens |
+| 05:xx | Evidence hunt | re-checks the last 24 hours' "done/fixed/verified" claims against live state; FALSE verdicts get a dissenter review |
+| Mon 06:27 | Board minutes (fleet job) | renders the dreaming team's week through the sanitizer and publishes a reviewable draft page in the team space |
+| 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits — plus the decision inbox: today's ranked decisions with a budget, deferred ones rolling forward, and the day's loadout with work pre-staged |
 
 ## Schedule mechanics
 
@@ -59,6 +62,13 @@ and a job name. The watchdog opens its nightly report with that ledger: a
 skipped job is the first finding, not an invisible one. The dashboard
 renders the same data as timer chips, green for ran-within-window, grey for
 loaded-but-never-fired, red only for genuinely overdue.
+
+## The zero-LLM rule for machine-only work (added 2026-10-11)
+
+Jobs that need no judgment (snapshotting, scoring, reporting) no longer
+spawn a model at all: one bash wrapper runs five python scripts in sequence
+and logs to a single file. The fleet's fixed nightly cost stopped growing
+when the frontier stack landed, because its jobs were born zero-LLM.
 
 ## The morning brief
 
