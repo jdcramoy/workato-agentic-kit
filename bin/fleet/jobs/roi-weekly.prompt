@@ -1,0 +1,15 @@
+[roi-weekly] Zero-LLM-script job; you only run the scripts and verify the outputs.
+
+(1) Run: python3 ~/.claude/knowledge/scripts/roi/cost-weekly.py — refreshes the telemetry cost estimate (roi/data/cost-weekly.json). Confirm the file updated (mtime today).
+
+(2) Run: python3 ~/.claude/knowledge/scripts/roi/roi-roll.py — joins cost + velocity + shipped into roi/data/roi-monthly.json. Confirm it prints the monthly table without errors.
+
+(3) Run: python3 ~/.claude/knowledge/scripts/roi/render-board.py — regenerates roi/board.html. Confirm the file updated.
+
+(4) If today is the 1st of the month, ALSO run: python3 ~/.claude/knowledge/scripts/roi/one-pager.py — writes roi/one-pager-<YYYY-MM>.md. NOTE: the theses section depends on roi/theses.json (Josh-approved). If that file is missing or has no blocks, the one-pager renders a placeholder; flag that in one line. On any other day, skip.
+
+(5) Verify: every output it was asked to produce exists and is non-empty (ls -la + head). If a script errors, fix nothing silently — report the exact error in one line.
+
+Do NOT touch gateway-actuals.json (Josh supplies those figures manually). Do NOT edit theses.json.
+
+LAST STEP (never skip): Bash-append {"ts":"<now ISO>","job":"roi-weekly"} to ~/.claude/knowledge/garden-reports/heartbeat.jsonl.

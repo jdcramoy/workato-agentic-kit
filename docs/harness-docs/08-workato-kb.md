@@ -1,24 +1,28 @@
 # workato-kb
 
 Local RAG++ knowledge base over all Workato documentation and the BT team's
-Confluence — grown (2026-10-10/11) into a general engineering canon: AI
-engineering (the major AI labs' cookbooks and docs, MCP specification,
-leading AI newsletters and blogs), systems architecture (cloud providers'
-architecture centers, SRE and distributed-systems canon, database design
-classics), integration patterns (enterprise integration patterns, webhook
-and event specs), durable execution engines, and performance engineering —
-24.6k documents and 165k+ chunks with the team's Confluence aboard — plus
+Confluence, grown (2026-10-10/11) into a general engineering canon:
+
+- **AI engineering**: the major AI labs' cookbooks and docs, MCP specification, leading AI newsletters and blogs.
+- **Systems architecture**: cloud providers' architecture centers, SRE and distributed-systems canon, database design classics.
+- **Integration patterns**: enterprise integration patterns, webhook and event specs.
+- **Durable execution engines**.
+- **Performance engineering**.
+
+24.6k documents and 165k+ chunks with the team's Confluence aboard, plus
 the dreaming-team science layer: fractal memory, the
 prediction-error protocol, neuromodulation, agent calibration, the dissenter
 triad, and the rehearsal cortex. The agent's daily companion for planning,
-scoping, building, and testing — and the corpus the dreamers dream on.
+scoping, building, and testing, and the corpus the dreamers dream on.
 
 Built 2026-10-08 for Josh's agentic harness (v0.7.3). Companion skill:
 `workato-kb`; human slash command: `/kb`. Adoption package: the
 `workato-agentic-kit` repo carries this code + the harness scripts + skills +
 authoring rules.
 
-**Why this matters, in plain terms.** The agentic tools — AIRO MCP, the CLI, the Dev API — give an agent hands: the ability to build, push, and run things on Workato. But hands without experience means the agent starts every session knowing nothing, re-discovers the platform's traps by breaking things, and claims success without proof. This harness supplies the missing half: a local knowledge base over all Workato documentation, a case base built from the team's own solved bugs, catalogued platform traps that load into every session, and a verification habit that predicts outcomes before acting and checks them against real job traces after. Every lesson learned gets captured and loads into the next session, so the agent arrives smarter each day. Same tools, same model — development compounds instead of resetting.
+**Why this matters, in plain terms.** The agentic tools (AIRO MCP, the CLI, the Dev API) give an agent hands: the ability to build, push, and run things on Workato. But hands without experience means the agent starts every session knowing nothing, re-discovers the platform's traps by breaking things, and claims success without proof.
+
+This harness supplies the missing half: a local knowledge base over all Workato documentation, a case base built from the team's own solved bugs, catalogued platform traps that load into every session, and a verification habit that predicts outcomes before acting and checks them against real job traces after. Every lesson learned gets captured and loads into the next session, so the agent arrives smarter each day. Same tools, same model: development compounds instead of resetting.
 
 ## What this page covers
 
@@ -35,10 +39,10 @@ The knowledge base architecture (below): nine sources, the RAG++ retrieval stack
 | `github` | system-design-primer, awesome-software-architecture, awesome-system-design-resources | shallow clone + git pull |
 | `eip` | enterpriseintegrationpatterns.com (patterns + ramblings) | link-walk, ETag |
 | `claude` | Claude platform docs (llms.txt Markdown twins) | ETag conditional |
-| `confluence` | BT spaces extbt + intbt — **LOCAL-ONLY: never committed, backed up, or transmitted** | v2 API pagination + content-hash compare |
+| `confluence` | BT spaces extbt + intbt; **LOCAL-ONLY: never committed, backed up, or transmitted** | v2 API pagination + content-hash compare |
 | `attachments` | text-bearing Confluence attachments (PDF/Office) → markdown | per-page scan |
 
-Data root: `~/.claude/workato-kb/` (gitignored everywhere) — `corpus/`,
+Data root: `~/.claude/workato-kb/` (gitignored everywhere); `corpus/`,
 `manifest/*.jsonl`, `index/kb.db` (FTS5 + sqlite-vec + entropy + coarse layers),
 `index/fractal.db` (factlets), `diffs/` nightly change reports.
 
@@ -54,8 +58,8 @@ second round). Chunking is contextual: a deterministic header
 
 ## The fractal memory layer
 
-One factlet schema at every scale — topic (1) → file (112) → section (~370)
-→ chunk (~64K) — with parent links and zoom retrieval
+One factlet schema at every scale, topic (1) → file (112) → section (~370)
+→ chunk (~64K), with parent links and zoom retrieval
 (`kb zoom "topic"` answers coarse and drills on demand). The projection
 covers ALL harness memory: knowledge tree, claims ledger, agent SOPs, skills,
 CLAUDE.md tiers, every project's auto-memory, dream reports, calibration
@@ -65,13 +69,13 @@ rebuildable projection (incremental, per-source sha freshness). MRL-style
 funnel: doc-context embeddings as the coarse page layer boost chunk search.
 
 **Why fractal memory matters (the case in numbers):** before it, a question
-paid for a whole file even when one section answered it — 2-10K tokens per
+paid for a whole file even when one section answered it: 2-10K tokens per
 memory look-up. The fractal ladder answers at the coarsest level that's
 correct (~300-500 tokens) and drills only when a decision needs the detail:
 10-30x less context per memory question, with provenance (the exact evidence
 line) one drill away. The single schema at every scale means one tool set
-serves all of memory — the same zoom works on a transcript line, a knowledge
-file, a claim, or a docs page — and the coverage auditor makes completeness
+serves all of memory: the same zoom works on a transcript line, a knowledge
+file, a claim, or a docs page, and the coverage auditor makes completeness
 a checked fact instead of a hope. Brains organize memory this way (the same
 code recurs at every scale, retrieval zooms by cue); the harness version is
 queryable at any depth instantly, which is where it beats biology.
@@ -81,24 +85,24 @@ queryable at any depth instantly, which is where it beats biology.
 - **Prediction-error protocol** (`predict.py`): open a prediction before
   consequential actions, close against reality; deviations spike to the bus.
 - **Neuromodulation** (`mood.py`): one broadcast state (arousal/exploration/
-  risk/verification), 24h decay, spike coupling — a P1 puts the fleet in
+  risk/verification), 24h decay, spike coupling: a P1 puts the fleet in
   incident posture.
 - **Calibration** (`calibration.py`): per-agent prediction accuracy +
   overconfidence gap; weekly cards. The harness's improvement is a curve.
 - **Dissenter triad** (`dissent_ledger.py`): three critics on three model
   lineages; critics whose severity predicts real rejections gain weight;
-  `attack-classes` is the dreamer's pre-empt list — GAN dynamics for
+  `attack-classes` is the dreamer's pre-empt list (GAN dynamics for
   proposals.
-- **Rehearsal cortex** (`rehearsal.py`): counterfactual replay — a recipe's
+- **Rehearsal cortex** (`rehearsal.py`): counterfactual replay: a recipe's
   historical job fixtures, run against a candidate version, diffed against
   history.
 - **Dream math** (`dream_math.py`): Beta posterior P(accept) from Josh's real
   ledger (logistic fit at n≥20), EV with break-even sensitivity, assumption
   registry re-checked nightly.
 - **Lateral engine** (`lateral.py`): concept co-occurrence graph, PMI-
-  chance-corrected edges, vectorized Adamic-Adar — hidden pairs across docs ×
+  chance-corrected edges, vectorized Adamic-Adar: hidden pairs across docs ×
   practice; the dreamers' feedstock.
-- **Criticality** (`criticality.py`): fleet cascade power-law fit — is the
+- **Criticality** (`criticality.py`): fleet cascade power-law fit: is the
   network's information flow at the critical point? (alpha 1.8, small-n)
 - **Contextualize** (`contextualize.py`): local LLM (ollama qwen2.5:3b)
   writes per-doc situating lines, incremental 400/night.

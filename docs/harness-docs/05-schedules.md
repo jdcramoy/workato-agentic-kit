@@ -25,9 +25,10 @@ human the entire night with corroboration counts as the trust signal.
 | Mon 06:27 | Board minutes (fleet job) | renders the dreaming team's week through the sanitizer and publishes a reviewable draft page in the team space |
 | Mon 06:37 | Estate architect | full weekly estate review |
 | 00:13 | Regression harness | runs every recipe's test cases through the Test Automation API, reports failures with job IDs |
+| weekly | Antigen drill (fleet job) | chaotic-drill day: inject one known fault class into a dedicated dev canary, verify the pipeline notices, record detection verdict and immunity in a ledger |
+| 05:17 | Librarian (fleet job) | corpus consolidation and external-content procurement on a beat list |
 | 04:43 | Frontier nightly (zero-LLM) | no model is spawned: refresh the estate twin, resolve due predictions and publish the calibration table, run the precursor radar, backfill and report skill fitness. Five python scripts, one log, zero tokens |
 | 05:xx | Evidence hunt | re-checks the last 24 hours' "done/fixed/verified" claims against live state; FALSE verdicts get a dissenter review |
-| Mon 06:27 | Board minutes (fleet job) | renders the dreaming team's week through the sanitizer and publishes a reviewable draft page in the team space |
 | 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits, plus the decision inbox: today's ranked decisions with a budget, deferred ones rolling forward, and the day's loadout with work pre-staged |
 
 ## Schedule mechanics

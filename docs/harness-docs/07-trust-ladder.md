@@ -81,7 +81,9 @@ recommendations, cortex work-shaped attention items), plus every Jira
 attention item the autotriage loop files each pass: technical plans
 awaiting authorization, hotfix-class bugs, ambiguous tickets, and inbound
 signals (new tickets assigned to Josh, new comments, tickets aging
-without movement). Same pass shape: decision cards ranked by URGENCY
+without movement).
+
+Same pass shape: decision cards ranked by URGENCY
 first, then age, so time-sensitive work never hides behind old hygiene;
 batched verdicts (file story or bug, build now in dev, queue only,
 reject, defer), one mechanical recorder, one summary table. Filing
@@ -90,7 +92,9 @@ certain existing epic, or a new one under the FY27 V2MOM work item),
 assigned to Josh, points set at creation, the finding's evidence inline.
 Build-now executes dev-estate work only, with the
 snapshot-edit-test-verify-ledger cycle; UAT and production keep their
-standing gates. Rejection patterns feed a triage-taste thread on the bus,
+standing gates.
+
+Rejection patterns feed a triage-taste thread on the bus,
 so the watchers stop re-raising what the human already declined.
 
 The suggested cadence is earn-then-extend: run report for a week and read
@@ -112,15 +116,20 @@ exposed the real bottleneck: the human re-adjudicating the same classes of
 decisions. Standing orders are the fix: a decision rule (scope, cap,
 expiry, a ratchet that auto-expires on any breach) is drafted from real
 decision history, attacked by the dissenter, approved once, and every
-future matching decision is pre-sorted. The unit of interaction shifts
+future matching decision is pre-sorted.
+
+The unit of interaction shifts
 from decisions to policies. Three draft policies exist and await review;
 the matcher only ever shows what it would do.
+
 
 **Measured trust (2026-10-11).** The calibration ledger scores every
 agent's falsifiable predictions (Brier), so the ladder's rungs can
 eventually be sized by evidence instead of instinct: a well-calibrated
 watchdog earns wider autonomy; a poorly calibrated one gets its findings
-cross-checked. The shadow estate supports this with a regret ledger:
+cross-checked.
+
+The shadow estate supports this with a regret ledger:
 deferred decisions are counterfactually checked against live state, so
 over-caution and under-caution both become visible.
 
