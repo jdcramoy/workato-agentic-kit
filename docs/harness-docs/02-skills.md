@@ -71,7 +71,7 @@ repeatable SOP extracted from real work:
   the human approves the plan before anything is built, and hotfix-class
   items always escalate.
 - **grill-gate**: during planning, requirements get stress-tested before
-  work starts — the loop self-answers everything the repo, docs, and tools
+  work starts: the loop self-answers everything the repo, docs, and tools
   can answer (with citations), then asks the human only the genuine judgment
   calls in one batched round, each with a recommended answer.
 - **fusion**: a surgical multi-model cross-check. When a decision is
@@ -82,7 +82,7 @@ repeatable SOP extracted from real work:
 
 ## The human-interface skills
 
-- **today**: the chief-of-staff command — assembles the day's ranked agenda
+- **today**: the chief-of-staff command, assembles the day's ranked agenda
   from every harness surface (proposal queue, triage, machine health, dream
   verdict, calibration, calendar, messages) with work pre-staged: drafts
   written, branches cut, decisions batched.

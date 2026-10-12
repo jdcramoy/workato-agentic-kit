@@ -1,0 +1,9 @@
+#!/bin/bash
+# queue-drift: daily rebuild-and-diff of the triage queue projection vs the
+# live queue; alarms on drift (position: event-sourced-fleet-state, F2 fix,
+# 2026-10-11). Includes a deliberate-corruption drift drill once per run:
+# corrupt a scratch copy, rebuild, confirm the diff CATCHES it.
+python3 "$HOME/.claude/knowledge/scripts/rebuild-queue.py" --out /tmp/queue-projection-rebuilt.jsonl --compare || {
+  echo "$(date '+%F %T') queue-drift: DRIFT DETECTED between outcomes log and live queue" >> "$HOME/.claude/knowledge/garden-reports/queue-drift-alerts.log"
+}
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"queue-drift\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"

@@ -417,7 +417,7 @@ def cmd_packages(a):
     if a.op == "export":
         data = a.body or {}
         status, result = request(
-            host, token, "POST", f"/api/packages/export/{a.manifest_id}",
+            host, token, "POST", f"/api/packages/export/{a.id}",
             data=data)
         emit(result, a.raw)
     elif a.op == "import":
@@ -435,12 +435,12 @@ def cmd_packages(a):
         emit(result, a.raw)
     elif a.op == "get":
         status, result = request(host, token, "GET",
-                                 f"/api/packages/{a.package_id}")
+                                 f"/api/packages/{a.id}")
         emit(result, a.raw)
     elif a.op == "download":
         status, payload = request(host, token, "GET",
-                                  f"/api/packages/{a.package_id}/download")
-        dest = a.out or f"package-{a.package_id}.zip"
+                                  f"/api/packages/{a.id}/download")
+        dest = a.out or f"package-{a.id}.zip"
         with open(dest, "wb") as f:
             f.write(payload)
         print(f"saved {dest} ({len(payload)} bytes)")

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # agentic-workato-kit installer
-# Installs: 2 mods (workato-guardrails, brain-guard), 4 agents
-# (brain-gardener, workato-watchdog, estate-architect, promotion-orchestrator),
-# the knowledge-tree scaffold + scripts, and the weekly/nightly schedules.
+# Installs: 2 mods (workato-guardrails, brain-guard), the agent SOPs
+# (11-agent fleet), the knowledge-tree scaffold + scripts (incl. the frontier
+# stack: estate twin, integrity mesh, denominator oracle, calibration ledger,
+# precursor radar, saga journals, standing orders, skill league, chaos
+# canary, shadow estate), the frontier-nightly zero-LLM fleet job, and the
+# weekly/nightly schedules.
 #
 # Prerequisites (checked below): Claude Code >= 2.1.287, git, python3, jq.
 # You must ALSO connect these MCP servers in Claude Code before anything
@@ -296,15 +299,24 @@ finish_step agents
 begin_step knowledge+dreams
 K="${KIT_HOME}/.claude/knowledge"
 mkdir -p "${K}/domains" "${K}/projects" "${K}/scripts" "${K}/claims" \
-         "${K}/garden-reports" "${K}/architecture" "${K}/replay-fixtures"
+         "${K}/garden-reports" "${K}/architecture" "${K}/replay-fixtures" \
+         "${K}/integrity" "${K}/predictions" "${K}/coverage" "${K}/sagas" \
+         "${K}/policies" "${K}/skills-telemetry" "${K}/twin" "${K}/chaos" \
+         "${K}/now" "${K}/instruction-patches" "${K}/scripts/frontier"
 for f in knowledge/scripts/*; do
   [ -f "$f" ] || continue  # skip dirs (e.g. __pycache__) and no-match literals
   render "$f" "${K}/scripts/$(basename "$f")"
 done
+# frontier contracts ride along as data (not rendered — no tokens inside)
+if [ -f knowledge/scripts/frontier/CONTRACTS.md ]; then
+  cp knowledge/scripts/frontier/CONTRACTS.md "${K}/scripts/frontier/CONTRACTS.md"
+fi
 if ! chmod +x "${K}/scripts/"*.py 2>/dev/null; then
   degraded "knowledge scripts not marked executable (permissions?) — fix: chmod +x ${K}/scripts/*.py"
 fi
 touch "${K}/claims/claims.jsonl"
+touch "${K}/integrity/claims.jsonl" "${K}/predictions/predictions.jsonl" \
+      "${K}/coverage/ledger.jsonl"
 [ -f "${K}/INDEX.md" ] || render "knowledge/INDEX.template.md" "${K}/INDEX.md"
 
 # dreams scaffold (dreamer + gossip bus)
@@ -312,7 +324,7 @@ D="${K}/dreams"
 mkdir -p "${D}/bus" "${D}/proposals" "${D}/data" "${D}/visions"
 mkdir -p "${KIT_HOME}/.claude/knowledge/cortex" "${KIT_HOME}/.claude/knowledge/regression-canon"
 touch "${KIT_HOME}/.claude/knowledge/cortex/questions.jsonl" "${KIT_HOME}/.claude/knowledge/regression-canon/canon.jsonl"
-for a in docs-watch brain-gardener workato-watchdog harness-dreamer estate-architect promotion-orchestrator cortex; do
+for a in docs-watch brain-gardener workato-watchdog harness-dreamer estate-architect promotion-orchestrator cortex evidence librarian; do
   touch "${D}/bus/${a}.jsonl"
 done
 [ -f "${D}/config.json" ] || cp "$(pwd)/knowledge/dreams/config.example.json" "${D}/config.json"
@@ -402,7 +414,7 @@ while IFS= read -r f; do
   dest="${KIT_HOME}/.claude/skills/${f#skills/}"
   render "$f" "$dest"
 done < <(find skills -type f \( -name "*.md" -o -name "*.yaml" \))
-echo "skills installed: airo-mcp-playbook, workato-development-playbook, jira-story-standards"
+echo "skills installed: $(ls skills/ | wc -l | tr -d " ") skill SOPs (playbooks, governance, estate ops)"
 finish_step skills
 
 # --- step: cli tools (wt, prod wrappers, brain MCP) ---------------------------
@@ -431,6 +443,37 @@ if [ "${KIT_SKIP_INSTALL:-0}" != "1" ]; then
   else
     cat "$MCP_OUT"
     degraded "mcp brain not registered (claude CLI error above) — fix: claude mcp add brain --scope user -- ${KIT_HOME}/.local/bin/brain-mcp"
+  fi
+fi
+# frontier-nightly fleet job (zero-LLM loop: twin -> calibration -> radar ->
+# skill fitness) + its launchd plist. Installed on-schedule but never runs
+# silently: the log under ~/.local/state/fleet/ is the evidence trail.
+if [ -f bin/fleet/jobs/frontier-nightly.sh ]; then
+  mkdir -p "${KIT_HOME}/.local/bin/fleet/jobs" "${KIT_HOME}/.local/state/fleet"
+  render "bin/fleet/jobs/frontier-nightly.sh" "${KIT_HOME}/.local/bin/fleet/jobs/frontier-nightly.sh"
+  chmod +x "${KIT_HOME}/.local/bin/fleet/jobs/frontier-nightly.sh"
+  PLIST="${KIT_HOME}/Library/LaunchAgents/com.josh.fleet.frontier-nightly.plist"
+  mkdir -p "${KIT_HOME}/Library/LaunchAgents"
+  cat > "$PLIST" << PLISTEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.josh.fleet.frontier-nightly</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>${KIT_HOME}/.local/bin/fleet/jobs/frontier-nightly.sh</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>43</integer></dict>
+  <key>StandardOutputPath</key><string>${KIT_HOME}/.local/state/fleet/frontier-nightly.launchd.log</string>
+  <key>StandardErrorPath</key><string>${KIT_HOME}/.local/state/fleet/frontier-nightly.launchd.log</string>
+</dict></plist>
+PLISTEOF
+  if launchctl unload "$PLIST" 2>/dev/null; then launchctl load "$PLIST"; fi
+  if launchctl load "$PLIST" 2>/dev/null; then
+    echo "fleet job installed: frontier-nightly (04:43, zero-LLM: twin -> calibration -> radar -> skill fitness)"
+  else
+    degraded "frontier-nightly plist not loaded — fix: launchctl load $PLIST"
   fi
 fi
 finish_step cli-tools

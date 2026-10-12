@@ -88,20 +88,20 @@ does not exist even at the auto-dev rung.
 
 **evidence** (on demand, and nightly in the background). The claim hunter.
 It finds every "done / built / fixed / verified" statement from the last 24
-hours — in reports, on the bus, in ledgers — and re-checks each against live
+hours (in reports, on the bus, in ledgers) and re-checks each against live
 evidence: a Workato read, a job trace, a file, a Jira state. A FALSE verdict
 routes the claim to a dissenter review automatically. It never mutes and
 never edits the things it audits.
 
 **spec-distiller** (at the start of any build). Writes the build spec before
 any code: goal, scope in and out, objectively verifiable acceptance criteria,
-a design-gate note, and risks. Advisory only — it never builds. The point is
+a design-gate note, and risks. Advisory only: it never builds. The point is
 that requirements get pinned into a contract while changing them is still
 cheap.
 
 **librarian** (weekly, and on demand). The fleet's first producer. Two jobs:
 organize the knowledge corpus (consolidation of related docs, distilled
-documentation, position pieces written collaboratively with the dissenter —
+documentation, position pieces written collaboratively with the dissenter;
 every position carries a dissent log), and procure external content on a
 beat list (AI advancements, platform releases, engineering best practices),
 synthesized rather than pasted.
@@ -161,14 +161,14 @@ before bothering a human, and gets harder to fool every week.
 The two dreamers (harness and project) are where the night's learning
 compounds. Their constitution: convene a board of professional lenses
 (doctor, lawyer, artist, musician, CEO, engineer, accountant, product
-manager, CTO — rotating, running on three different model lineages with the
+manager, CTO, rotating, running on three different model lineages with the
 frontier model cost-governed to one seat per night); consume the lateral
 engine's hidden concept pairs as raw material; attach a math block to every
 proposal (Bayesian acceptance probability learned from Josh's real ledger,
 expected value, break-even sensitivity); register load-bearing assumptions
-for nightly re-checking; file same-night ideas as incubating — a different
+for nightly re-checking; file same-night ideas as incubating: a different
 model re-judges them cold, and only ideas that survive two re-looks or gain
 evidence reach Josh's queue. In the dreamer's autonomous mode it may spend a
-small budget testing an idea with a probe recipe — dreams with measurements
+small budget testing an idea with a probe recipe: dreams with measurements
 outrank dreams with speculation. Weekly board minutes publish as a reviewable
 draft page in the team space.

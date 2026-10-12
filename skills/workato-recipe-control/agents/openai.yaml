@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workato Recipe Control"
+  short_description: "Safely start or stop Workato recipes"
+  default_prompt: "Use $workato-recipe-control to start or stop one or more Workato recipes."

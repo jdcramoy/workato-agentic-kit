@@ -1,0 +1,6 @@
+# Librarian weekly pass — 8th agent (created 2026-10-11)
+# Durable cron: 37 21 * * 0 (Sunday 21:37), self-rearming (recreates before
+# the 7-day native expiry), persists to the project .claude/scheduled_tasks.json.
+# Agent file: agents/librarian.md — full 5-phase SOP inside.
+# Schedule slot chosen clear of: brain-gardener 22:43, harness-dreamer 23:43,
+# project-dreamer 00:37.

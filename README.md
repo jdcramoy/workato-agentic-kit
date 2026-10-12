@@ -2,7 +2,7 @@
 
 A self-teaching, self-learning, and self-healing development harness for
 agentic Workato work in Claude Code. It wraps an AI-assisted Workato
-developer (human or agent) in seven layers:
+developer (human or agent) in these layers:
 
 - Enforcement mods that make the standing rules mechanical
 - Playbook skills that pass everything already learned to every session
@@ -15,6 +15,15 @@ developer (human or agent) in seven layers:
   releases
 - A nightly dreamer that mines every session transcript to improve the
   harness itself
+- A multi-model gateway layer: every agent runs on a pinned, benchmarked
+  model family, and a surgical fusion command cross-checks hard-to-reverse
+  decisions across model families before the human signs
+- An economy layer that turns the fleet from observers into participants:
+  an offline digital twin of the estate, proof-carrying claims, coverage
+  arithmetic for every "done", a calibration ledger that measures trust,
+  standing orders that let the human legislate once instead of adjudicating
+  forever, resumable mission journals, a chaos canary, and a regret ledger
+  for deferred decisions
 
 Under all of it sit the two knowledge layers:
 
@@ -55,8 +64,8 @@ sanitization pass (untrack config.sh, genericize the org identifiers).
 The kit's knowledge layer has two halves, and together they are the part most
 people end up most excited about.
 
-**Where to get it:** the KB ships as its own installable pack —
-[Workato-All/workato-dev-kb](https://github.com/Workato-All/workato-dev-kb) —
+**Where to get it:** the KB ships as its own installable pack,
+[Workato-All/workato-dev-kb](https://github.com/Workato-All/workato-dev-kb),
 with the curated playbooks, the sanitized pipeline, and its own hardened
 installer (`git clone` + `./install.sh`). This kit's mechanics work without
 it; the pack is the supported way to add it. The `workato-kb` repo itself is
@@ -64,7 +73,7 @@ the author's private upstream and not the consumer path.
 
 **The KB (RAG++)** is a local, nightly-synced corpus of everything worth
 knowing about the platform: all Workato product documentation (the docs site
-publishes clean Markdown twins of every page — no scraping), the product
+publishes clean Markdown twins of every page, no scraping), the product
 changelog, the blog, the Enterprise Integration Patterns catalog, the
 architecture-canon repos, the Claude platform docs, and your own team's
 Confluence spaces. A question runs full-text and vector search in parallel,
@@ -73,8 +82,8 @@ layers (information density and term concentration) push distinctive content
 above boilerplate before a confidence gate decides whether to search again
 harder. Every answer carries its source URL.
 
-**The fractal memory layer** indexes all of it — plus your own knowledge
-tree, every agent SOP, every skill, every project's memory — as one
+**The fractal memory layer** indexes all of it (plus your own knowledge
+tree, every agent SOP, every skill, every project's memory) as one
 self-similar schema at every scale. A question is answered at the coarsest
 depth that works (~300-500 tokens) and drills to the exact evidence only
 when the decision needs it: roughly 10x less context per memory question.
@@ -110,12 +119,15 @@ Every agent is an organ. The roster:
 | imagination | harness-dreamer | dreams (pragmatic + visionary); fixes at auto-dev |
 | immune system | dissenter | adversarial review: attacks every proposal before it reaches a human; "steel manned, could not break it" is the strongest approval signal |
 | project architect | project-dreamer | the nightly dreamer for Josh's PROJECTS (not the harness): mines project sessions, memory, repo docs, and git, then proposes architecture debt, features, and better solutions; advisory-only constitutional |
-| **the brain** | **cortex** | **attention, coherence, curiosity — reads everything, asks the questions nobody is asking, and directs the whole network's focus** |
+| **the brain** | **cortex** | **attention, coherence, curiosity: reads everything, asks the questions nobody is asking, and directs the whole network's focus** |
+| testimony | evidence | the claim hunter: re-checks the last 24 hours' "done/fixed/verified" statements against live evidence; FALSE verdicts get a dissenter review |
+| spec distiller | spec-distiller | writes the build spec (goal, scope, verifiable acceptance criteria) before any build starts; advisory only |
+| technical writer | librarian | the first producer: consolidates docs, procures external content on a beat list, writes position pieces with the dissenter |
 
 The cortex is the difference between a bundle of scheduled jobs and a
 nervous system: it reads the bus, the dreams, the claims, the canon, the
 ledgers, and the briefs, and answers the question the rest of the machine
-can't — what should we be attending to right now, and what is nobody
+can't: what should we be attending to right now, and what is nobody
 asking? Its outputs: the attention queue (the morning brief's top 3),
 contradiction alerts (the highest-value signal in the system), and the
 questions ledger that feeds the dreamer's mining targets and the gardener's
@@ -126,27 +138,29 @@ attend, max 3 bus lines, sleep.
 
 ```mermaid
 graph TB
-    subgraph SESSIONS[" daytime — every session "]
+    subgraph SESSIONS[" daytime: every session "]
         CC["Claude Code sessions"] --> MODS["🛡 enforcement mods\n13 guardrails hooks + 5 brain-guard hooks\nredact · gate · ledger · snapshot"]
         CC --> SKILLS["playbook skills\nAIRO traps · delivery lifecycle"]
         MODS --> LEDGERS["ledgers\nbuild ledger · claims · audit · telemetry"]
     end
 
-    subgraph NIGHT[" nightly — the machines "]
+    subgraph NIGHT[" nightly: the machines "]
         DW["docs-watch\n22:15"] --> BUS
         BG["brain gardener\n22:43"] --> BUS
         WD["watchdog\n23:13"] --> BUS
-        BUS["📮 gossip bus\nper-agent outboxes — single writer\ncorroborate, never duplicate"]
+        BUS["📮 gossip bus\nper-agent outboxes, single writer\ncorroborate, never duplicate"]
         HB["harness backup\n23:33"] --> REPO[("backup repo\nsecrets redacted")]
-        DREAMER["🌙 harness dreamer\n23:43 — reader-in-chief"]
+        DREAMER["🌙 harness dreamer\n23:43, reader-in-chief"]
         BUS --> DREAMER
         TX["transcripts\n593 files, 1.4GB"] --> MINE["dream-mine.py\ncorrections · repeats · errors"]
         MINE --> DREAMER
         DREAMER --> LADDER["trust ladder\nreport → propose → auto-safe → auto-dev"]
         LADDER --> REPORTS["dream reports\n+ proposal queue"]
+        FN["frontier nightly\n04:43, zero-LLM, no model spawn\ntwin · calibration · radar · skill fitness"] --> BUS
+        FN --> TWIN[("estate twin\n6,333 recipes · 913 connections\noffline, staleness-gated")]
     end
 
-    subgraph MORNING[" morning — the human "]
+    subgraph MORNING[" morning: the human "]
         MB["morning brief\n07:13"] --> JOSH["Josh\napproves · upgrades · steers"]
         REPORTS --> MB
         BUS --> MB
@@ -197,6 +211,21 @@ applies without Josh, and anything applied is one git revert away.
    reports and proposes under a three-rung trust ladder. The agents talk over
    a race-free gossip bus; the dreamer reads the whole night's bus and
    synthesizes it last.
+8. **Model (per agent).** Every agent pins the gateway model family its role
+   needs, chosen from a benchmarked roster (`model-bench.py`, verdicts in a
+   ledger). Advisers and reviewers deliberately run on different families
+   than the agents they check, and a `fusion` skill cross-checks
+   hard-to-reverse calls across families before the human signs.
+9. **Prove & predict (nightly).** Claims carry re-fetchable receipts and get
+   reconciled against live state; jobs declare their expected population so
+   "green" means coverage; agents file falsifiable predictions that a
+   nightly resolver scores (Brier); a precursor radar mines health history
+   for pre-failure signals.
+10. **Economize (nightly, zero-LLM).** Standing orders turn one human ruling
+   into a policy that pre-sorts every future matching decision; the shadow
+   estate runs deferred decisions as counterfactuals into a regret ledger;
+   a chaos canary injects faults into twin copies and measures whether the
+   monitoring would notice; skill telemetry grades the catalogue itself.
 
 ## The inventory in detail
 
@@ -282,6 +311,20 @@ first. Phase 4 stages production execution: dependency order, VUA
 verification after import, smoke tests per stage, each step on an explicit
 go.
 
+**evidence** (on demand and nightly). The claim hunter. Finds every
+"done / built / fixed / verified" statement from the last 24 hours and
+re-checks each against live evidence: a Workato read, a job trace, a file,
+a Jira state. FALSE verdicts route to a dissenter review automatically. It
+never mutes and never edits the things it audits.
+
+**spec-distiller** (at the start of any build). Pins the requirements into
+a spec (goal, scope in and out, verifiable acceptance criteria, risks)
+while changing them is still cheap. Advisory only.
+
+**librarian** (weekly). The fleet's first producer: consolidates related
+docs, procures external content on a beat list, and writes position pieces
+collaboratively with the dissenter (every position carries a dissent log).
+
 ### Knowledge system
 
 - **Knowledge tree** (`~/.claude/knowledge/`): a git repo. `INDEX.md` routes
@@ -309,6 +352,16 @@ go.
   trust-ladder `config.json`, and the gossip bus (`bus/<agent>.jsonl`).
 - **Garden reports** (`garden-reports/`): dated reports from every agent
   run, plus the proposal-outcomes log the gardener uses to grade itself.
+- **Frontier ledgers** (2026-10-11): `integrity/` (claim receipts + the
+  nightly orphan/ghost reconciliation), `predictions/` (the calibration
+  ledger: falsifiable predictions resolved nightly, Brier scored per
+  agent), `coverage/` (expected-vs-observed population lines; "green" =
+  coverage >= 0.95), `sagas/` (hash-chained resumable mission journals),
+  `policies/` (standing orders awaiting/holding human approval, plus the
+  regret ledger for deferred decisions), `skills-telemetry/` (per-skill
+  fitness), `twin/` (the offline estate snapshot), `chaos/` (canary fault
+  scenarios and detection reports), `now/` (the decision inbox).
+  Schemas and the disjoint-ownership map: `knowledge/scripts/frontier/CONTRACTS.md`.
 
 ### Playbook skills (installed to `~/.claude/skills/`)
 
@@ -362,6 +415,8 @@ project property upserts. Three discovery and testing capabilities on top:
   it scans the workspace for recipes with test cases, runs them all, and
   writes a pass/fail report with job IDs for autopsy (first live run: 400
   recipes scanned, 3 with cases, 2 real regressions caught).
+- `wt dt query <table>`: data-table record queries (the AIRO MCP query
+  route 404s in some workspaces; this is the reliable path).
 - `wt api METHOD <path>`: raw passthrough, so every discovered endpoint is
   callable even before a dedicated subcommand exists.
 
@@ -400,6 +455,9 @@ the exact prompts.
 | Mon 06:07 | Corpus indexer (recipes + task counters, dev and prod) |
 | Mon 06:37 | Estate architect (full review) |
 | 00:13 daily | Regression harness: run every recipe's test cases via the Test Automation API, report failures with job IDs |
+| 04:43 daily (launchd, zero-LLM) | Frontier nightly: estate twin refresh, prediction resolution + calibration table, precursor radar, skill-fitness backfill and report. Five python scripts, no model spawn |
+| weekly (fleet job) | Antigen drill: inject one fault class into the dedicated dev canary, verify detection, record immunity |
+| 05:17 daily (fleet job) | Librarian: corpus consolidation + external-content procurement |
 | Tue 06:57 | Harness-docs sync: reconcile live harness <-> repo <-> Confluence doc tree (see "Keeping the docs honest") |
 
 ## Install
@@ -407,19 +465,19 @@ the exact prompts.
 1. Prerequisites: Claude Code 2.1.287 or later, git, python3, jq. Connect
    your MCP servers first (AIRO dev and prod, dependency tracker, Jira);
    the kit cannot do your authentication.
-2. `./onboard.sh` — an interactive questionnaire: workspace IDs, Jira
+2. `./onboard.sh`: an interactive questionnaire: workspace IDs, Jira
    project/fields, CLI profile names, backup repo, and your API tokens
    (pasted once, stored straight into the macOS keychain, never written to
    a file). Answers are validated and written to config.sh (chmod 600).
    Prefer hand-editing? `cp config.example.sh config.sh` works too.
-3. `./install.sh` — renders templates and installs: mods, agents, skills,
+3. `./install.sh`: renders templates and installs: mods, agents, skills,
    scripts, prod wrappers, dreams scaffold, gossip outboxes.
-4. `./verify.sh` — the doctor. 32 checks across prereqs, config, binaries,
+4. `./verify.sh`: the doctor. 32 checks across prereqs, config, binaries,
    live dev/prod identity, mods, knowledge tree, agents, skills, MCP
    health, crons, and backup. Exits non-zero on hard failures.
 5. Restart Claude Code, then run `/guardrails` to confirm the hooks loaded
    (13 hooks in workato-guardrails).
-9. Uninstall any time: `./uninstall.sh` — removes everything the kit
+9. Uninstall any time: `./uninstall.sh` removes everything the kit
    installed, preserves your accumulated knowledge (add `--purge` to delete
    that too).
 5. Prod CLI access (only if you gate production through this kit): store the
@@ -492,7 +550,7 @@ safe to let agents modify the system they run in: any applied change is
 reversible with `git revert` on the backup repo.
 
 After the snapshot, the same job pushes the two repos that carry their own
-remotes — the knowledge tree (`josh-knowledge`) and this kit — committing
+remotes (the knowledge tree (`josh-knowledge`) and this kit), committing
 anything dirty first, with a token-shaped-string scan on the staged diff
 that refuses the push on a hit, and a manifest line recording what went
 out. Up-to-date repos are a silent no-op.
@@ -504,7 +562,7 @@ out. Up-to-date repos are a silent no-op.
 - Restore: clone the repo, copy trees back to `~/.claude` / `~/mods`,
   re-enter keychain tokens, reinstall plugins, reload LaunchAgents.
 
-### The dreamer (23:43) — agent type `harness-dreamer`
+### The dreamer (23:43), agent type `harness-dreamer`
 
 The fifth agent SOP, and the only one that reads the harness instead of the
 estate. The nightly cron spawns it; it returns the report path + verdict.
@@ -518,14 +576,14 @@ sequences.
 
 The daily dream report (`knowledge/dreams/<date>.md`) carries two mandates:
 
-- **PRAGMATIC** — evidence-cited findings for four questions: what is Josh
+- **PRAGMATIC**: evidence-cited findings for four questions: what is Josh
   working on, what is he repeating, what are the frequent mistakes or
   misses, what would have made yesterday faster. Every finding cites a
   transcript ref, ledger line, or count.
-- **THE VISION** — the richest man among us is a dreamer who sits back and
+- **THE VISION**: the richest man among us is a dreamer who sits back and
   dreams, writes, or sings about what is to come. Every night leaves a seed
   of pure speculation in the report; when a vision is substantial the
-  dreamer writes it whole to `knowledge/dreams/visions/` — essay, letter
+  dreamer writes it whole to `knowledge/dreams/visions/`: essay, letter
   from the future, manifesto, or song. No evidence requirement; the quality
   bar is "would this make Josh think differently". Visions mature down the
   pipeline: vision → invention → proposal → skill.
@@ -564,9 +622,9 @@ Suggested cadence: run `report` for a week, read the reports, upgrade to
 
 The human side of both dream loops is one command. `/proposals` (the
 silver platter) renders every pending proposal from EITHER dreamer as a
-decision card — slug, kind, risk, source dreamer, age, the proposal's own
+decision card: slug, kind, risk, source dreamer, age, the proposal's own
 value case, its strongest evidence ref, and blast radius for anything
-touching a live Workato asset — then collects verdicts in one batched
+touching a live Workato asset, then collects verdicts in one batched
 pass: approve, build now, reject, or defer. Every verdict is recorded
 mechanically (`proposal-decide.py` stamps the proposal and appends the
 outcomes log the gardener grades itself against), so reviews never depend
@@ -578,7 +636,7 @@ which is how the proposals get better over time.
 
 ### The triage surface (`/triage`)
 
-The watchers don't just report — they FILE. Watchdog autopsies, regression
+The watchers don't just report, they FILE. Watchdog autopsies, regression
 failures, gardener hygiene items, architect recommendations, work-shaped
 cortex attention items, and every Jira attention item the autotriage loop
 sweeps (plans awaiting authorization, hotfix-class bugs, new tickets
@@ -587,8 +645,8 @@ findings in a shared queue (`knowledge/triage/queue.jsonl`, appended by
 the source agent, status changes only via `triage-decide.py`). `/triage`
 renders the open queue as decision cards ranked by urgency first, then
 age, and collects verdicts in one batched pass: **file story/bug** (Jira
-item created immediately under the governing epic — a certain existing
-epic or a new one under the FY27 V2MOM work item — assigned to Josh,
+item created immediately under the governing epic (a certain existing
+epic, or a new one under the FY27 V2MOM work item), assigned to Josh,
 points at creation), **build now** (dev-estate only, snapshot-verify-
 ledger cycle; UAT/prod gates untouched), **queue only**, **reject**, or
 **defer**. Rejection patterns go to a `triage-taste` bus thread so the
@@ -599,7 +657,7 @@ we become", `/triage` answers "what needs my attention first".
 
 Six agents (docs-watch, brain-gardener, workato-watchdog, harness-dreamer,
 estate-architect, promotion-orchestrator) communicate over per-agent outbox
-files — the maildir pattern:
+files: the maildir pattern:
 
 ```
 knowledge/dreams/bus/
@@ -629,12 +687,12 @@ Event schema (one JSON object per line, append-only):
   existing thread) | **handoff** (route work to another agent) |
   **proposal-ref** (pointer to a dream proposal)
 - `subject`/`thread_id`: same kebab-slug for every event about the same
-  underlying thing — this is how corroboration is counted
+  underlying thing. This is how corroboration is counted
 
 **Protocol, every agent:** read the bus at start (`gossip-read.py --since
 24h`; if your finding already has a thread, append `verify` to YOUR outbox
 on that thread instead of duplicating it), post your top findings at end
-(max 3, terse, with refs — nothing on the bus without a reference), and use
+(max 3, terse, with refs; nothing on the bus without a reference), and use
 handoffs to route work: watchdog finds it, the dreamer proposes a guard, the
 gardener verifies the claim, Josh approves.
 
@@ -661,14 +719,14 @@ One digest under 40 lines (`knowledge/morning-brief/<date>.md`): machine
 heartbeat first (a skipped nightly job is the headline), bus threads with
 patterns before solo findings, dream verdict, watchdog P1s, your Jira
 movements, and repo commits from the last 24h. Empty sections say
-"nothing" — no padding. If you read one thing in the morning, read this.
+"nothing", no padding. If you read one thing in the morning, read this.
 
 ### Keeping the docs honest (harness-docs sync, Tue 06:57)
 
-Three copies of the architecture documentation exist — the live harness
+Three copies of the architecture documentation exist (the live harness
 (`~/.claude/agents`, `~/mods`, the knowledge tree), this repo
 (`docs/harness-docs/`), and the published Confluence tree in the BT
-Business Technology space — and any of them can drift. A weekly sync job
+Business Technology space), and any of them can drift. A weekly sync job
 reconciles them in one direction per edge: the live harness is the source
 of truth for agent SOPs (synced INTO the repo), the repo docs are the
 source of truth for the published pages (published OUT to Confluence).
@@ -688,19 +746,19 @@ source of truth for the published pages (published OUT to Confluence).
 
 ### Troubleshooting
 
-- **The bus is quiet** — the nightly agents only fire while a Claude Code
+- **The bus is quiet**: the nightly agents only fire while a Claude Code
   session is open and idle at their fire time. No session, no run. Check
   `knowledge/garden-reports/heartbeat.jsonl` for who last ran.
-- **A job skipped last night** — the morning brief leads with it. The
+- **A job skipped last night**: the morning brief leads with it. The
   self-rearm instructions re-create crons before the 7-day expiry, but only
   from within a session.
-- **A dream report contradicts the platform** — dream findings are mined
+- **A dream report contradicts the platform**: dream findings are mined
   heuristics, not verified claims; the claim ledger is the source of truth.
   File the correction as a new line on the thread, never an edit.
 
 ## Install troubleshooting
 
-**`zsh: not enough directory stack entries` after clone/onboard** — that error
+**`zsh: not enough directory stack entries` after clone/onboard**: that error
 is from YOUR zsh config, not the kit: the zsh dirstack error comes from a
 command alias/function loop or a broken precmd/prompt hook (per the zsh-users
 list), and it prints after every command when a hook fires it. Nothing in the
@@ -724,21 +782,84 @@ be auto-applied in any mode. Rollback for the whole kit is three commands:
 `claude plugin uninstall <mod>`, deleting `~/.claude/agents` entries, and
 `git revert` on the backup repo for anything an agent applied.
 
+## The frontier economy (2026-10-11)
+
+The newest layer turns the fleet from observers into participants. Ten
+tools, all zero-LLM python (they spawn no model, cost no tokens, run in
+seconds), installed by install.sh and driven nightly by one launchd job:
+
+- **The estate twin** (`scripts/twin-snapshot.py`, `twin-query.py`): a
+  nightly snapshot of every recipe, connection, and scheduler into an
+  offline queryable store. "What breaks if this connection dies" is
+  answered offline; every answer stamps its snapshot age and refuses when
+  older than a day. Prod snapshots require an explicit confirm flag.
+- **The integrity mesh** (`claim-submit.py`, `reconcile.py`): claims carry
+  re-fetchable receipts (job id, row-count delta, file hash, API digest).
+  Claims without receipts are tier "asserted" and flagged after a day. A
+  nightly reconciler diffs the ledgers against live tracker/API state and
+  reports orphans (claim, no proof) and ghosts (state, no claim). First
+  live run: 15 of 16 legacy claims had no proof.
+- **The denominator oracle** (`coverage.py`): jobs declare their expected
+  population; "green" means coverage >= 0.95, not exit code zero. The
+  build ledger's own action-attribute coverage was the first honest
+  finding (0.90).
+- **The calibration ledger** (`prediction-submit.py`, `brier-resolve.py`):
+  agents file falsifiable predictions with a confidence and a resolve
+  date; a nightly resolver grades them and publishes per-agent Brier
+  scores. Trust becomes measured, not declared. First backfill: 20 real
+  predictions mined from the watchdog, dream, and claim records.
+- **The precursor radar** (`precursor-radar.py`): z-score alarms over
+  trailing-90-day health series, submitted as predictions so the radar's
+  own hit rate is scored. Refuses to alarm on thin history (needs 14+
+  distinct days).
+- **Saga journals** (`saga.py`): hash-chained, resumable mission journals.
+  Tamper detection (CHAIN BROKEN), world-changed guard (re-plan, never
+  blind-resume), compensating actions for rollback.
+- **Standing orders** (`standing-orders.py`): the human legislates once.
+  A policy (scope, dollar cap, expiry, breach ratchet) is drafted from
+  real decision history, dissenter-attacked, approved once, and every
+  future matching decision is pre-sorted. Match mode only ever shows what
+  WOULD happen; execution stays human.
+- **The skill league** (`skill-fitness.py`): per-skill invocation telemetry
+  backfilled from session transcripts, a fitness table (usage,
+  applied-ratio, trend), reversible quarantine candidates. The 32-skill
+  catalogue becomes a managed portfolio.
+- **The chaos canary** (`chaos-canary.py`): injects known faults into
+  COPIES of the twin (never live), then measures whether the detection
+  chain would notice. First runs: 3/3 detected (connection kill on a
+  99-recipe fanout, a 25-scheduler stall, a DSL corruption). Includes a
+  frozen-baseline technique so a concurrent twin refresh cannot fake a
+  missed detection.
+- **The shadow estate** (`shadow-estate.py`): deferred decisions run as
+  cheap read-only counterfactuals into a regret ledger ("21 of 40
+  deferrals still cost something; 19 went stale on their own"). Over- and
+  under-caution both become visible.
+
+Driver: `com.josh.fleet.frontier-nightly` launchd plist at 04:43, one
+bash wrapper, zero model spawns, one log. Schemas and the
+disjoint-ownership map every script obeys:
+`knowledge/scripts/frontier/CONTRACTS.md`.
+
 ## Layout
 
 ```
 config.example.sh     per-person settings (workspaces, Jira fields)
 install.sh            renders templates + installs everything
 mods/                 the two plugins (hook modules + tests)
-agents/               the eight agent SOPs (five watchers + harness dreamer,
-                      project dreamer, cortex, dissenter)
-skills/               airo-mcp-playbook, workato-development-playbook,
-                      jira-story-standards (adapt to your team)
+agents/               the eleven agent SOPs (watchers, dreamers, cortex,
+                      dissenter, evidence, spec-distiller, librarian,
+                      promotion orchestrator)
+skills/               32 skill SOPs: playbooks, governance (jira-autotriage,
+                      grill-gate, fusion), estate ops, human interface
 bin/wt                Workato Toolbox: Developer API wrapper (manifests,
-                      packages, lifecycle, jobs, properties, lookups)
+                      packages, lifecycle, jobs, properties, lookups,
+                      data-table queries)
 bin/wt-prod           PRODUCTION wrappers (keychain token, confirm gate);
 bin/workato-prod      mirror the dev/prod AIRO MCP split
-knowledge/            INDEX template + scripts + claim-ledger schema
+knowledge/            INDEX template + scripts (incl. the frontier stack:
+                      twin, integrity, coverage, calibration, radar, saga,
+                      standing orders, skill fitness, canary, shadow estate)
+                      + frontier/CONTRACTS.md (schemas + ownership map)
 knowledge/dreams/     dreamer trust-ladder config + gossip-bus scaffold
 knowledge/scripts/brain-dashboard.py
                       the full-page agent-network dashboard (self-refreshing);
@@ -769,7 +890,7 @@ A fleet job counts as run only when there is evidence of work: a fresh
 heartbeat or non-empty output. A silent rc=0 exit is a STUB. The runner
 retries a stub once, then writes it to `garden-reports/fleet-validation.jsonl`
 for the watchdog to escalate. It also repairs the launchd environment
-(PATH + gateway env from `~/.zshenv`, which bash never reads) — the root
+(PATH + gateway env from `~/.zshenv`, which bash never reads): the root
 cause of the silent stub night of 2026-10-07. Josh's contract: if we
 expect jobs to run, validate that they ran, and never let a failure be
 invisible.

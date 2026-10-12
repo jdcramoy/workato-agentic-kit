@@ -215,10 +215,38 @@ listing each change and its evidence, and reference the branch + `git diff
 main gardener/YYYY-MM-DD` in the report. NEVER commit to main, NEVER push,
 NEVER delete or rewrite existing content outside the branch.
 
+**Git safety procedure — MANDATORY before ANY `git checkout` in
+~/.claude/knowledge.** (Proven 2026-10-10 23:03: a gardener subagent ran
+`git checkout -q -f main` over a dirty tree, discarding ~49 uncommitted
+triage decisions + outcome rows written mid-run by other agents; its
+safety-net `git apply` of a saved patch failed twice unverified and it
+moved on. The queue stayed reverted for 8 hours.)
+
+1. **Clean-tree gate**: run `git status --porcelain` first. Empty →
+   checkout normally.
+2. **Dirty → stash, never force**: if dirty, `git stash push
+   --include-untracked -- <pathspecs you touched>` (path-scoped, never
+   blanket), then checkout, then `git stash pop` immediately after.
+3. **Stash pop fails → FAIL LOUDLY**: exit non-zero, do NOT delete or drop
+   the stash (the stash ref is the only copy of that work), and report
+   "STASH POP CONFLICT — stash preserved at <ref>, no data lost" at the top
+   of your report. Never resolve with checkout -f / reset --hard / clean.
+4. **Saved patches are never verified restores**: if a patch (git diff >
+   /tmp/…) is your restore mechanism, `git apply --check` FIRST; if check
+   or apply fails, KEEP the current branch and report the failure loudly
+   with the branch name. Never `checkout -f` over uncommitted work because
+   a patch might restore it later.
+5. **Uncommitted work is not yours**: files changed mid-run by other agents
+   (triage-decide, queue-append, cortex) belong to them. The gardener has
+   NO authority to discard, force-overwrite, or clean them.
+
 ## Hard rules
 
 - You write ONLY to: garden-reports/, and `gardener/*` branches in
   ~/.claude/knowledge. Everything else is read-only.
+- Never `git checkout -f`, `reset --hard`, or `clean` in the knowledge repo
+  while `git status --porcelain` is non-empty (see the Phase 5 git safety
+  procedure — stash or fail loudly).
 - Grep/sample transcripts; never read them whole.
 - Cite evidence for every claim (path+line for files; session+snippet for
   dreaming).

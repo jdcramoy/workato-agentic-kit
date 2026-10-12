@@ -12,7 +12,7 @@ human the entire night with corroboration counts as the trust signal.
 | Time | Job | Role on the bus |
 |---|---|---|
 | 21:37 | KB sync (launchd, unattended) | syncs all documentation sources into the RAG++ corpus, contextualizes, re-indexes, rebuilds the concept graph, writes the memory-entropy report and the diff report |
-| 22:07 | KB digest (launchd, unattended) | per-agent briefs: what changed, live lens queries per agent's domain — every agent opens its night knowing what moved |
+| 22:07 | KB digest (launchd, unattended) | per-agent briefs: what changed, live lens queries per agent's domain, so every agent opens its night knowing what moved |
 | 22:15 | Docs crawler (launchd, unattended) | first poster: platform documentation and status page deltas |
 | 22:31 | Docs crawler summary | folds deltas into the bus and the gardener's report |
 | 22:43 | Brain gardener | curates knowledge, posts stale-claim findings |
@@ -28,7 +28,7 @@ human the entire night with corroboration counts as the trust signal.
 | 04:43 | Frontier nightly (zero-LLM) | no model is spawned: refresh the estate twin, resolve due predictions and publish the calibration table, run the precursor radar, backfill and report skill fitness. Five python scripts, one log, zero tokens |
 | 05:xx | Evidence hunt | re-checks the last 24 hours' "done/fixed/verified" claims against live state; FALSE verdicts get a dissenter review |
 | Mon 06:27 | Board minutes (fleet job) | renders the dreaming team's week through the sanitizer and publishes a reviewable draft page in the team space |
-| 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits — plus the decision inbox: today's ranked decisions with a budget, deferred ones rolling forward, and the day's loadout with work pre-staged |
+| 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits, plus the decision inbox: today's ranked decisions with a budget, deferred ones rolling forward, and the day's loadout with work pre-staged |
 
 ## Schedule mechanics
 
@@ -49,7 +49,7 @@ run; this class silently killed the 22:15-23:43 jobs on 2026-10-07 when
 launchd's environment could not find claude or the gateway credentials,
 and nobody noticed for a full day). The runner repairs the launchd
 environment itself (PATH + gateway env), retries a stub once, and on a
-double stub writes `garden-reports/fleet-validation.jsonl` — a confirmed
+double stub writes `garden-reports/fleet-validation.jsonl`, a confirmed
 execution failure the watchdog escalates to the bus and the morning burn.
 Success writes the heartbeat mechanically, so the dashboard's
 heartbeat-first evidence ladder is enforced by the runner, not by the

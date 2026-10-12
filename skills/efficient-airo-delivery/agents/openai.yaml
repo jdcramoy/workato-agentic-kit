@@ -1,0 +1,4 @@
+interface:
+  display_name: "Efficient AIRO Delivery"
+  short_description: "Deliver AIRO work with lower cost and fewer tokens"
+  default_prompt: "Use $efficient-airo-delivery to execute this AIRO plan economically with bounded delegation and compact evidence."

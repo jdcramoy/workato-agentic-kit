@@ -51,7 +51,7 @@ API digest); claims without one are tier "asserted" and treated as
 second-class until the reconciler verifies them against live external
 state. Predictions are a first-class payload: any agent may file a
 falsifiable, dated forecast with a confidence, and a nightly resolver
-scores it — the corroboration question ("do independent witnesses
+scores it: the corroboration question ("do independent witnesses
 agree?") now has a sibling, the calibration question ("who is usually
 right?"). New outboxes follow the same one-writer pattern (evidence,
 librarian), and a curated brain service exposes the merged, deduplicated

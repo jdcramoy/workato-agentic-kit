@@ -109,7 +109,7 @@ smaller without the authority getting larger.
 
 **Standing orders: legislate once (2026-10-11).** The decision inbox
 exposed the real bottleneck: the human re-adjudicating the same classes of
-decisions. Standing orders are the fix — a decision rule (scope, cap,
+decisions. Standing orders are the fix: a decision rule (scope, cap,
 expiry, a ratchet that auto-expires on any breach) is drafted from real
 decision history, attacked by the dissenter, approved once, and every
 future matching decision is pre-sorted. The unit of interaction shifts
@@ -120,12 +120,12 @@ the matcher only ever shows what it would do.
 agent's falsifiable predictions (Brier), so the ladder's rungs can
 eventually be sized by evidence instead of instinct: a well-calibrated
 watchdog earns wider autonomy; a poorly calibrated one gets its findings
-cross-checked. The shadow estate supports this with a regret ledger —
+cross-checked. The shadow estate supports this with a regret ledger:
 deferred decisions are counterfactually checked against live state, so
 over-caution and under-caution both become visible.
 
 **Surgical fusion (2026-10-10).** For the decisions where a wrong answer
-is expensive and subtle — production-facing, hard to reverse — a fusion
+is expensive and subtle (production-facing, hard to reverse), a fusion
 command puts the same question to several model families on the gateway
 and diffs the answers before the human signs. Gated, not default: most
 work runs single-model with role-routed model pins.

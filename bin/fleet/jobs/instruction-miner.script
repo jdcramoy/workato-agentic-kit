@@ -1,0 +1,4 @@
+#!/bin/bash
+# instruction-miner: nightly correction-mining for the instruction-patch loop
+python3 "$HOME/.claude/knowledge/scripts/instruction-miner.py"
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"instruction-miner\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"

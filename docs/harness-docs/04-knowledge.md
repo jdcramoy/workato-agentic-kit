@@ -77,7 +77,7 @@ rather than by spot-check:
   build ledger) against live external state (tracker statuses, the
   platform API), flagging orphans (internal entry, no external proof) and
   ghosts (external state, no internal record). Its first live run found
-  fifteen legacy claims without proof — the class this exists to kill.
+  fifteen legacy claims without proof, the class this exists to kill.
 - **The denominator oracle.** Every job declares its expected population
   (computed independently from the source), and "green" requires coverage
   at or above a threshold, not exit code zero. Coverage numbers are
@@ -92,14 +92,16 @@ Brier score per agent. Calibration becomes measured trust: the scores feed
 the trust ladder, adversarial-review fast-paths, and (planned) autonomy
 sizing. The first backfill mined twenty real predictions out of the
 watchdog, dream, and claim records; the first table already separates
-well-calibrated reporters from the rest. The precursor radar rides the
+well-calibrated reporters from the rest.
+
+The precursor radar rides the
 same ledger: leading indicators over the estate's health history fire
 pre-failure predictions, so the radar's hit rate is itself scored.
 
 ## The estate twin (added 2026-10-11)
 
-A nightly zero-LLM snapshot of the whole estate — every recipe, connection,
-and scheduler — into an offline, queryable twin. Questions like "what
+A nightly zero-LLM snapshot of the whole estate (every recipe, connection,
+and scheduler) into an offline, queryable twin. Questions like "what
 depends on this connection" are answered offline in a second; every answer
 stamps its snapshot age and refuses when older than a day. The twin is
 also the rehearsal surface: fault scenarios are injected into copies of it,
@@ -118,7 +120,7 @@ The Skill League (added 2026-10-11) extends this to the skill catalogue
 itself: every skill invocation is logged with an outcome, backfilled from
 session transcripts, and rolled into a fitness table (usage, applied-ratio,
 trend). Bottom performers become reversible quarantine candidates and top
-performers get cited in the morning loadout — the catalogue is a managed
+performers get cited in the morning loadout: the catalogue is a managed
 portfolio instead of a junk drawer.
 
 ## The gardener's two mandates
