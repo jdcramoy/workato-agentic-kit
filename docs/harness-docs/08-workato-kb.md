@@ -1,154 +1,119 @@
-# workato-kb
+# The Workato KB: RAG++ over all documentation, and the dreaming team
 
-Local RAG++ knowledge base over all Workato documentation and the BT team's
-Confluence, grown (2026-10-10/11) into a general engineering canon:
+Parent page: The Agentic Workato Harness
 
-- **AI engineering**: the major AI labs' cookbooks and docs, MCP specification, leading AI newsletters and blogs.
-- **Systems architecture**: cloud providers' architecture centers, SRE and distributed-systems canon, database design classics.
-- **Integration patterns**: enterprise integration patterns, webhook and event specs.
-- **Durable execution engines**.
-- **Performance engineering**.
-
-24.6k documents and 165k+ chunks with the team's Confluence aboard, plus
-the dreaming-team science layer: fractal memory, the
-prediction-error protocol, neuromodulation, agent calibration, the dissenter
-triad, and the rehearsal cortex. The agent's daily companion for planning,
-scoping, building, and testing, and the corpus the dreamers dream on.
-
-Built 2026-10-08 for Josh's agentic harness (v0.7.3). Companion skill:
-`workato-kb`; human slash command: `/kb`. Adoption package: the
-`workato-agentic-kit` repo carries this code + the harness scripts + skills +
-authoring rules.
-
-**Why this matters, in plain terms.** The agentic tools (AIRO MCP, the CLI, the Dev API) give an agent hands: the ability to build, push, and run things on Workato. But hands without experience means the agent starts every session knowing nothing, re-discovers the platform's traps by breaking things, and claims success without proof.
-
-This harness supplies the missing half: a local knowledge base over all Workato documentation, a case base built from the team's own solved bugs, catalogued platform traps that load into every session, and a verification habit that predicts outcomes before acting and checks them against real job traces after. Every lesson learned gets captured and loads into the next session, so the agent arrives smarter each day. Same tools, same model: development compounds instead of resetting.
+**Why this matters, in plain terms.** The agentic tools (AIRO MCP, the CLI, the Dev API) give an agent hands: the ability to build, push, and run things on Workato. But hands without experience means the agent starts every session knowing nothing, re-discovers the platform's traps by breaking things, and claims success without proof. This harness supplies the missing half: a local knowledge base over all Workato documentation, a case base built from the team's own solved bugs, catalogued platform traps that load into every session, and a verification habit that predicts outcomes before acting and checks them against real job traces after. Every lesson learned gets captured and loads into the next session, so the agent arrives smarter each day. Same tools, same model: development compounds instead of resetting.
 
 ## What this page covers
 
-The knowledge base architecture (below): nine sources, the RAG++ retrieval stack, the fractal memory layer, the dreaming team's science layer, the five learning modalities, the immune system, the warm access layers, and the measured ROI. The two-minute version for sharing lives in the kit repo: `OVERVIEW.md`.
+The knowledge base architecture (below): the sources, the RAG++ retrieval stack, the fractal memory layer, the dreaming team's science layer, the five learning modalities, the immune system, the warm access layers, and the measured ROI. The two-minute version for sharing lives in the kit repo: `OVERVIEW.md`.
 
 ## Sources (9, one index)
 
-| Source | What it holds | Sync mechanism |
-|---|---|---|
-| `docs` | docs.workato.com (4,396 pages via first-party `llms.txt`, raw-Markdown twins) | ETag conditional GET |
-| `changelog` | product-hub changelog (WordPress category "What's New") | RSS + wp-json |
-| `blog` | Workato blog + The Connector (one WP install) | wp-json pagination |
-| `inspiration` | Automation Inspiration posts | wp-json pagination |
-| `github` | system-design-primer, awesome-software-architecture, awesome-system-design-resources | shallow clone + git pull |
-| `eip` | enterpriseintegrationpatterns.com (patterns + ramblings) | link-walk, ETag |
-| `claude` | Claude platform docs (llms.txt Markdown twins) | ETag conditional |
-| `confluence` | BT spaces extbt + intbt; **LOCAL-ONLY: never committed, backed up, or transmitted** | v2 API pagination + content-hash compare |
-| `attachments` | text-bearing Confluence attachments (PDF/Office) → markdown | per-page scan |
+| Source | What it holds | Sync |
+| --- | --- | --- |
+| docs | All Workato product docs as raw Markdown (the site ships a first-party llms.txt with a Markdown twin per page: no scraping) | ETag conditional, nightly |
+| changelog | Product changelog posts (WordPress underneath; the archive HTML renders client-side, so counts come from its API category) | RSS incremental |
+| blog | The Workato blog and The Connector (they share one WordPress install; both front doors serve the same collection) | API pagination |
+| inspiration | Real-world automation pattern posts | API pagination |
+| github | The architecture canon: system design primer, software-architecture and system-design resource catalogs | shallow clone + git pull |
+| eip | The Enterprise Integration Patterns catalog: every messaging pattern plus the real-world example walk-throughs | link-walk from the index |
+| claude | The Claude platform docs (also llms.txt with Markdown twins) | ETag conditional |
+| confluence | The BT team's two Confluence spaces (internal + external), **local-only by policy: never committed, backed up, or transmitted** | v2 API pagination + content-hash compare (token in the keychain) |
+| attachments | Text-bearing Confluence attachments (PDF, Office formats), extracted to Markdown | per-page scan |
 
-Data root: `~/.claude/workato-kb/` (gitignored everywhere); `corpus/`,
-`manifest/*.jsonl`, `index/kb.db` (FTS5 + sqlite-vec + entropy + coarse layers),
-`index/fractal.db` (factlets), `diffs/` nightly change reports.
+All of it lands in one local store outside the curated knowledge tree (which stays curated), plus a SQLite index with full-text search, dense vector embeddings, entropy scores, and a concept graph.
+
+## The canon expansion (2026-10-10/11)
+
+The corpus outgrew Workato documentation and became a general engineering canon: 24.6k documents and 165k+ chunks, via a scout expansion with a standing beat list:
+
+- **AI engineering**: the major labs' cookbooks and platform docs, the MCP specification, leading AI newsletters, blogs, and research digests.
+- **Systems architecture**: the cloud providers' architecture centers, the SRE and distributed-systems canon, database design classics.
+- **Integration patterns**: enterprise integration patterns, webhook and event specifications, durable-execution engine docs.
+- **Performance engineering**: the USE method and adjacent canon.
+- **Team spaces**: three additional internal Confluence spaces ingested (797 pages, quality-scored per page) alongside the original two.
+
+The retrieval layer treats every source identically (one index, one zoom), so an architecture question can pull an SRE chapter, a Workdoc page, and the team's own postmortem in one query. Team content never leaves the machine.
 
 ## The retrieval stack (RAG++)
 
-BM25 (FTS5) + dense (bge-base via sqlite-vec) → RRF fusion → cross-encoder
-rerank (bge-reranker-base) → **entropy modulation** (information-density
-bits/word lifts distinctive chunks among relevant ones) → **PMI** (query-term
-concentration, log2 P(t|chunk)/P(t|corpus)) → **confidence gate** (Shannon
-entropy of the final-score distribution; weak+flat triggers one expanded
-second round). Chunking is contextual: a deterministic header
-`[source|section|page|url]` plus a local-LLM situating line per document.
+A query runs: full-text search and dense vector search in parallel, then reciprocal-rank fusion, then a local cross-encoder rerank, then two modulation layers, then a confidence gate.
+
+- **Entropy modulation**: every chunk carries an information-density score (bits per word under the corpus's own unigram model). Distinctive content (a formula gotcha, a connector quirk) floats above boilerplate once relevance is established. Proper-noun lists also score high on raw rarity, which is why entropy only modulates rerank-surviving candidates.
+- **PMI**: pointwise mutual information between query terms and chunks. It rewards chunks where query terms are rare corpus-wide and dense locally.
+- **Confidence gate**: the Shannon entropy of the distribution over final scores. Flat-but-strong is confidence; flat-and-weak triggers one expanded second round automatically, reported in the output.
+
+Chunking is contextual: every chunk carries a header naming source, section, page, and URL, with a local LLM writing a one-sentence situating line per document (incremental, capped per night).
 
 ## The fractal memory layer
 
-One factlet schema at every scale, topic (1) → file (112) → section (~370)
-→ chunk (~64K), with parent links and zoom retrieval
-(`kb zoom "topic"` answers coarse and drills on demand). The projection
-covers ALL harness memory: knowledge tree, claims ledger, agent SOPs, skills,
-CLAUDE.md tiers, every project's auto-memory, dream reports, calibration
-cards. `kb fractal coverage` audits it (currently 268/268 files, 0 gaps,
-AIRTIGHT). Files stay the source of truth; the factlet store is a
-rebuildable projection (incremental, per-source sha freshness). MRL-style
-funnel: doc-context embeddings as the coarse page layer boost chunk search.
+One factlet schema at every scale: topic (1), file (112), section (~370), chunk (~64K), with parent links and zoom retrieval (`kb zoom "topic"` answers coarse and drills on demand). The projection covers ALL harness memory: the knowledge tree, the claims ledger, every agent SOP, every skill, the instruction tiers, every project's auto-memory, dream reports, and calibration cards. A coverage auditor checks it mechanically: currently 268 files across 12 surfaces, 0 gaps. Files stay the source of truth; the factlet store is a rebuildable projection. A Matryoshka-style funnel adds a coarse page layer (the situating lines, embedded) that boosts chunk search.
 
-**Why fractal memory matters (the case in numbers):** before it, a question
-paid for a whole file even when one section answered it: 2-10K tokens per
-memory look-up. The fractal ladder answers at the coarsest level that's
-correct (~300-500 tokens) and drills only when a decision needs the detail:
-10-30x less context per memory question, with provenance (the exact evidence
-line) one drill away. The single schema at every scale means one tool set
-serves all of memory: the same zoom works on a transcript line, a knowledge
-file, a claim, or a docs page, and the coverage auditor makes completeness
-a checked fact instead of a hope. Brains organize memory this way (the same
-code recurs at every scale, retrieval zooms by cue); the harness version is
-queryable at any depth instantly, which is where it beats biology.
+**Why fractal memory matters (the case in numbers):** before it, a question paid for a whole file even when one section answered it: 2-10K tokens per memory look-up. The fractal ladder answers at the coarsest level that's correct (~300-500 tokens) and drills only when a decision needs the detail: 10-30x less context per memory question, with provenance (the exact evidence line) one drill away. The single schema at every scale means one tool set serves all of memory: the same zoom works on a transcript line, a knowledge file, a claim, or a docs page, and the coverage auditor makes completeness a checked fact instead of a hope. Brains organize memory this way (the same code recurs at every scale, retrieval zooms by cue); the harness version is queryable at any depth instantly, which is where it beats biology.
 
 ## The science layer (the dreaming team)
 
-- **Prediction-error protocol** (`predict.py`): open a prediction before
-  consequential actions, close against reality; deviations spike to the bus.
-- **Neuromodulation** (`mood.py`): one broadcast state (arousal/exploration/
-  risk/verification), 24h decay, spike coupling: a P1 puts the fleet in
-  incident posture.
-- **Calibration** (`calibration.py`): per-agent prediction accuracy +
-  overconfidence gap; weekly cards. The harness's improvement is a curve.
-- **Dissenter triad** (`dissent_ledger.py`): three critics on three model
-  lineages; critics whose severity predicts real rejections gain weight;
-  `attack-classes` is the dreamer's pre-empt list (GAN dynamics for
-  proposals.
-- **Rehearsal cortex** (`rehearsal.py`): counterfactual replay: a recipe's
-  historical job fixtures, run against a candidate version, diffed against
-  history.
-- **Dream math** (`dream_math.py`): Beta posterior P(accept) from Josh's real
-  ledger (logistic fit at n≥20), EV with break-even sensitivity, assumption
-  registry re-checked nightly.
-- **Lateral engine** (`lateral.py`): concept co-occurrence graph, PMI-
-  chance-corrected edges, vectorized Adamic-Adar: hidden pairs across docs ×
-  practice; the dreamers' feedstock.
-- **Criticality** (`criticality.py`): fleet cascade power-law fit: is the
-  network's information flow at the critical point? (alpha 1.8, small-n)
-- **Contextualize** (`contextualize.py`): local LLM (ollama qwen2.5:3b)
-  writes per-doc situating lines, incremental 400/night.
-- **Board minutes** (`board_minutes.py`): weekly dreaming-team advice →
-  sanitized draft page in the team Confluence (Mondays 06:27).
+- **Prediction-error protocol**: open a prediction before consequential actions, close it against the observed outcome; deviations spike to the bus as attention events. Calibration is tracked per agent.
+- **Neuromodulation**: one broadcast mood register (arousal / exploration / risk tolerance / verification depth) with 24-hour decay and spike coupling. A P1 finding puts the whole fleet in incident posture automatically.
+- **Agent calibration**: per-agent prediction accuracy and an overconfidence gap, weekly cards. The harness's improvement is a curve, not a claim.
+- **The dissenter triad**: three critics on three model lineages; critics whose severity calls predict real rejections gain weight; the attack-class list is the dreamers' pre-empt plan (generator and discriminator training each other).
+- **The rehearsal cortex**: counterfactual replay. A recipe's historical job fixtures run against a candidate version and diff against history before a change ships.
+- **Dream math**: a Bayesian acceptance probability learned from Josh's real accept/reject ledger, expected value with a break-even sensitivity line, and an assumption registry re-checked nightly (an accepted proposal silently outliving its premise is the most dangerous object in a dreaming system).
+- **The lateral engine**: a concept co-occurrence graph over the corpus plus Josh's own knowledge tree; PMI-chance-corrected edges; vectorized Adamic-Adar to find concept pairs that share deep structure but are never discussed together. The dreamers' raw feedstock. Sundays: the full cross-domain pass.
+- **Criticality meter**: the fleet's information cascades fitted to a power law. Is the network at the critical point (maximum information transmission)? First reading: alpha 1.8, in the zone (small n).
+- **The incubation lane**: ideas file as incubating; a DIFFERENT model re-judges them cold each night; promotion requires surviving two re-looks or new evidence. First live result: a cold critic decayed a same-night proposal the original model had filed with enthusiasm. The lane works.
+- **Empirical dreams** (autonomous mode): a small budget to test an idea with a probe recipe and report a measurement instead of speculation.
+- **Board minutes**: weekly, the dreaming team's advice renders through a sanitizer and publishes as a draft page in this space for review.
 
-## Performance (measured)
+The division of labor is mechanical: every agent in the fleet reads its digest and posts an OPINION to the shared bus; only the dreamer files PROPOSALS; only Josh's verdicts in the proposal queue are the training data.
 
-| Path | Latency |
-|---|---|
-| `kb` CLI via daemon (warm) | search ~2s, read 0.16s, zoom 0.11s |
-| cold fallback (daemon down) | ~9-10s (model load) |
-| MCP server (resident, warm) | 0.16-0.18s per query |
+## The five learning modalities (Oct 9)
 
-Three warmth layers: the **kb-daemon** (launchd KeepAlive, boots at login)
-serves the CLI; the **KB MCP server** (registered user-scope, resident per
-session) serves MCP clients; the process-wide model cache serves any
-long-lived process. Local everything: $0 per query.
+The harness so far learned by consolidation only. Five new channels: the other ways brains learn.
 
-## CLI
+- **Case-based reasoning** (`kb cases`): the medical model. Every incident/bug/fix becomes a CASE (presentation, diagnosis, treatment, outcome); at decision time, retrieve similar cases FIRST instead of re-deriving from facts. Seeded from the team's closed tickets (2025 onward: thousands of closed bugs pulled via the tracker API, ~500 clinical cases after problem-shape and resolution-evidence filters), the regression canon, and autopsies: a year of the department's solved bugs as clinical experience. The autopsy skill consults the case base before walking any trace.
+- **Apprenticeship from the estate** (`kb apprentice`): the org's own recipes are a corpus nobody learns from. Pattern-level mining (error-handling idioms, retry patterns, safe-navigation usage; never business logic verbatim, read-only, sanitized) distilled into the KB: the fleet learns what colleagues already know.
+- **The judgment gym** (`kb gym_judgment`): spaced repetition for fleet judgment. Past incidents re-presented as drills, answers graded against known outcomes, failed cases resurface sooner; the diagnosis-accuracy curve is the improvement metric.
+- **The curiosity engine** (`kb curiosity`): surprises MINT questions into a standing ledger (why did that prediction deviate? why is this metric anomalous?); the dreamer spends nightly effort on the highest-value open questions; answers bind back as claims. The harness goes from a system that answers to a system that wants to know.
+- **The competence map** (`kb competence`): questions route by measured track record per agent/model/domain: a division of labor that emerges from evidence, not assignment.
 
-```bash
-kb "query"                    # search (daemon-first, cold fallback)
-kb read <id> | kb read --url  # full document + citation
-kb zoom "topic"               # fractal coarse-first retrieval
-kb fractal coverage           # the airtight check (268 files, 0 gaps)
-kb funnel search "q"          # MRL coarse-fine retrieval
-kb criticality                # fleet cascade power-law fit
-kb entropy score | kb pmi build | kb lateral top
-kb sync                       # full nightly pipeline (all steps)
-```
+All five report into a science-state file (read by the ops dashboard) and are liveness-checked nightly.
 
-## Nightly machine
+## The immune system (Oct 9)
 
-21:37 sync (all sources → contextualize → index → pmi → entropy → lateral →
-entropy report) → 22:07 per-agent digests → the fleet reads and posts
-opinions → 23:43 the dreamer synthesizes (Board lenses, cross-model, lateral
-feedstock, incubation re-looks) → 00:37 project dreamer → 00:15 regression
-gym → 07:13 morning brief. Mondays: estate architect + board minutes.
+Two structural-safety additions from the adversarial review of the harness itself:
 
-## Roadmap
+- **The state hasher**: one cryptographic snapshot of the whole workspace state (knowledge-tree git, all memory DBs, the bus, the corpus manifests) with atomic restore to any known-clean hash. Every autonomous mutation now follows snap, mutate, verify, keep-or-restore; a bad mutation path is a revert, not an incident.
+- **Antigen drills** (`kb antigen` + the weekly chaos-drill job): proactive immunity. A dedicated canary recipe (dev-only) carries an injectable fault; the weekly job injects a synthetic failure (from the antigen pool: null-payload, schema-drift, timeout-gateway, duplicate-write, spaced-repetition picked), forces the canary to fail with a logged signature, verifies the fleet's detection pipelines would notice, then reverts and proves the clean state. First drill: full cycle proven live (inject, job failed with the signature in the trace, revert, clean run succeeded). The codebase gets vaccinated against failure classes before they manifest for real.
 
-- [ ] Counterfactual diff stage live (awaits the liveness-sentinel build, approved)
-- [ ] Co-evolution weight curves as the outcomes ledger matures
-- [ ] Criticality trend over weeks (the meter is live; the finding needs data)
-- [ ] MCP fast path as the fleet default in every client
-- [ ] Confluence attachments: tables/images OCR when worth it
+## The five builds (Oct 9, v0.8.0)
 
-<!-- NOTE 2026-10-11: the published Confluence page (v10) is RICHER than this file (it carries the five learning modalities, the immune system, the five builds, and the ROI study, added there directly on 2026-10-09/11). This repo file is the pre-canon draft; the weekly harness-docs sync must reconcile THIS file up to the published page before the next publish, or the next publish from this file will regress the page. -->
+- **Chief of staff (`/today`)**: one ranked agenda from every surface (machine heartbeats first: a silent job is the headline; decisions blocking the fleet; calendar; then deep work) with each item PRE-STAGED (draft replies in Josh's voice, first commands ready). The loadout loads context; /today prioritizes the day.
+- **The benchmark** (`kb benchmark`): the "best harness" claim turned into a measurement. Same tasks, two arms (harness vs a truly-isolated bare agent via config-dir override), scored accuracy-first (per-task graded checks), turns second, cost third; latency demoted (bare wins it by construction). First scored result: on trivial docs questions the arms TIE on quality and the harness costs ~6x: the honest finding; the differentiating evidence comes from diagnosis/UAT/manifest tasks. Weekly auto-run feeds a trend ledger.
+- **Learned model routing**: which model's opinions get accepted is MEASURED (via attribution on every proposal) and future lens assignment routes by acceptance-at-lowest-cost, explore-exploit kept live.
+- **The skill forge**: the dreamer doesn't propose "there should be a skill"; it drafts the SKILL.md into staging, the forge validates it (description-as-trigger, length, TODOs), and Josh's accept installs it. The loop from idea to working artifact, reviewed.
+- **The typed bus**: finding/opinion/vote schema so corroboration (1 observation / 2 pattern / 3+ act) is arithmetic, not prose-reading.
+
+## How agents reach it (three warm layers)
+
+- **`kb` CLI**: daemon-first. A resident daemon holds the models warm; search ~2s, read 0.16s, zoom 0.11s; transparent cold fallback (~10s) if the daemon is down.
+- **The `workato-kb` MCP server**: resident per session, model warm from the first query (0.16-0.18s/query vs ~9s cold); registered for every new session.
+- **The `workato-kb` skill + `/kb`**: the method (search, refine twice max, read, cite) and the human-facing command.
+
+The standing rule: platform questions get answered from the KB before guessing or asking Josh, at phase boundaries and on uncertainty, not on every tool call. Confluence content never leaves the machine.
+
+## The ROI study (the proof the anecdote needed)
+
+All tickets assigned to Josh and resolved since May (n=142), stratified by creation era, backlog-hygiene closures (>60d) separated:
+
+| Cohort | n | median created-to-resolved | same/next-day |
+| --- | --- | --- | --- |
+| Pre-harness (May-Aug) | 102 | 12.8 days | 11% |
+| Harness era (Sept+) | 12 | **0.7 days** | **67%** |
+
+18x cycle-time reduction on fresh work; 6x same-day rate; 28 stale backlog closures as a bonus. Re-runs monthly from one query: the claim is reproducible, not anecdotal.
+
+## The nightly machine
+
+21:37 sync (all sources, contextualize, index, PMI, entropy, lateral, entropy report) -> 22:07 per-agent digests -> the fleet reads and posts opinions -> 23:43 the dreamer synthesizes (board lenses, cross-model, lateral feedstock, incubation re-looks) -> 00:37 project dreamer -> 00:15 regression gym (now incl. science-layer liveness) -> 04:43 frontier nightly (twin, calibration, radar, skill fitness; zero-LLM) -> 07:13 morning brief. Mondays: estate architect + board minutes.
