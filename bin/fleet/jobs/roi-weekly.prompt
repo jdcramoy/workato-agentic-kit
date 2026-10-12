@@ -4,7 +4,7 @@
 
 (2) Run: python3 ~/.claude/knowledge/scripts/roi/roi-roll.py — joins cost + velocity + shipped into roi/data/roi-monthly.json. Confirm it prints the monthly table without errors.
 
-(3) Run: python3 ~/.claude/knowledge/scripts/roi/render-board.py — regenerates roi/board.html. Confirm the file updated.
+(3) Run: python3 ~/.claude/knowledge/scripts/roi/counterfactual.py then python3 ~/.claude/knowledge/scripts/roi/render-board.py — refreshes the hire-to-match counterfactual (roi/data/counterfactual.json) and regenerates roi/board.html. Confirm both files updated.
 
 (4) If today is the 1st of the month, ALSO run: python3 ~/.claude/knowledge/scripts/roi/one-pager.py — writes roi/one-pager-<YYYY-MM>.md. NOTE: the theses section depends on roi/theses.json (Josh-approved). If that file is missing or has no blocks, the one-pager renders a placeholder; flag that in one line. On any other day, skip.
 
