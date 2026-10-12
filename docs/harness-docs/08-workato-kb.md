@@ -150,3 +150,5 @@ gym → 07:13 morning brief. Mondays: estate architect + board minutes.
 - [ ] Criticality trend over weeks (the meter is live; the finding needs data)
 - [ ] MCP fast path as the fleet default in every client
 - [ ] Confluence attachments: tables/images OCR when worth it
+
+<!-- NOTE 2026-10-11: the published Confluence page (v10) is RICHER than this file (it carries the five learning modalities, the immune system, the five builds, and the ROI study, added there directly on 2026-10-09/11). This repo file is the pre-canon draft; the weekly harness-docs sync must reconcile THIS file up to the published page before the next publish, or the next publish from this file will regress the page. -->
