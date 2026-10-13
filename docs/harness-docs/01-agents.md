@@ -115,6 +115,21 @@ curiosity (the questions nobody is asking, routed to the right agent as
 handoffs). It reads everything and mutates nothing. Its only surface is the
 morning brief's top three.
 
+**red-team** (on demand, at promotion prep). The independent security
+reviewer. Before any asset is promoted to production, the build session
+dispatches it to attack the asset across five surfaces: secrets and
+credentials, data exposure, injection (including prompt injection), identity
+and auth, and logic abuse. Reviews are risk-tiered: full review for anything
+touching personal or financial data or facing outward, standard for internal
+assets with shared dependencies, light self-certification for config flips.
+The verdict is evidence-cited (pass, pass with notes, or fail, with severity
+named as fatal, material, or cosmetic) and lands in the knowledge tree and on
+the governing ticket. A fail blocks promotion unless the human overrides by
+name, and the override is recorded in the verdict itself. The rule the whole
+gate rests on: the builder never reviews its own work, and a review written
+from the recipe definition alone, without the live configuration and real job
+traces, does not count.
+
 ## How they validate and challenge each other
 
 The design assumes agents will be wrong individually, so correctness is a

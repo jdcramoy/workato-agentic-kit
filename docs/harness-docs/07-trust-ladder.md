@@ -118,6 +118,28 @@ expiry, a ratchet that auto-expires on any breach) is drafted from real
 decision history, attacked by the dissenter, approved once, and every
 future matching decision is pre-sorted.
 
+**The living manifest (2026-10-12).** The first standing order to run
+through that pipe: every build carries an export manifest of the assets it
+touches, created when the build starts and updated the moment an asset
+enters it, never batched at the end. A guard hook enforces it at session
+end. What started as promotion paperwork became a build-time discipline:
+the manifest is how "what did this change actually touch" is answered from
+the first minute, not reconstructed from memory at review time.
+
+**The red-team gate (2026-10-12).** The second: nothing reaches production
+without an independent security verdict on record before the push. An
+independent reviewer agent (never the builder) attacks the asset at a
+depth the risk dictates, a fail blocks promotion unless the human overrides
+by name, and a guard hook stops any production-bound session that ends
+without a verdict. Hotfixes included: urgency changes the review tier,
+never the requirement.
+
+**Authority does not delegate downward (2026-10-12).** A batched approval
+authorizes the queue, not the writes. Each individual production write
+still needs first-hand confirmation in the session that fires it, because
+an approval round and a production mutation are different events and
+conflating them is how autonomy quietly widens itself.
+
 The unit of interaction shifts
 from decisions to policies. Three draft policies exist and await review;
 the matcher only ever shows what it would do.

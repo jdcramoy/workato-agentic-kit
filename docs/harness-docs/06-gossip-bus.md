@@ -55,7 +55,11 @@ scores it: the corroboration question ("do independent witnesses
 agree?") now has a sibling, the calibration question ("who is usually
 right?"). New outboxes follow the same one-writer pattern (evidence,
 librarian), and a curated brain service exposes the merged, deduplicated
-bus to human-facing tooling.
+bus to human-facing tooling. Two later channels keep the same shape: the
+turn auditor posts its weekly waste-rate trend as a bus row, and when a
+headless agent is denied a direct file write by design, the sanctioned path
+for its investigation findings is a bus post, harvested into the knowledge
+tree by the next session that can write.
 
 ## The protocol
 

@@ -2,10 +2,11 @@
 
 Parent page: The Agentic Workato Harness
 
-Two mods (plugins) hook every tool call, prompt, and render. They are the
-layer that turns standing rules from prose into mechanics. Each hook is a
-few lines of code; `claude plugin validate` lists exactly what each touches
-before anything is installed. 42 automated tests cover the pair.
+Three mods (plugins) and a row of session-level guard hooks watch every tool
+call, prompt, and render. They are the layer that turns standing rules from
+prose into mechanics. Each hook is a few lines of code; `claude plugin
+validate` lists exactly what each touches before anything is installed. 42
+automated tests cover the guardrails pair.
 
 ## workato-guardrails: 13 hooks
 
@@ -34,6 +35,56 @@ before anything is installed. 42 automated tests cover the pair.
 | Skill telemetry | every skill load | Logs which skills sessions actually use. |
 | Knowledge telemetry | every read or write of knowledge and memory | Logs which knowledge is load-bearing and which is dead. |
 | Write linter | every write under the knowledge or memory trees | Nudges on relative dates without absolute anchors, memory files missing frontmatter, and knowledge writes with no index update. Annotates, never blocks. |
+
+## session-budget: the cold-start guardrail (added 2026-10-11)
+
+The third mod exists because of a measured fact: a minority of long, resumed
+sessions carried most of a week's model spend, because every turn re-hydrates
+a giant context. session-budget renders a live spend and context band above
+the prompt, warns once when a threshold is crossed, and at the hard limit
+blocks the turn from ending until the session writes its closeout row: the
+budget forces the exit interview, not just the exit. Its cost figure is
+computed the one honest way on a third-party gateway, recomputed from the
+transcript at the gateway's own rates, never read from the engine's built-in
+ledger, which prices everything at list rates nobody pays. That rule cost one
+live session to learn (a band showing a number twenty-five times the real
+one) and is now law for every cost surface in the harness.
+
+## The guard hooks (session level, added 2026-10-12)
+
+Outside the plugins, a row of settings-level hooks enforces the two newest
+standing orders and the session lifecycle:
+
+- **manifest-guard** blocks the end of any session that touched Workato
+  assets without a living export manifest on record. It detects mutations
+  from tool calls only, never from prose (a report that merely names a
+  mutation is not a mutation), and credits a session that filed the manifest
+  late rather than blocking it.
+- **redteam-guard** is the production twin: it blocks the end of any session
+  that performed production-bound writes with no red-team verdict on record.
+  A verdict reference on the governing ticket satisfies it; an override
+  recorded by name satisfies it; dev-only and read-only sessions pass
+  untouched.
+- **session-drop-guard and the dead-man sweep** close the hardest capture
+  gap: sessions killed outright (crash, force quit, closed lid) never fire
+  an exit hook, so their mid-flight state used to die with them. A session
+  ending substantially without a closeout is now recorded to a dropped-sessions
+  ledger, and because the dead-man sweep runs on an external 60-second timer,
+  it catches the hard kills a session-side hook physically cannot. The
+  morning digest surfaces the last two days of drops with what to absorb.
+- **airo-error-guide** turns the platform tool's failure modes into immediate
+  teaching: an unknown-field error re-pulls the field guidance, an
+  ungranted tool is told to use the CLI instead of retrying, a shell trap
+  writes to a file instead of the command line. The loop stops paying a turn
+  to learn a rule the harness already knows.
+- **the MCP health check** dropped from a multi-line report at session start
+  to a single line, with the detail cached for anyone who asks. Even the
+  watchdogs pay rent per token.
+
+All the guards share one detection law, paid for by two false-positive
+incidents on their first night: mutation detection reads tool calls, parsed
+per command segment, and never plain text. A document describing a dangerous
+command must pass; the command itself must not.
 
 ## The production credential split
 

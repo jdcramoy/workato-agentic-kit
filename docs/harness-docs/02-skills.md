@@ -63,6 +63,38 @@ repeatable SOP extracted from real work:
   governing epic, and dispatches approved dev-scoped fixes with the full
   snapshot-verify-ledger cycle.
 
+## The promotion gate skills (added 2026-10-12)
+
+Two standing orders became skills the same day they were ruled:
+
+- **red-team-review**: the framework behind the red-team gate. Classifies
+  the review tier by risk, walks the five security surfaces, and produces an
+  evidence-cited verdict with a severity taxonomy (fatal, material,
+  cosmetic) that carries remediation guidance. A fail blocks promotion.
+- **manifest-hygiene and manifest-review**: two halves of one discipline.
+  Hygiene is the build side, a dry-run of the export manifest before the
+  ticket is filed (missing dependencies, stale references, wrong-folder
+  assets). Review is the tech-review side, what to check when a manifest
+  lands in the queue from anyone, internal or external: connection closure
+  in both directions, trigger URL remaps, whether the story actually pairs
+  with the package. The rule both enforce: "unverifiable" is a fail, never
+  "assumed clean".
+- **diff-reading**: read a recipe definition diff and separate behavioral
+  changes from cosmetic ones, the review step before approving any push.
+
+## The parking lot (2026-10-12)
+
+The catalogue is a managed portfolio, and 2026-10-12 was its first real
+prune. Thirteen skills were parked to an archive directory (restorable with
+one move, no deletion): the intake and digest family that summarized
+external sources on schedules nobody read, two superseded presentation
+workflow skills, and a goal ledger. Each parking was grep-verified against
+every fleet job, agent, and schedule before it happened. In the same pass,
+nine verbose skill descriptions were trimmed by a quarter with their trigger
+phrases kept, because a description that stops routing is a skill that
+stops existing. The Skill League's usage telemetry chose the victims; the
+principle it set: catalogues earn their size, they do not inherit it.
+
 ## The governance trio (added 2026-10-09)
 
 - **jira-autotriage**: a standing grant (not a per-ticket ask) to triage,
@@ -107,11 +139,12 @@ repo, so every teammate's sessions load the same accumulated experience.
 When one person's session discovers a new platform bug, the fix ships to
 everyone as a skill update.
 
-The catalogue now runs to 57 skills (2026-10-11), from the two playbooks
-through estate operations (arch-diagram, blast-radius, manifest-hygiene,
-post-deploy-smoke, promotion-readiness, workato-browser-editor) to personal
-ops. A telemetry loop (see the memory page) measures which skills earn their
-load, so the catalogue can be pruned by evidence instead of accreting.
+The catalogue now runs to 61 skills, of which 48 are live and 13 are parked
+in the archive (2026-10-12), from the two playbooks through estate operations
+(arch-diagram, blast-radius, manifest-hygiene, post-deploy-smoke,
+promotion-readiness, workato-browser-editor) to personal ops. A telemetry
+loop (see the memory page) measures which skills earn their load, and the
+parking lot is what that measurement looks like when it acts.
 
 Verdict: skills are the difference between an assistant that is smart and
 a harness that is experienced.

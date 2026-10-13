@@ -91,6 +91,33 @@ Two structural-safety additions from the adversarial review of the harness itsel
 
 - **Chief of staff (`/today`)**: one ranked agenda from every surface (machine heartbeats first: a silent job is the headline; decisions blocking the fleet; calendar; then deep work) with each item PRE-STAGED (draft replies in Josh's voice, first commands ready). The loadout loads context; /today prioritizes the day.
 - **The benchmark** (`kb benchmark`): the "best harness" claim turned into a measurement. Same tasks, two arms (harness vs a truly-isolated bare agent via config-dir override), scored accuracy-first (per-task graded checks), turns second, cost third; latency demoted (bare wins it by construction). First scored result: on trivial docs questions the arms TIE on quality and the harness costs ~6x: the honest finding; the differentiating evidence comes from diagnosis/UAT/manifest tasks. Weekly auto-run feeds a trend ledger.
+
+## The bench, matured (2026-10-12)
+
+Four battery generations later, the benchmark answers the question that
+matters: where does the harness actually earn its overhead?
+
+- **The hallucination discriminator.** On grounded platform questions the
+  bare model's failures are never random. It gets structure and design
+  right, and confabulates exactly the domain facts that price the solution:
+  a billing model that does not exist, stated confidently, twice, in
+  different words, mispricing a real architecture by five to ten times. The
+  harness's cited answers were correct on every run of every battery.
+- **Cost inverts at depth.** On trivial lookups the harness pays more
+  context, and the honest framing correction (from the human reviewing the
+  data) is that one-shot numbers overstate it: a live session loads its
+  context once and amortizes it across the day. On deep retrieval the
+  relationship flips: the bare model crawled the web for one to two minutes
+  and half a million tokens to find a changelog fact the KB answered in
+  under thirty seconds with a citation.
+- **The retrieval map.** Measured in-bench across 27 queries: search
+  median 13.6 seconds, full-document read 0.11 seconds. A few search
+  roundtrips, then near-free reads.
+
+The claim this supports is specific and quotable: a bare frontier model is
+a brilliant generalist with unverified memory; the harness is the
+difference between plausible and correct on the domain where the team's
+work actually lives.
 - **Learned model routing**: which model's opinions get accepted is MEASURED (via attribution on every proposal) and future lens assignment routes by acceptance-at-lowest-cost, explore-exploit kept live.
 - **The skill forge**: the dreamer doesn't propose "there should be a skill"; it drafts the SKILL.md into staging, the forge validates it (description-as-trigger, length, TODOs), and Josh's accept installs it. The loop from idea to working artifact, reviewed.
 - **The typed bus**: finding/opinion/vote schema so corroboration (1 observation / 2 pattern / 3+ act) is arithmetic, not prose-reading.

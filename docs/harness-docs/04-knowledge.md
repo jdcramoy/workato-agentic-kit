@@ -123,6 +123,41 @@ trend). Bottom performers become reversible quarantine candidates and top
 performers get cited in the morning loadout: the catalogue is a managed
 portfolio instead of a junk drawer.
 
+## The context economy, measured (added 2026-10-12)
+
+The same discipline turned on the harness's own running cost. A per-layer
+measurement of a cold session start found the model servers alone carried
+81% of the always-on context bill, with two of them (a development and a
+production instance of the same platform) accounting for a third of the
+total by themselves. The cuts that followed, each verified by re-measuring
+the whole configuration rather than trusting additive estimates:
+
+- **Server tiering.** A small core stays in every session (the platform dev
+  server, the knowledge base, the brain, the tracker, web search); the heavy
+  and production servers now attach on demand with a one-flag include file.
+  Fleet jobs were checked first and read production through the CLI
+  keychain, not the server, so nothing scheduled needed touching.
+- **The context diet.** The instruction files became pointers to doctrine
+  that lives in skills and knowledge files (rulings and dates up front,
+  reasoning one hop away), thirteen skills were parked, the memory index was
+  halved to a thin pointer list, and the session-start health check became
+  one line.
+- **The number.** Cold start fell from 128k to 58k input tokens, about 55%,
+  and live sessions measured roughly half the cost per turn at equal work
+  after the change. One measurement lesson travels with it: per-server
+  additive estimates overpredicted the savings; only whole-configuration
+  runs tell the truth.
+
+The A/B bench behind the numbers runs the same tasks through the full
+harness and a stripped bare agent in isolated scratch directories and scores
+both. Its most useful finding is not about cost: on grounded platform
+questions, the bare model's failure class is always the same, confident and
+fabricated domain facts (it priced an architecture design on a billing model
+that does not exist, twice, in different words). The harness's knowledge
+layer is what stands between a plausible answer and a correct one, and on
+deep retrieval tasks the cost relationship inverts: the bare model crawls
+the web for minutes where a cited local answer takes seconds.
+
 ## The gardener's two mandates
 
 **Content curation** keeps the knowledge true: index-to-file inventory in

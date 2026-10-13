@@ -27,6 +27,7 @@ human the entire night with corroboration counts as the trust signal.
 | 00:13 | Regression harness | runs every recipe's test cases through the Test Automation API, reports failures with job IDs |
 | weekly | Antigen drill (fleet job) | chaotic-drill day: inject one known fault class into a dedicated dev canary, verify the pipeline notices, record detection verdict and immunity in a ledger |
 | 05:17 | Librarian (fleet job) | corpus consolidation and external-content procurement on a beat list |
+| Tue 07:07 | Turn audit (zero-LLM) | classifies every turn from the week's transcripts into productive, verification, or waste, separates blind retries from honest polls, and posts the trend: waste rate is the number the turn-discipline program moves |
 | 04:43 | Frontier nightly (zero-LLM) | no model is spawned: refresh the estate twin, resolve due predictions and publish the calibration table, run the precursor radar, backfill and report skill fitness. Five python scripts, one log, zero tokens |
 | 05:xx | Evidence hunt | re-checks the last 24 hours' "done/fixed/verified" claims against live state; FALSE verdicts get a dissenter review |
 | 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits, plus the decision inbox: today's ranked decisions with a budget, deferred ones rolling forward, and the day's loadout with work pre-staged |
@@ -76,7 +77,9 @@ when the frontier stack landed, because its jobs were born zero-LLM.
 One digest, under 40 lines, written at 07:13: the machine heartbeat first (a
 skipped nightly job is the headline), bus threads with patterns before solo
 findings, the dream verdict, watchdog P1s, Jira movements, and repo commits
-from the last 24 hours. Empty sections say "nothing" instead of padding.
+from the last 24 hours, plus the last two days of dropped sessions (work
+left mid-flight by a crashed or hard-killed session, with what to absorb
+before continuing it). Empty sections say "nothing" instead of padding.
 The design constraint is respect for the reader's morning: if you read one
 thing before coffee, read this, and it will tell you what the machines did,
 what they found, and what they need from you.
