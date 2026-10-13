@@ -1,0 +1,49 @@
+#!/bin/bash
+# Wave-3 nightly — zero-LLM loop: trigger L0 → coincidence scoring →
+# ratchet watch → spore shadow row; Sundays add: null-miner permutation run,
+# pleiotropy graph, MAP-Elites augmentation regen. No claude spawn. (2026-10-11)
+set -u
+LOG="$HOME/.local/state/fleet/wave3-nightly.log"
+START=$(date +%s)
+RC=0
+echo "=== wave3-nightly start $(date -u +%FT%TZ) ===" >> "$LOG"
+
+python3 "$HOME/.claude/knowledge/scripts/trigger.py" --since 24h >> "$LOG" 2>&1 || RC=1
+python3 "$HOME/.claude/knowledge/scripts/coincidence.py" --since 24h >> "$LOG" 2>&1 || RC=1
+python3 "$HOME/.claude/knowledge/scripts/ratchet-watch.py" >> "$LOG" 2>&1 || RC=$((RC + 1))
+
+# spore shadow row (integration patch 1, shadow-dominant only): the series
+# starts collecting on this job's own class; enforcement stays off.
+# (2026-10-12 audit fix: was a silent no-op — hasattr guard on a nonexistent
+# function + wrong config key; now appends via atomic_io with RETURNS_SCHEMA
+# and FAILS LOUDLY if the append doesn't land.)
+python3 - "$START" "$RC" >> "$LOG" 2>&1 <<'PYEOF'
+import importlib.util, json, os, sys, time
+K = os.path.expanduser("~/.claude/knowledge")
+sys.path.insert(0, f"{K}/scripts")
+spec = importlib.util.spec_from_file_location("spore_router", f"{K}/scripts/spore-router.py")
+sr = importlib.util.module_from_spec(spec); spec.loader.exec_module(sr)
+from atomic_io import atomic_append_validated
+cfg = json.load(open(f"{K}/config/spores.json"))
+# config stores the path in ~-form — expand or it writes into a literal "~" dir
+series = os.path.expanduser(cfg.get("series_path") or str(sr.SERIES_DEFAULT))
+os.makedirs(os.path.dirname(series), exist_ok=True)
+row = {"session": f"wave3-nightly-{sys.argv[1]}", "config": "wave3-nightly",
+       "model_family": "none-zero-llm", "task_class": "sweep",
+       "value_proxy": 1.0 if sys.argv[2] == "0" else 0.0,
+       "cost": float(time.time()) - float(sys.argv[1]),
+       "routing": "dominant", "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+atomic_append_validated(series, row, sr.RETURNS_SCHEMA)
+if not os.path.exists(series):
+    raise SystemExit(f"FATAL: append reported success but {series} does not exist")
+print(f"spore shadow row APPENDED -> {series} ({row['session']})")
+PYEOF
+
+if [ "$(date +%u)" = "7" ]; then
+  echo "--- Sunday weekly passes ---" >> "$LOG"
+  python3 "$HOME/.claude/knowledge/scripts/null-miner.py" --permute 30 --days 7 --seed "$(date +%Y%m%d)" >> "$LOG" 2>&1 || true
+  python3 "$HOME/.claude/knowledge/scripts/pleiotropy.py" >> "$LOG" 2>&1 || true
+  python3 "$HOME/.claude/knowledge/scripts/elites.py" augment >> "$LOG" 2>&1 || true
+fi
+echo "=== wave3-nightly done $(date -u +%FT%TZ) rc=$RC ===" >> "$LOG"
+exit 0

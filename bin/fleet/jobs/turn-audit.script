@@ -1,0 +1,15 @@
+#!/bin/bash
+# Turn-audit — weekly zero-LLM turn-discipline classification over session
+# transcripts + quality-guard pairing. Built 2026-10-12 (Josh-approved).
+set -u
+LOG="$HOME/.local/state/fleet/turn-audit.log"
+echo "=== turn-audit start $(date -u +%FT%TZ) ===" >> "$LOG"
+python3 "$HOME/.claude/knowledge/scripts/turn-audit.py" --days 7 >> "$LOG" 2>&1
+rc=$?
+echo "=== turn-audit done $(date -u +%FT%TZ) rc=$rc ===" >> "$LOG"
+if [ $rc -eq 0 ] && [ -s "$HOME/.claude/knowledge/reports/turn-audit-latest.md" ]; then
+  echo "turn-audit: report refreshed $(date -u +%FT%TZ)"
+else
+  echo "turn-audit: FAILED rc=$rc (see $LOG)"
+  exit 1
+fi

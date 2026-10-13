@@ -25,6 +25,12 @@ BUS_OUT = os.path.expanduser('~/.claude/knowledge/dreams/bus/session-shadow.json
 HEARTBEAT = os.path.expanduser('~/.claude/knowledge/garden-reports/heartbeat.jsonl')
 STALE_SESSION_SECONDS = 600      # newest file must have been touched in 10 min
 FOCUS_MIN_INTERVAL = 3600        # min seconds between focus bus posts
+DEADMAN_SECONDS = 1200           # quiet 20 min + no closeout = record the drop
+CLOSEOUT_WINDOW = 900            # mission-control event counts as closeout
+DROPS_PATH = os.path.expanduser(
+    '~/.claude/knowledge/mission-control/dropped-sessions.jsonl')
+MC_EVENTS = os.path.expanduser(
+    '~/.claude/knowledge/mission-control/events.jsonl')
 TICKET_RE = re.compile(r'\b((?:BSYS|BTSUP|HROPS|PSM|MCP|AAI|CT)-\d+)\b')
 JOB_RE = re.compile(r'\bj-[A-Za-z0-9]{6,}(-[A-Za-z0-9]{4,})?-CD\b|\bj-[A-Za-z0-9-]{8,}\b')
 
@@ -194,9 +200,94 @@ def heartbeat():
         json.dumps({'ts': now_iso(), 'job': 'session-shadow'}) + '\n')
 
 
+def deadman_sweep(state):
+    """Dead-man switch for hard-killed sessions (SessionEnd hook never fires on
+    SIGKILL/crash): any tracked session quiet for DEADMAN_SECONDS whose work
+    wasn't closed out gets recorded to dropped-sessions.jsonl — once per quiet
+    period. Self-teaching: the watcher survives the death of the watched."""
+    now = time.time()
+    tracked = state.setdefault('deadman', {})
+
+    # sweep quiet sessions (any transcript, not just the newest)
+    for f in glob.glob(PROJECTS_GLOB):
+        base = os.path.basename(f)
+        if not re.match(r'^[0-9a-f-]{36}\.jsonl$', base):
+            continue
+        try:
+            mt = os.path.getmtime(f)
+        except OSError:
+            continue
+        quiet_for = now - mt
+        sid = base[:-6]
+        entry = tracked.get(sid)
+        if quiet_for <= DEADMAN_SECONDS:
+            tracked.pop(sid, None)  # alive again
+            continue
+        if entry and entry.get('recorded_for') == int(mt):
+            continue  # already recorded for this quiet period
+        # substantial? count turns + collect context cheaply
+        turns, last_prompt, files = 0, '', []
+        try:
+            for l in open(f, errors='replace'):
+                if '"assistant"' in l:
+                    turns += 1
+                elif '"user"' in l and not last_prompt:
+                    pass
+            with open(f, errors='replace') as fh:
+                for l in fh:
+                    if '"last-prompt"' in l:
+                        try:
+                            last_prompt = str(json.loads(l).get('prompt', ''))[:200]
+                        except Exception:
+                            pass
+                    if '"tool_use"' in l and ('Edit' in l or 'Write' in l):
+                        m = re.search(r'"file_path"\s*:\s*"([^"]+)"', l)
+                        if m:
+                            files.append(m.group(1))
+        except Exception:
+            continue
+        if turns < 8:
+            tracked[sid] = {'recorded_for': int(mt), 'turns': turns}
+            continue  # trivial session; nothing to lose
+        # closed out near its last activity?
+        closed = False
+        try:
+            import datetime
+            for l in open(MC_EVENTS):
+                try:
+                    r = json.loads(l)
+                except Exception:
+                    continue
+                ts = str(r.get('ts') or r.get('recorded_at') or '')
+                try:
+                    t = datetime.datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
+                except Exception:
+                    continue
+                if mt - CLOSEOUT_WINDOW <= t <= mt + 60:
+                    closed = True
+                    break
+        except FileNotFoundError:
+            pass
+        tracked[sid] = {'recorded_for': int(mt), 'turns': turns}
+        if closed:
+            continue
+        rec = {'ts': now, 'session_id': sid[:12], 'ended': 'deadman: quiet '
+               f'{int(quiet_for//60)}min, no closeout found', 'turns': turns,
+               'last_prompt': last_prompt, 'files_touched': sorted(set(files))[:10],
+               'note': 'session went quiet without closeout — absorb state from '
+                       'transcript or shadow before continuing this work'}
+        try:
+            os.makedirs(os.path.dirname(DROPS_PATH), exist_ok=True)
+            with open(DROPS_PATH, 'a') as fh:
+                fh.write(json.dumps(rec) + '\n')
+        except Exception:
+            pass  # fail-open; the shadow never breaks on its side-mission
+
+
 def main():
     os.makedirs(NOW_DIR, exist_ok=True)
     state = load_state()
+    deadman_sweep(state)
     sessions = active_sessions()
     if not sessions:
         return  # nothing live; keep last known state

@@ -95,7 +95,7 @@ if [ -f "$PROBE" ] && [ -x "$PROBE" ]; then
     pmsg="$(tr -d '\r' < "$PROBE_OUT" | tr '\n' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g' | cut -c1-200)"
     off="$(date +%z)"; off="${off:0:3}:${off:3}"
     mkdir -p "$(dirname "$HEARTBEAT")"
-    echo "{\"ts\":\"$(date +%Y-%m-%dT%H:%M:%S)${off}\",\"job\":\"$NAME\",\"status\":\"skipped-no-signal\",\"probe\":\"$pmsg\"}" >> "$HEARTBEAT"
+    echo "{\"ts\":\"$(date +%Y-%m-%dT%H:%M:%S)${off}\",\"job\":\"$NAME\",\"status\":\"skipped-no-signal\",\"probe\":\"$pmsg\"}" | python3 "$HOME/.claude/knowledge/scripts/atomic_io.py" "$HEARTBEAT"
     echo "$(date '+%F %T') $NAME: probe no signal — skipped (zero tokens)" >> "$LOG"
     exit 0
   elif [ "$prc" -ne 0 ]; then
@@ -111,7 +111,7 @@ hb_count() { # heartbeat lines for this job (always a single number)
 }
 write_heartbeat() {
   mkdir -p "$(dirname "$HEARTBEAT")"
-  echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\"}" >> "$HEARTBEAT"
+  echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\"}" | python3 "$HOME/.claude/knowledge/scripts/atomic_io.py" "$HEARTBEAT"
 }
 
 OUT="$LOG.run"   # per-attempt output capture: the stub test is emptiness
