@@ -55,7 +55,12 @@ reader-in-chief (it runs last), and writes a dream report under two mandates:
 a pragmatic one (what is being worked on, what is being repeated, what went
 wrong, what would have made yesterday faster) and a visionary one, freed from
 evidence, writing forward-looking seeds for what the harness becomes. Proposals
-are mode-gated by the trust ladder (see the trust ladder page).
+are mode-gated by the trust ladder (see the trust ladder page). Two 2026-10
+additions: a mood gate runs before the bus read (arousal above incident
+threshold shifts the night to incident posture and shrinks visionary scope),
+and a ledger-consistency check right after the transcript mine diffs
+browser-failure days in transcripts against the orca-browser skill's traps
+ledger, proposing the missing rows (2026-10-10).
 
 **dissenter** (on call, and mandatory before any dream proposal reaches a
 human). The immune system. Its only job is to produce the strongest possible

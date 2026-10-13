@@ -26,7 +26,7 @@ jira-autotriage) as one JSON line:
    "work":"the proposed fix, one line","points":2,"status":"open"}
 """
 import json, os, re, sys, datetime as dt
-from atomic_io import atomic_append
+from atomic_io import atomic_append, atomic_append_validated
 
 HOME = os.path.expanduser("~")
 K = os.path.join(HOME, ".claude", "knowledge")
@@ -67,9 +67,15 @@ def load():
                 sys.exit(f"{QUEUE}:{n}: not valid JSON — fix by hand or restore from git")
             st = row.get("status", "open")
             if st not in VALID_STATUSES:
-                sys.exit(f"{QUEUE}:{n}: unknown status '{st}' on '{row.get('slug', '?')}' "
-                         f"(valid: {', '.join(sorted(VALID_STATUSES))}) — repair via "
-                         f"triage-decide.py, never by hand")
+                # self-blocking corruption (a 'blocked' status once wedged the
+                # whole queue: the validator refused to load, so the script could
+                # never repair the row it told us to repair through it). Coerce
+                # to open and warn; the next save persists the normalized status.
+                print(f"NOTE: {QUEUE}:{n}: unknown status '{st}' on "
+                      f"'{row.get('slug', '?')}' — normalized to 'open' "
+                      f"(valid: {', '.join(sorted(VALID_STATUSES))})", file=sys.stderr)
+                row["status"] = "open"
+                st = "open"
             rows.append(row)
     return rows
 
@@ -97,33 +103,22 @@ def save(rows):
     os.replace(tmp, QUEUE)
 
 
+TRIAGE_OUTCOME_SCHEMA = {
+    "required": ["date", "finding", "slug", "action", "by"],
+    "enums": {"action": {"built", "accepted", "rejected", "filed", "deferred"}},
+    # date is a YYYY-MM-DD date field, not a tz timestamp — regex-guarded below
+}
+
+
 def log_outcome(row, action, note, jira):
     os.makedirs(os.path.dirname(OUTCOMES), exist_ok=True)
     rec = {"date": dt.date.today().isoformat(), "finding": row.get("title", ""),
            "slug": row.get("slug", ""), "source": row.get("source", ""),
            "action": action, "notes": note or "", "jira": jira or "",
            "by": "josh (triage-decide)"}
-    atomic_append(OUTCOMES, rec)
-
-
-JIRA_BROWSE = "https://workato.atlassian.net/browse/"
-# ticket keys referenced anywhere in a finding (BSYS, BTSUP, and the other
-# known BT projects) — the card must be able to link the actual work item
-# even when the seeder only mentioned it in prose (Josh, 2026-10-10)
-KEY_RE = re.compile(r"\b((?:BSYS|BTSUP|HROPS|PSM|MCP|AAI|CT)-\d+)\b")
-
-
-def jira_keys(row):
-    """Deduped ticket keys for a finding: explicit jira field first, then
-    any keys found in slug/title/evidence/work prose."""
-    keys = []
-    if row.get("jira"):
-        keys.append(row["jira"])
-    for field in ("slug", "title", "evidence", "work"):
-        for m in KEY_RE.findall(str(row.get(field, ""))):
-            if m not in keys:
-                keys.append(m)
-    return keys
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", rec["date"]):
+        raise ValueError(f"refused: bad date format {rec['date']!r}")
+    atomic_append_validated(OUTCOMES, rec, TRIAGE_OUTCOME_SCHEMA)
 
 
 def main():
@@ -136,14 +131,10 @@ def main():
         for r in open_rows:
             age = (dt.date.today() - dt.date.fromisoformat(r["ts"][:10])).days
             urg = r.get("urgency", "")
-            keys = jira_keys(r)
-            print(f"[{r.get('kind','?')}{'/' + urg if urg else ''}] {r['slug']}")
-            print(f"    age {age}d, {r.get('points','?')}pts, source {r.get('source','?')}")
-            for k in keys:
-                print(f"    Jira: {JIRA_BROWSE}{k}")
-            print(f"    ISSUE: {r.get('title','')}")
-            print(f"    EVIDENCE: {r.get('evidence','(none given)')}")
-            print(f"    PROPOSED WORK: {r.get('work','')}")
+            jira = f", {r['jira']}" if r.get("jira") else ""
+            print(f"[{r.get('kind','?')}{'/' + urg if urg else ''}] {r['slug']} "
+                  f"(age {age}d, {r.get('points','?')}pts, source {r.get('source','?')}{jira}): "
+                  f"{r.get('title','')} | {r.get('work','')}")
         print(f"queue: {len(open_rows)} open / {len(rows)} total at {QUEUE}")
         return
     # flags: --jira KEY may appear anywhere after the action
@@ -163,14 +154,30 @@ def main():
     rows = load()
     hits = find(rows, slug)
     now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Per-row fan-out: apply the action to every row whose current state
+    # allows it; skip rows already in a final state that disallows it with a
+    # note instead of exiting. 2026-10-11 fix: the old all-or-nothing exit
+    # left duplicate open rows unclosable whenever a final-state row shared
+    # the slug (49 duplicates re-filed overnight by the terminal-slug gap).
+    changed = 0
+    skipped = 0
     for row in hits:
         cur = row.get("status", "open")
         if cur not in ALLOWED[action]:
-            sys.exit(f"{slug} is {cur}; '{action}' is only valid from "
+            if cur == FM[action]:
+                skipped += 1
+                continue
+            sys.exit(f"{slug}: row is {cur}; '{action}' is only valid from "
                      f"{'/'.join(sorted(ALLOWED[action]))} (final states are terminal; "
                      f"file a NEW finding if the evidence changed)")
         row["status"] = FM[action]
         row["decided_ts"] = now
+        changed += 1
+    if changed == 0 and skipped > 0:
+        # Idempotent re-record: every matching row already sits in the exact
+        # target state — nothing to do, not an error.
+        print(f"no-op: {slug} already {FM[action]} on all {skipped} matching rows")
+        return 0
     row = hits[0]
     if jira:
         row["jira"] = jira
