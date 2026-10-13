@@ -261,6 +261,25 @@ what each touches before you load anything.
 | Knowledge telemetry | every read or write of knowledge and memory files | Logs which knowledge is load-bearing and which is dead. |
 | Write linter | every write or edit under the knowledge or memory trees | Nudges on relative dates without absolute anchors, memory files missing frontmatter, and knowledge writes with no index update. Annotates, never blocks. |
 
+`session-budget` is the cold-start guardrail (v0.1.0, 2026-10-11). It makes
+starting a fresh session cheaper than resuming a giant one, because the cost
+analysis showed 26 of 333 sessions carrying 80% of the week's gateway spend,
+all long RESUMED sessions re-hydrating giant contexts:
+
+| Surface | Fires on | What it does |
+|---|---|---|
+| Band | AbovePrompt | Live `session $X / $50 · ctx N%`, dim, then yellow at the warn line, red at the hard line. |
+| Warn toast | once per session, on crossing the warn line | Defaults $25 spend / 60% context. |
+| Hard stop | `classic.Stop` at the hard line | Blocks turn end (max 3 blocks per session) with orders: invoke the `handoff` skill, then append one closeout row to the session-closeouts ledger. That row's session_id is the gate that reopens Stop. Fail-closed: an unreadable ledger blocks. |
+| Exemptions | fleet jobs, non-interactive surfaces | Fleet jobs set `CLAUDE_JOB=yes`. `/budget` inspects state on demand. |
+
+Environment knobs (literal names, engine requirement): `SESSION_BUDGET_WARN_USD`
+(25), `SESSION_BUDGET_HARD_USD` (50, matching the statusline's alert line),
+`SESSION_BUDGET_WARN_CTX_PCT` (60), `SESSION_BUDGET_HARD_CTX_PCT` (85),
+`SESSION_BUDGET_CLOSEOUT_LEDGER`, `SESSION_BUDGET_FORCE=warn|hard|off` for
+simulation and as the kill switch, and `SESSION_BUDGET_COST_OVERRIDE` (test
+seam that pins the dollar figure).
+
 ### Agents
 
 Each agent is a markdown SOP in `~/.claude/agents/`. They are advisory: they
@@ -457,7 +476,9 @@ the exact prompts.
 | 00:13 daily | Regression harness: run every recipe's test cases via the Test Automation API, report failures with job IDs |
 | 04:43 daily (launchd, zero-LLM) | Frontier nightly: estate twin refresh, prediction resolution + calibration table, precursor radar, skill-fitness backfill and report. Five python scripts, no model spawn |
 | weekly (fleet job) | Antigen drill: inject one fault class into the dedicated dev canary, verify detection, record immunity |
+| 05:07 daily (launchd, zero-LLM) | Wave-3 nightly: trigger ledger, coincidence scoring, ratchet watch, spore shadow row; Sundays add the null-miner permutation run, pleiotropy graph, and MAP-Elites augmentation regen. No model spawn |
 | 05:17 daily (fleet job) | Librarian: corpus consolidation + external-content procurement |
+| Tue 07:07 (launchd, zero-LLM) | Turn audit: weekly turn-discipline classification over session transcripts, paired with the quality guard; report at `knowledge/reports/turn-audit-latest.md` |
 | Tue 06:57 | Harness-docs sync: reconcile live harness <-> repo <-> Confluence doc tree (see "Keeping the docs honest") |
 
 ## Install
@@ -840,12 +861,31 @@ bash wrapper, zero model spawns, one log. Schemas and the
 disjoint-ownership map every script obeys:
 `knowledge/scripts/frontier/CONTRACTS.md`.
 
+## Measured, not assumed (2026-10-12)
+
+The harness pays a constant tax on every session, so it owes a measurement
+of what the tax buys. The A/B bench (`knowledge/bench/harness-ab/` in the
+live knowledge tree, re-runnable with `bench.py`) runs the same 6-task
+battery twice on the same gateway model: vanilla Claude Code in a
+`CLAUDE_CONFIG_DIR` sandbox (zero harness) and the full kit. Findings:
+
+- Input tokens: about 8x more in the full arm, and constant (the tax is
+  fixed overhead, not per-task growth)
+- Wall time: 7.2x on a trivial task, 1.6 to 1.7x on real tasks
+- Accuracy: the discriminator is KB-grounded questions, where vanilla
+  hallucinated a plausible but wrong answer with a fake citation while the
+  full arm answered correctly both times
+
+Verdict: the constant token tax buys grounding and enforcement, and the
+per-task overhead shrinks toward noise on real work. Re-run the battery
+after major harness changes.
+
 ## Layout
 
 ```
 config.example.sh     per-person settings (workspaces, Jira fields)
 install.sh            renders templates + installs everything
-mods/                 the two plugins (hook modules + tests)
+mods/                 the three plugins (hook modules + tests)
 agents/               the eleven agent SOPs (watchers, dreamers, cortex,
                       dissenter, evidence, spec-distiller, librarian,
                       promotion orchestrator)

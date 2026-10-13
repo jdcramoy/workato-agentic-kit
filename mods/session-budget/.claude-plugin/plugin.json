@@ -1,0 +1,6 @@
+{
+  "name": "session-budget",
+  "version": "0.1.0",
+  "types": "./types/index.d.ts",
+  "description": "Session budget guardrail: live $/context band, warn toast, and a hard limit that forces a durable handoff so Josh starts the next task in a fresh session instead of resuming a billion-token one. Born from the 2026-10-11 cost analysis: 26 of 333 sessions carried 80% of the week's $3,371 gateway spend, all long resumed sessions re-hydrating giant contexts."
+}
