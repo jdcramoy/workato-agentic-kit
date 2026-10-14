@@ -1,0 +1,5 @@
+#!/bin/bash
+# bus-actuator: corroboration tally -> consequences. Zero-LLM. Files triage
+# cards when threads cross the act threshold (defect>=1 / general>=2
+# evidence-bearing corroborations, fresh<48h), announces on the bus.
+python3 ~/.claude/knowledge/scripts/gossip-actuate.py --since 7d

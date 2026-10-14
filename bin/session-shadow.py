@@ -14,6 +14,7 @@ never posts to Slack, never acts.
 import json
 import os
 import re
+import sys
 import glob
 import time
 from datetime import datetime, timezone
@@ -27,16 +28,34 @@ STALE_SESSION_SECONDS = 600      # newest file must have been touched in 10 min
 FOCUS_MIN_INTERVAL = 3600        # min seconds between focus bus posts
 DEADMAN_SECONDS = 1200           # quiet 20 min + no closeout = record the drop
 CLOSEOUT_WINDOW = 900            # mission-control event counts as closeout
-DROPS_PATH = os.path.expanduser(
-    '~/.claude/knowledge/mission-control/dropped-sessions.jsonl')
-MC_EVENTS = os.path.expanduser(
-    '~/.claude/knowledge/mission-control/events.jsonl')
+CHECKPOINT_MIN_TURNS = 50        # checkpoint journal starts at this many turns
+CHECKPOINT_BUCKET = 50           # at most one checkpoint row per turn bucket
+# Ledger paths are env-overridable so tests never touch the real ledgers.
+DROPS_PATH = os.environ.get(
+    'SESSION_SHADOW_DROPS_PATH',
+    os.path.expanduser(
+        '~/.claude/knowledge/mission-control/dropped-sessions.jsonl'))
+MC_EVENTS = os.environ.get(
+    'SESSION_SHADOW_MC_EVENTS',
+    os.path.expanduser('~/.claude/knowledge/mission-control/events.jsonl'))
+CHECKPOINTS_PATH = os.environ.get(
+    'SESSION_SHADOW_CHECKPOINTS_PATH',
+    os.path.expanduser(
+        '~/.claude/knowledge/mission-control/checkpoints.jsonl'))
 TICKET_RE = re.compile(r'\b((?:BSYS|BTSUP|HROPS|PSM|MCP|AAI|CT)-\d+)\b')
 JOB_RE = re.compile(r'\bj-[A-Za-z0-9]{6,}(-[A-Za-z0-9]{4,})?-CD\b|\bj-[A-Za-z0-9-]{8,}\b')
 
 
 def now_iso():
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def log_err(where, err):
+    """Fail-open diagnostics: the tailer loop must never die on its side-missions."""
+    try:
+        sys.stderr.write(f"[session-shadow] {where}: {err!r}\n")
+    except Exception:
+        pass
 
 
 def load_state():
@@ -200,6 +219,151 @@ def heartbeat():
         json.dumps({'ts': now_iso(), 'job': 'session-shadow'}) + '\n')
 
 
+def recovery_payload(path, max_prompts=3, prompt_chars=200, out_chars=500):
+    """Extract a drop-recovery payload from a transcript in one pass:
+    (assistant_turns, last N user prompts, touched files, last assistant text)."""
+    turns = 0
+    prompts = []
+    files = []
+    last_out = ''
+    with open(path, errors='replace') as fh:
+        for line in fh:
+            if ('"assistant"' not in line and '"user"' not in line
+                    and '"tool_use"' not in line):
+                continue
+            try:
+                ev = json.loads(line)
+            except Exception:
+                continue
+            if ev.get('isSidechain'):
+                continue
+            etype = ev.get('type')
+            msg = ev.get('message') or {}
+            content = msg.get('content') if isinstance(msg, dict) else None
+            text, _, fs = text_of_content(content)
+            if etype == 'assistant':
+                turns += 1
+                files.extend(fs)
+                for x in text:
+                    if x.strip():
+                        last_out = x
+            elif etype == 'user':
+                real = [x for x in text if not x.startswith('<system-reminder')]
+                if real:
+                    prompts.append(' '.join(real)[:prompt_chars])
+    return turns, prompts[-max_prompts:], sorted(set(files))[:10], \
+        last_out[:out_chars]
+
+
+def absorb_note_exists(sid):
+    """True if an absorb-note row for this session is already in MC_EVENTS
+    (the auto-absorb is idempotent: one row per dropped session, ever)."""
+    want = f'dropped-{sid[:12]}'
+    try:
+        with open(MC_EVENTS) as fh:
+            for line in fh:
+                try:
+                    r = json.loads(line)
+                except Exception:
+                    continue
+                if r.get('event') == 'absorb-note' \
+                        and r.get('workstream') == want:
+                    return True
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        log_err('absorb-exists-check', e)
+    return False
+
+
+def maybe_absorb_drop(sid, transcript_path):
+    """(a) AUTO-ABSORB on drop: when the deadman sweep records a dropped
+    session, append an absorb-note row to the mission-control ledger carrying
+    the recovery payload. Idempotent per session; never raises."""
+    try:
+        if absorb_note_exists(sid):
+            return
+        turns, prompts, files, last_out = recovery_payload(transcript_path)
+        what = (f"DROPPED SESSION auto-absorb (deadman): {turns} turns; "
+                f"last prompts: {' | '.join(prompts) if prompts else 'none'}; "
+                f"files: {', '.join(files[:5]) or 'none'}; "
+                f"last output: {last_out}; "
+                f"transcript: {transcript_path}")
+        row = {
+            'ts': now_iso(),
+            'event': 'absorb-note',
+            'workstream': f'dropped-{sid[:12]}',
+            'project': 'agent-harness',
+            'jira': '',
+            'jira_title': '',
+            'what': what,
+            'why': 'deadman sweep recorded a dropped session; auto-absorb '
+                   'preserves the recovery payload in the ledger',
+            'end': '',
+            'needs': 'resume or explicitly abandon this workstream',
+            'state': 'in-flight',
+            'by': 'deadman-sweep',
+        }
+        os.makedirs(os.path.dirname(MC_EVENTS), exist_ok=True)
+        with open(MC_EVENTS, 'a') as fh:
+            fh.write(json.dumps(row) + '\n')
+    except Exception as e:
+        log_err('auto-absorb', e)
+
+
+def checkpoint_transcript(state, path):
+    """(b) CHECKPOINT JOURNAL: for one transcript, if it has reached a new
+    50-turn bucket (>= CHECKPOINT_MIN_TURNS), append a sparse checkpoint row
+    with the recovery payload. Returns True if state was mutated."""
+    base = os.path.basename(path)
+    if not re.match(r'^[0-9a-f-]{36}\.jsonl$', base):
+        return False
+    sid = base[:-6]
+    try:
+        mt = os.path.getmtime(path)
+    except OSError:
+        return False
+    ck = state.setdefault('checkpoints', {})
+    prev = ck.get(sid) or {}
+    if prev.get('mtime') == mt:
+        return False  # nothing appended since we last looked
+    turns, prompts, files, _ = recovery_payload(path)
+    ck[sid] = {'mtime': mt, 'bucket': prev.get('bucket', -1)}
+    bucket = turns // CHECKPOINT_BUCKET
+    if turns < CHECKPOINT_MIN_TURNS or bucket <= prev.get('bucket', -1):
+        return False
+    ck[sid]['bucket'] = bucket
+    row = {'ts': now_iso(), 'session_id': sid, 'turns': turns,
+           'last_prompt': prompts[-1] if prompts else '',
+           'files_touched': files[:10]}
+    os.makedirs(os.path.dirname(CHECKPOINTS_PATH), exist_ok=True)
+    with open(CHECKPOINTS_PATH, 'a') as fh:
+        fh.write(json.dumps(row) + '\n')
+    return True
+
+
+def checkpoint_sweep(state):
+    """Checkpoint every transcript that crossed a new 50-turn bucket this
+    cycle. Returns True if state changed (caller should save_state)."""
+    changed = False
+    seen = set()
+    for f in glob.glob(PROJECTS_GLOB):
+        base = os.path.basename(f)
+        if not re.match(r'^[0-9a-f-]{36}\.jsonl$', base):
+            continue
+        seen.add(base[:-6])
+        try:
+            if checkpoint_transcript(state, f):
+                changed = True
+        except Exception as e:
+            log_err('checkpoint', e)
+    ck = state.get('checkpoints', {})
+    for dead in [k for k in ck if k not in seen]:
+        ck.pop(dead, None)
+        changed = True
+    return changed
+
+
 def deadman_sweep(state):
     """Dead-man switch for hard-killed sessions (SessionEnd hook never fires on
     SIGKILL/crash): any tracked session quiet for DEADMAN_SECONDS whose work
@@ -225,6 +389,12 @@ def deadman_sweep(state):
             continue
         if entry and entry.get('recorded_for') == int(mt):
             continue  # already recorded for this quiet period
+        if quiet_for > 172800:
+            # 2026-10-13 fusion-build fix: a session quiet >48h is history, not
+            # an actionable drop (the Oct 12/13 floods recorded 12-day-old
+            # transcripts on every tailer restart). Mark tracked, write nothing.
+            tracked[sid] = {'recorded_for': int(mt), 'turns': 0}
+            continue
         # substantial? count turns + collect context cheaply
         turns, last_prompt, files = 0, '', []
         try:
@@ -271,6 +441,11 @@ def deadman_sweep(state):
         tracked[sid] = {'recorded_for': int(mt), 'turns': turns}
         if closed:
             continue
+        if not last_prompt and not files:
+            # 2026-10-13 fusion-build fix: fleet/headless jobs legitimately end
+            # without closeouts and carry no absorbable state (no prompt, no
+            # files) — recording them flooded the ledger 9.6k rows deep.
+            continue
         rec = {'ts': now, 'session_id': sid[:12], 'ended': 'deadman: quiet '
                f'{int(quiet_for//60)}min, no closeout found', 'turns': turns,
                'last_prompt': last_prompt, 'files_touched': sorted(set(files))[:10],
@@ -282,12 +457,153 @@ def deadman_sweep(state):
                 fh.write(json.dumps(rec) + '\n')
         except Exception:
             pass  # fail-open; the shadow never breaks on its side-mission
+        try:
+            maybe_absorb_drop(sid, f)
+        except Exception as e:
+            log_err('auto-absorb', e)
+
+
+def build_fixture(path, n_assistant):
+    """Selftest fixture: a synthetic main-thread transcript."""
+    with open(path, 'w') as fh:
+        for i in range(n_assistant):
+            fh.write(json.dumps(
+                {'type': 'user', 'message': {'role': 'user', 'content': [
+                    {'type': 'text', 'text': f'fixture prompt {i}'}]}}) + '\n')
+            content = [{'type': 'text',
+                        'text': f'fixture assistant output {i}'}]
+            if i == 7:
+                content.append({'type': 'tool_use', 'name': 'Edit',
+                                'input': {'file_path':
+                                          '/tmp/fixture-touched/file.py'}})
+            fh.write(json.dumps(
+                {'type': 'assistant',
+                 'message': {'role': 'assistant', 'content': content}}) + '\n')
+
+
+def append_fixture(path, n_more):
+    with open(path, 'a') as fh:
+        for i in range(n_more):
+            fh.write(json.dumps(
+                {'type': 'user', 'message': {'role': 'user', 'content': [
+                    {'type': 'text', 'text': f'fixture more prompt {i}'}]}})
+                + '\n')
+            fh.write(json.dumps(
+                {'type': 'assistant', 'message': {'role': 'assistant',
+                 'content': [{'type': 'text',
+                              'text': f'fixture more output {i}'}]}}) + '\n')
+
+
+def selftest():
+    """--selftest: exercise absorb + checkpoint against a fixture transcript
+    with TEMP ledger paths. Writes NOTHING to the real ledgers."""
+    import tempfile
+    global MC_EVENTS, CHECKPOINTS_PATH, DROPS_PATH
+    old = (MC_EVENTS, CHECKPOINTS_PATH, DROPS_PATH)
+    tmp = tempfile.mkdtemp(prefix='session-shadow-selftest-')
+    results = []
+
+    def check(name, ok, detail=''):
+        results.append(ok)
+        print(f"{'PASS' if ok else 'FAIL'}: {name}"
+              + (f" | {detail}" if detail else ''))
+
+    try:
+        fx = os.path.join(
+            tmp, '00000000-0000-4000-8000-0000000000aa.jsonl')
+        build_fixture(fx, 55)
+        MC_EVENTS = os.path.join(tmp, 'events.jsonl')
+        CHECKPOINTS_PATH = os.path.join(tmp, 'checkpoints.jsonl')
+        DROPS_PATH = os.path.join(tmp, 'drops.jsonl')
+        real_sizes = {p: (os.path.getsize(p) if os.path.exists(p) else None)
+                      for p in old}
+
+        # --- checkpoint journal ---
+        state = {}
+        checkpoint_transcript(state, fx)
+        rows = [json.loads(l) for l in open(CHECKPOINTS_PATH)]
+        check('checkpoint row lands at 55 turns',
+              len(rows) == 1 and rows[0]['turns'] == 55, f"rows={rows}")
+        check('checkpoint row keys exact',
+              rows and set(rows[0]) == {'ts', 'session_id', 'turns',
+                                        'last_prompt', 'files_touched'},
+              str(sorted(rows[0])) if rows else 'no row')
+        check('checkpoint files_touched carries tool_use file_path',
+              rows and rows[0]['files_touched'] ==
+              ['/tmp/fixture-touched/file.py'],
+              str(rows[0]['files_touched']) if rows else '')
+        checkpoint_transcript(state, fx)
+        rows = [json.loads(l) for l in open(CHECKPOINTS_PATH)]
+        check('no duplicate checkpoint on unchanged mtime', len(rows) == 1)
+        append_fixture(fx, 5)  # 60 turns, still bucket 1
+        checkpoint_transcript(state, fx)
+        rows = [json.loads(l) for l in open(CHECKPOINTS_PATH)]
+        check('same-bucket growth writes no new checkpoint row', len(rows) == 1)
+        append_fixture(fx, 45)  # 105 turns -> bucket 2
+        checkpoint_transcript(state, fx)
+        rows = [json.loads(l) for l in open(CHECKPOINTS_PATH)]
+        check('bucket crossing writes exactly one more row',
+              len(rows) == 2 and rows[-1]['turns'] == 105,
+              f"turns={rows[-1]['turns'] if rows else '?'}")
+
+        # --- auto-absorb on drop (fresh fixture: deterministic payload) ---
+        fx2 = os.path.join(
+            tmp, '00000000-0000-4000-8000-0000000000bb.jsonl')
+        build_fixture(fx2, 55)
+        sid = 'abcdef123456-dead-beef-cafe-000000000000'
+        maybe_absorb_drop(sid, fx2)
+        ev = [json.loads(l) for l in open(MC_EVENTS)]
+        real_keys = {'ts', 'event', 'workstream', 'project', 'jira',
+                     'jira_title', 'what', 'why', 'end', 'needs', 'state',
+                     'by'}
+        check('absorb row lands on drop',
+              len(ev) == 1 and ev[0]['event'] == 'absorb-note',
+              f"rows={len(ev)}")
+        check('absorb keys exactly mirror mission-control schema',
+              ev and set(ev[0]) == real_keys, str(sorted(ev[0])))
+        check('absorb what carries recovery payload',
+              ev and 'auto-absorb (deadman): 55 turns' in ev[0]['what']
+              and 'fixture prompt 54' in ev[0]['what']
+              and '/tmp/fixture-touched/file.py' in ev[0]['what']
+              and 'fixture assistant output 54' in ev[0]['what'])
+        check('absorb workstream = dropped-<sid-short>',
+              ev and ev[0]['workstream'] == f'dropped-{sid[:12]}')
+        check('absorb row state/by fields',
+              ev and ev[0]['state'] == 'in-flight' and ev[0]['by'] ==
+              'deadman-sweep' and ev[0]['project'] == 'agent-harness')
+        maybe_absorb_drop(sid, fx2)
+        ev = [json.loads(l) for l in open(MC_EVENTS)]
+        check('absorb idempotent (second drop appends nothing)', len(ev) == 1)
+
+        # --- real ledgers untouched ---
+        untouched = all(
+            (os.path.getsize(p) if os.path.exists(p) else None) ==
+            real_sizes[p] for p in old)
+        check('real ledgers untouched during selftest', untouched)
+
+        ok = all(results)
+        print(f"SELFTEST: {'PASS' if ok else 'FAIL'} (fixture dir: {tmp})")
+        return ok
+    except Exception as e:
+        import traceback
+        print(f"SELFTEST: FAIL — exception {e!r}")
+        traceback.print_exc()
+        return False
+    finally:
+        MC_EVENTS, CHECKPOINTS_PATH, DROPS_PATH = old
 
 
 def main():
+    if '--selftest' in sys.argv:
+        sys.exit(0 if selftest() else 1)
     os.makedirs(NOW_DIR, exist_ok=True)
     state = load_state()
     deadman_sweep(state)
+    try:
+        if checkpoint_sweep(state):
+            save_state(state)
+    except Exception as e:
+        log_err('checkpoint-sweep', e)
     sessions = active_sessions()
     if not sessions:
         return  # nothing live; keep last known state

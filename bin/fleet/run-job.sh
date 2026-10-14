@@ -79,6 +79,25 @@ if [ -f "$HOME/.zshenv" ]; then
 fi
 CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude || echo "$HOME/.local/bin/claude")}"
 
+# ---- budget preflight (P1 PRICEBOOK, 2026-10-13) -----------------------------
+# If BUDGET_USD_CAP is set (jobs/<name>.env or the environment), fleet-cost.py
+# compares the job's trailing-7d median gateway costUSD against the cap:
+#   exit 7 -> over cap: write a skip-heartbeat row (status "skipped-budget",
+#             same atomic_io mechanism as the probe skip) and exit 0.
+#   ANY other outcome (no cap, no cost data, script broken) -> run the job
+#             normally. Fail-open: a buggy preflight must never suppress a job.
+# Default (no cap set) = pure telemetry, never skip.
+if [ -n "${BUDGET_USD_CAP:-}" ] && [ -x "$HOME/.claude/knowledge/scripts/fleet-cost.py" ]; then
+  python3 "$HOME/.claude/knowledge/scripts/fleet-cost.py" --preflight "$NAME" --cap "$BUDGET_USD_CAP"
+  prc=$?
+  if [ "$prc" -eq 7 ]; then
+    off="$(date +%z)"; off="${off:0:3}:${off:3}"
+    echo "{\"ts\":\"$(date +%Y-%m-%dT%H:%M:%S)${off}\",\"job\":\"$NAME\",\"status\":\"skipped-budget\",\"cap\":\"$BUDGET_USD_CAP\"}" | python3 "$HOME/.claude/knowledge/scripts/atomic_io.py" "$HEARTBEAT"
+    echo "$(date '+%F %T') $NAME: budget preflight — trailing-7d median cost over cap $BUDGET_USD_CAP — skipped (zero tokens)" >> "$LOG"
+    exit 0
+  fi
+fi
+
 # ---- zero-LLM probe gate (contract in the header comment) -------------------
 PROBE="$JOB.probe"
 PROBE_NOSIGNAL=7
