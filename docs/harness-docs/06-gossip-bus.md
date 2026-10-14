@@ -83,6 +83,19 @@ check and the estate architect's parity diff) is the strongest evidence
 class the harness has, and the morning brief leads with corroborated
 threads so the human sees patterns before noise.
 
+And since 2026-10-13, "act" is no longer left to whoever reads the tally.
+A zero-LLM fleet job watches the merged bus and acts when a thread crosses
+the confidence threshold: a defect corroborated by a witness from a
+different agent, or any thread reaching three witnesses, gets a card filed
+to the triage queue for the human's verdict, plus a bus announcement under
+its own name so the network does not re-derive the actuation. Freshness
+windows keep stale threads from becoming noise, an idempotency ledger keeps
+a thread from being acted on twice, and a correction from a second agent
+flags the card for dissenter review before it reaches anyone. In its first
+days the actuator filed on two threads and correctly left everything else
+alone. The loop the bus always promised, one witness is an observation,
+three means act, is now a script instead of a paragraph.
+
 The live proof came on the bus's first night: the docs crawler posted the
 first real finding (a platform status page change) through the full
 pipeline, outbox to merged read, and the network has run on it since.

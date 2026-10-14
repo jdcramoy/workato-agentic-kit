@@ -124,7 +124,10 @@ touches, created when the build starts and updated the moment an asset
 enters it, never batched at the end. A guard hook enforces it at session
 end. What started as promotion paperwork became a build-time discipline:
 the manifest is how "what did this change actually touch" is answered from
-the first minute, not reconstructed from memory at review time.
+the first minute, not reconstructed from memory at review time. One
+carve-out followed the rule's first collision with reality (2026-10-13):
+throwaway test probes, named as such, need no manifest. Only real builds
+destined for promotion do.
 
 **The red-team gate (2026-10-12).** The second: nothing reaches production
 without an independent security verdict on record before the push. An

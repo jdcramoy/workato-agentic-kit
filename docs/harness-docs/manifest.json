@@ -2,7 +2,7 @@
   "space_key": "BTI",
   "space_name": "[External] BT-Business Technology",
   "parent_page_id": "2938830860",
-  "last_synced_commit": "docs-sync-2026-10-13b",
+  "last_synced_commit": "docs-sync-2026-10-14",
   "sync_schedule": "weekly session-cron, Tuesdays 06:57, self-rearming",
   "policy": {
     "updates_to_existing_pages": "autonomous (sanitized content only, read-back required)",
@@ -57,5 +57,5 @@
       "version": 2
     }
   ],
-  "last_synced_date": "2026-10-13"
+  "last_synced_date": "2026-10-14"
 }

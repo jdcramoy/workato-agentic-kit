@@ -124,6 +124,10 @@ principle it set: catalogues earn their size, they do not inherit it.
 - **handoff**: writes the resumable state document at the end of any
   multi-session build: what was touched (with links), what is verified with
   evidence, what is blocked and on whom, and the exact next command.
+- **jira-slack-formatting** (added 2026-10-13): the formatting standard for
+  every outbound update, standing-rule grade. Verdict first, section leads,
+  one idea per line, strong whitespace. The rule it replaced was "never
+  post a wall of text", which the fleet kept rediscovering the hard way.
 
 ## Why skills rather than documentation
 
