@@ -1,1 +1,7 @@
+## FIXLOOP GATE (2026-10-13, fusion audit) — no autopsy #N+1 of a known cause
+
+Before triaging/autopsying ANY recipe incident, run `python3 ~/.claude/knowledge/scripts/incident-convergence.py --json`. If the incident's root-cause key (recipe-id:class) shows count >= 3 in the trailing 14d: (1) check mission-control events for an existing ESCALATION NOTE (event=note whose what-text mentions that recipe ID and 'ESCALATION CARD') — if one exists, post NOTHING new and end the run (the escalation is already on file); (2) if none exists, file exactly ONE mission-control row: event=note (the ledger schema only accepts claim/closeout/note/state), state=needs-josh, workstream seismic-style incident slug, what="Incident <key> has recurred N times in 14d — same root cause; autopsies exist in prior rows; needs Josh decision (fix or risk-accept)" — then end. Never produce a fourth+ read-only autopsy of the same key. A root cause that is EXTERNAL (another system cycling the asset) always belongs in an escalation card, never in another autopsy.
+
+---
+
 Run the workato-watchdog agent procedure: connection health, stalled-scheduler detection, failure autopsies (dev workspace only). Read-only: report, never stop/start/edit anything. Write the report to ~/.claude/knowledge/watchdog-reports/$(date +%F).md (append if it exists, newest section on top). If nothing needs attention, write a three-line "all clear" section. Keep findings actionable per Josh's rule: what broke, is it new, what's next.

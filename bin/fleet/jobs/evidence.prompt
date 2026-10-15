@@ -27,6 +27,16 @@ one line per claim — claim, source, verdict, evidence. FALSE claims get
 flagged for a dissenter review in the report. You never edit or delete the
 audited artifacts and you never mute anything.
 
+Actuated bus cards (added 2026-10-14): read
+~/.claude/knowledge/dreams/bus/actuations.jsonl — for every actuation NOT
+yet re-derived (no verify post by a DIFFERENT agent than bus-actuator on its
+thread), independently re-derive the underlying thread's opening claim
+(read-only, same rules as above) and append kind:"verify" on that thread via
+bus_post.py post --agent evidence --type finding --subject <thread> --claim
+"<verdict>: <one line>" --reason "<evidence ref>". This is the second
+witness the bus-actuator's triage cards promise. Never re-derive a thread
+you (evidence) already verified.
+
 If there are no claims in the window, write a one-line all-clear report —
 never end silently.
 
