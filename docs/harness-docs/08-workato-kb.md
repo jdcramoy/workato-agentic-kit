@@ -80,6 +80,19 @@ The harness so far learned by consolidation only. Five new channels: the other w
 
 All five report into a science-state file (read by the ops dashboard) and are liveness-checked nightly.
 
+## The science stack, wave 3 (added 2026-10-11)
+
+Where the integrity layer measures the estate, the third wave of the science stack measures the dreamers themselves, with an instrument per scientific virtue. All of it is standard-library scripts, all of it is ledgered, and several pieces were audited into honesty the same week they shipped (a claimed proof that existed only in console output was caught and required to be recorded; a spore row silently writing into a literal tilde directory was caught by three independent auditors).
+
+- **The null model**: every claimed dream pattern is tested against a permutation null of shuffled sessions. The dreamer's best real pattern sat inside the null, which turned a suspected confabulation class into a measured one.
+- **The noise floor**: every "this change made things better" claim is recorded with a robust spread estimate and comes back confirmed, within noise, refuted, or with insufficient data. Retroactive proofs count only when persisted, never when merely printed.
+- **Fusion discipline**: a fusion panel may not stack two models of the same family (the failure class that motivated fusion in the first place), enforced by policy, and always advisory: the human can still order any panel.
+- **The trigger and the coincidence analyzer**: borrowed from particle physics. A prescaled sampler mines the fleet's logs for event classes with a minimum-bias floor so no stream escapes sampling, and a cadence-aware coincidence analyzer collapses signals that share an upstream cause, so two agents noticing the same outage count as one sighting.
+- **The patch genome and the ratchet**: every applied self-improvement is mirrored into a lineage ledger, and a stateless ratchet counts regressions across the real outcome surfaces.
+- **The quality archive**: a MAP-Elites archive grades every attempted improvement into cells (failure class, loop, blast radius), with fitness defined as benchmarkable evidence only. Acceptance probability was banned from the fitness function twice, on its way in both times.
+- **Change rungs**: an item's dependency degree sets who may change it and how. The first live pass: 141 knowledge items sorted into 103 human-gated, 25 propose, 13 auto-safe.
+- **The spore router (shadow only)**: records which model family would have handled each task and how that would have returned, routing nothing yet. The enforcement hooks stay untouched until a week of real returns exists.
+
 ## The immune system (Oct 9)
 
 Two structural-safety additions from the adversarial review of the harness itself:
@@ -140,6 +153,8 @@ All tickets assigned to Josh and resolved since May (n=142), stratified by creat
 | Harness era (Sept+) | 12 | **0.7 days** | **67%** |
 
 18x cycle-time reduction on fresh work; 6x same-day rate; 28 stale backlog closures as a bonus. Re-runs monthly from one query: the claim is reproducible, not anecdotal.
+
+The dollar side got its own calibration story (2026-10-14), and the story is the point. The cost basis was corrected three times in two days: list prices nobody pays (17 to 33 times too high for the flagship model), then a dashboard estimator 2.7 to 3.3 times hot on identical token counts, then the gateway's actual spend page as the canonical basis. On the settled basis, year-to-date harness spend is about $13.6k, and value-based ROI against it runs 9.6x on shipped work and 43.9x on resolved work. The precision is modest; the practice is the claim: every dollar figure published from this harness has survived a reconciliation or is labeled as an estimate, and the corrections are kept in the record instead of quietly overwritten.
 
 ## The nightly machine
 

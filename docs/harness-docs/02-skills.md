@@ -81,6 +81,11 @@ Two standing orders became skills the same day they were ruled:
   "assumed clean".
 - **diff-reading**: read a recipe definition diff and separate behavioral
   changes from cosmetic ones, the review step before approving any push.
+- **manifest-creation** (added 2026-10-15): the one sanctioned way to build
+  an export manifest: crawl the folder tree top-down first, then add the
+  edited assets into their real folders with dependencies, true asset
+  types, and read-back verification. Hand-built asset rows are how
+  dependency misses happen.
 
 ## The parking lot (2026-10-12)
 

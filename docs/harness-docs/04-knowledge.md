@@ -158,6 +158,45 @@ layer is what stands between a plausible answer and a correct one, and on
 deep retrieval tasks the cost relationship inverts: the bare model crawls
 the web for minutes where a cited local answer takes seconds.
 
+**The waste audit (2026-10-13/14).** The next measurement went after failure
+instead of spend, and the week's number was 3,175 failed tool calls across
+547 sessions. The taxonomy mattered more than the total: permission denials
+that each burn a full turn at full context footprint, platform-builder
+schema errors committed at the highest average context of any tool in the
+fleet, and blind retries, while consulting the knowledge base after a
+failure happened 0.25% of the time. Four fixes shipped the same week, all
+verified end to end against fresh probes: the error-guide hook (found built
+but never wired) now registered and extended to inject the exact reference
+call a schema error asks for; a pre-flight guard that denies malformed
+tracker comments before they reach the API (a third of comment writes had
+been failing); writer-class fleet jobs running with permissions resolved,
+which deleted the denial class outright; and the CLI's error classes
+documented as playbook traps. Measured forward savings at calibrated rates
+run about a hundred dollars a week; the bigger wins are the roughly 2,500
+wasted turns a week that stop happening and the failure-recovery turns no
+longer paid at half a million tokens of context each.
+
+**One price book (settled 2026-10-13).** The question "what does a session
+actually cost" survived three answers. The engine's built-in ledger turned
+out to apply list rates nobody pays (17 to 33 times too high for the
+flagship model), a team dashboard estimator ran 2.7 to 3.3 times hot on the
+same token counts, and the gateway's own spend page is the canonical basis.
+The durable rules: compare models in tokens, quote dollars only from the
+gateway's card, and treat any cost number that has not survived a
+reconciliation as an estimate.
+
+**The efficiency dashboard (2026-10-14).** A daily zero-LLM job renders the
+whole bill as one self-contained page: burn by day and token class, failure
+rates with hooked classes split from unhooked so the green line's fall is
+checkable, tokens per shipped closeout and per story point, and a session
+catalog that classifies every session the harness runs. The first week's
+catalog: platform builds carry 75% of all burn, the harness's own
+self-improvement 25%, and the fleet's routine analysis pulse costs about
+2.4 million tokens per session. Where a chart needs projection (days before
+the registry existed), the projected segment is dotted and flagged; where a
+denominator changed meaning, both lines are shown so nobody oversells the
+drop.
+
 ## The gardener's two mandates
 
 **Content curation** keeps the knowledge true: index-to-file inventory in

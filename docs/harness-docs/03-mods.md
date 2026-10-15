@@ -75,8 +75,18 @@ standing orders and the session lifecycle:
 - **airo-error-guide** turns the platform tool's failure modes into immediate
   teaching: an unknown-field error re-pulls the field guidance, an
   ungranted tool is told to use the CLI instead of retrying, a shell trap
-  writes to a file instead of the command line. The loop stops paying a turn
-  to learn a rule the harness already knows.
+  writes to a file instead of the command line. A week of forensics found
+  it built but never wired, and a bigger class underneath: schema errors on
+  the platform builder made at the highest average context footprint of any
+  tool in the fleet. The hook is now registered, extended to inject the
+  exact reference call the error text asks for, and verified end to end
+  with a fresh probe that made the exact bad call and got the guidance in
+  its context. The loop stops paying a turn to learn a rule the harness
+  already knows.
+- **jira-comment-guard** (added 2026-10-14) denies malformed tracker
+  comments before they are sent: a role tag some projects reject, an unset
+  parent, the shapes that had been failing a third of the time. The denial
+  carries the corrective reason, so the failed roundtrip never happens.
 - **the MCP health check** dropped from a multi-line report at session start
   to a single line, with the detail cached for anyone who asks. Even the
   watchdogs pay rent per token.
