@@ -85,15 +85,47 @@ If you find personal content tracked in any repo: `git rm --cached` it, add
 the ignore rule, and tell the harness owner. The exporter sweeps for the
 known names, but new personal content is a human decision first.
 
+## Seeding your knowledge tree (do this BEFORE the first session)
+
+The kit installer gives you the knowledge-tree SCAFFOLD (scripts, INDEX
+template, dreams scaffold) but not the knowledge itself. The team's
+accumulated knowledge layer lives in
+[Workato-All/knowledge-corpus](https://github.com/Workato-All/knowledge-corpus),
+and your harness reads `~/.claude/knowledge/INDEX.md` from one location, so
+the corpus clones INTO that location:
+
+    git clone https://github.com/Workato-All/knowledge-corpus.git ~/.claude/knowledge
+
+Order matters if you already ran the kit installer: the installer preserves an
+existing `INDEX.md` and adds its scripts on top, so cloning the corpus first
+and running (or re-running) `install.sh` after is the clean sequence. A fresh
+tree with no corpus clone works, it just starts empty.
+
+No extra configuration is needed: the harness, the mods, the dreamer, and the
+exporter all read `~/.claude/knowledge/` because that is where INDEX.md lives.
+
+## How your knowledge reaches the team
+
+Your local tree is a clone of the corpus. Write knowledge locally as above,
+commit, and push — but coordinate before pushing new TOP-LEVEL content: the
+harness owner's weekly exporter rebuilds the corpus from the owner's tree, so
+a teammate file the owner's tree does not have can be removed by the next
+export. The safe contribution path today is a pull request (or a heads-up in
+the kit channel) so the file lands in the owner's tree too. Files the exporter
+does not manage are never touched inside stubbed directories, and personal
+content (people files, voice) never commits anywhere.
+
 ## Getting started checklist
 
 1. Install the kit (`onboard.sh`, `install.sh`, `verify.sh`), then install
    the KB pack (`workato-dev-kb`: clone, `./install.sh`) so the docs corpus
-   and fractal memory are local.
-2. Read `knowledge/INDEX.md` end to end once. It is the map.
-3. Write one knowledge file about something you learned this week. Put it in
+   and fractal memory are local. The kit installer points at the pack; the
+   pack is the library, not the brain.
+2. Seed your knowledge tree: clone `knowledge-corpus` into
+   `~/.claude/knowledge` (see the section above).
+3. Read `knowledge/INDEX.md` end to end once. It is the map.
+4. Write one knowledge file about something you learned this week. Put it in
    `domains/` or `projects/`, add the INDEX line, cite one piece of evidence.
-4. Check it ships: it appears in the next Tuesday corpus export (or run the
-   exporter locally and look).
-5. Build your own voice skill and people files from the kit templates. Keep
+5. Contribute it back: commit and push, or open a pull request.
+6. Build your own voice skill and people files from the kit templates. Keep
    them personal; they never export.
