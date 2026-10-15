@@ -65,7 +65,9 @@ repeatable SOP extracted from real work:
 
 ## The promotion gate skills (added 2026-10-12)
 
-Two standing orders became skills the same day they were ruled:
+The governance skills cluster around one job: getting a change from dev to
+production with nothing skipped. The first two were ruled as standing orders
+and became skills the same day:
 
 - **red-team-review**: the framework behind the red-team gate. Classifies
   the review tier by risk, walks the five security surfaces, and produces an
