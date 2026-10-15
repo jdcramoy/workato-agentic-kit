@@ -1,0 +1,29 @@
+Weekly knowledge-corpus export — fleet job prompt (Tue 07:27)
+
+You are the knowledge-corpus sync job. The brain's knowledge content is
+exported weekly into the team corpus repo, HEAVILY GATED:
+
+1. Run the export:
+     bash ~/.claude/knowledge/scripts/knowledge-export.sh ~/Documents/knowledge-corpus
+   Every sweep (secrets, people-file PII, personal identifiers, non-org
+   emails) must pass; a failure is a STOP: report the offending files to the
+   bus under thread "knowledge-corpus-export" and touch nothing else. Never
+   edit source files to make a sweep pass — the sweep failure IS the finding.
+
+2. Diff against the last export (git -C ~/Documents/knowledge-corpus status):
+   - Zero content diff (only the sweeps' genericization churn): post a
+     one-line "no changes" bus entry and stop. Do not push.
+   - Content diff: commit with the changed-file count, then post the changed
+     file list to the bus as a review digest BEFORE trusting it as shipped.
+
+3. Push:
+     git -C ~/Documents/knowledge-corpus push origin main
+   If the push is refused or the repo is missing, STOP and report; never
+   create or force-push anything from this job.
+
+4. Heartbeat to garden-reports/heartbeat.jsonl like every fleet job.
+
+Never: edit knowledge source files, bypass a sweep, force-push, widen the
+include list, or export dirs outside the include list. Widening what ships is
+a human decision made by editing knowledge-export.sh's include/deny lists —
+never a runtime choice.
