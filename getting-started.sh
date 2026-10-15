@@ -103,7 +103,7 @@ settle() { # settle <step-id> <re-probe-command>  ($? of probe decides)
 probe_mcp() { # live: each expected server shows Connected in claude mcp list
   local list ok=0
   list=$(cd "$PROJECT_PATH" 2>/dev/null && claude mcp list 2>/dev/null || true)
-  for s in workato-airo-mcp-server workato-airo-mcp-prod workato-dependency-tracker atlassian; do
+  for s in workato-airo-mcp-server workato-airo-mcp-prod workato-dependency-tracker atlassian slack-workato; do
     if echo "$list" | grep -q "$s.*Connected"; then
       echo "  ✓ $s connected"
     else
@@ -228,7 +228,7 @@ echo "  (recorded: done — the step is running it; the findings drive the next 
 echo
 echo "== step 2 of 8: MCP authorization (the step people skip) =="
 cat <<'EOT'
-Every Workato-facing capability rides on four MCP servers, and each needs YOUR
+Every Workato-facing capability rides on five MCP servers, and each needs YOUR
 account: the kit cannot do your OAuth. Registration (claude mcp add) and
 authentication (the /mcp OAuth flow inside Claude Code) are both one-time.
 
@@ -239,8 +239,11 @@ authentication (the /mcp OAuth flow inside Claude Code) are both one-time.
 - workato-dependency-tracker — blast radius, recipe logic, connection health.
 - atlassian — Jira and Confluence: the story-points gate, promotion stories,
   triage filing. OAuth through your Atlassian account.
+- slack — Slack reads and posts as YOU: the presence rules (read-before-write,
+  confirm-before-post) are enforced by policy on the server, not by trust.
+  Register your workspace's slack MCP URL, then /mcp authenticate.
 
-brain is a fifth server the installer registers itself (claude mcp add brain
+brain is a sixth server the installer registers itself (claude mcp add brain
 --scope user, read-only) — no action needed.
 
 Register with your workspace's MCP URLs (from your Workato admin or whoever
@@ -252,7 +255,7 @@ shared this kit), then authenticate inside Claude Code:
 then in Claude Code: /mcp, select each server, authenticate.
 EOT
 if probe_mcp; then
-  echo "  probe: all four connected."
+  echo "  probe: all five connected."
   mark mcp done
 else
   echo "  finish the registrations and the /mcp OAuth for each server above."
