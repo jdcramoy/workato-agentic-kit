@@ -9,6 +9,10 @@ developer (human or agent) in these layers:
 - A Developer API wrapper for the operations the platform tools do not expose
 - Watcher agents that inspect the estate on a schedule and corroborate each
   other over a shared bus
+- An orchestration router (bin/orchestration-router.py) that decides how
+  multi-part work executes: hard strategic gates (production writes never
+  delegate, adversarial review needs a persistent role) override a
+  seven-feature score across four patterns (solo, fanout, pipeline, team)
 - A curated knowledge system that captures lessons and verifies them against
   live behavior
 - A promotion pipeline that turns tracked dev work into governed production

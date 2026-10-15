@@ -135,6 +135,33 @@ gate rests on: the builder never reviews its own work, and a review written
 from the recipe definition alone, without the live configuration and real job
 traces, does not count.
 
+## Choosing the shape of the work
+
+Not every task deserves an agent team, and not every fanout deserves to
+exist. The orchestration router (bin/orchestration-router.py) makes that
+call mechanically instead of by feel. Two layers, in order:
+
+1. Hard rules override every score. A production write is never delegated:
+it happens in the main session after first-hand confirmation. Adversarial
+separation requires a persistent team role, because a one-shot worker
+cannot hold a gate. High collision risk across subtasks forces a team with
+disjoint file ownership. A single trivial lookup answers in the main
+session.
+
+2. Everything else scores seven features (independence, statefulness,
+coordination, context volume, collision risk, latency sensitivity, and
+sequential stage ordering) and picks the highest of four patterns: solo,
+fanout, pipeline, team. A margin under 0.5 prints the one feature that
+would flip the verdict, so close calls demand measurement instead of
+guessing.
+
+The doctrine behind the weights: direct agent-to-agent channels bypass the
+verification point, because a claim that arrives corroborated is not a
+claim that arrived checked. Persistent agents leave persistent state, and
+persistent state rots. So teams run where the collaboration is the product
+and fanout runs where the artifact is, with the orchestrator as the
+verification gate either way.
+
 ## How they validate and challenge each other
 
 The design assumes agents will be wrong individually, so correctness is a
