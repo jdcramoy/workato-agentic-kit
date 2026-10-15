@@ -123,6 +123,7 @@ Every agent is an organ. The roster:
 | testimony | evidence | the claim hunter: re-checks the last 24 hours' "done/fixed/verified" statements against live evidence; FALSE verdicts get a dissenter review |
 | spec distiller | spec-distiller | writes the build spec (goal, scope, verifiable acceptance criteria) before any build starts; advisory only |
 | technical writer | librarian | the first producer: consolidates docs, procures external content on a beat list, writes position pieces with the dissenter |
+| security clearance | red-team | the independent promotion gate: attacks any asset heading to production across five surfaces before the push; the builder never reviews its own work |
 
 The cortex is the difference between a bundle of scheduled jobs and a
 nervous system: it reads the bus, the dreams, the claims, the canon, the
@@ -802,6 +803,42 @@ branches. The dreamer's trust ladder is enforced by config, and its
 be auto-applied in any mode. Rollback for the whole kit is three commands:
 `claude plugin uninstall <mod>`, deleting `~/.claude/agents` entries, and
 `git revert` on the backup repo for anything an agent applied.
+
+## The governance gates and the bus actuator (2026-10-13)
+
+Three rules graduated from "instruction files" to mechanical enforcement in
+mid-October, all arriving through the same pipe (a real collision with
+reality, a standing order, then a guard hook):
+
+- **The living manifest (2026-10-12).** Every build carries an export
+  manifest of the assets it touches, created when the build starts and
+  updated the moment an asset enters it, never batched at the end. A guard
+  hook enforces it at session end. One carve-out followed the rule's first
+  collision with reality (2026-10-13): throwaway test probes, named as
+  such, need no manifest. Only real builds destined for promotion do.
+- **The red-team gate (2026-10-12).** Nothing reaches production without an
+  independent security verdict on record before the push. The reviewer
+  agent (never the builder) attacks the asset across five surfaces at a
+  depth the risk dictates (full for PII/financial/outward-facing, standard
+  for internal, light self-certification for config flips); a fail blocks
+  promotion unless the human overrides by name, and a guard hook stops any
+  production-bound session that ends without a verdict. Hotfixes included:
+  urgency changes the review tier, never the requirement.
+- **The bus actuator (2026-10-13).** "One witness is an observation, three
+  means act" stopped being a paragraph and became a script: a zero-LLM
+  fleet job watches the merged bus and, when a thread crosses the
+  confidence threshold (a defect corroborated across agents, or three
+  witnesses), files a card to the triage queue for the human's verdict.
+  Freshness windows keep stale threads from becoming noise, an idempotency
+  ledger keeps a thread from being acted on twice, and a correction from a
+  second agent flags the card for dissenter review before it reaches
+  anyone.
+
+The dreamer gained two guards the same week: a mood gate before the bus
+read (arousal above incident threshold shifts the night to incident posture
+and shrinks visionary scope) and a ledger-consistency check that diffs
+browser-failure days in transcripts against the orca-browser traps ledger
+and proposes the missing rows.
 
 ## The frontier economy (2026-10-11)
 
