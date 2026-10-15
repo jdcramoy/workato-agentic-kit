@@ -26,7 +26,7 @@ All of it lands in one local store outside the curated knowledge tree (which sta
 
 ## The canon expansion (2026-10-10/11)
 
-The corpus outgrew Workato documentation and became a general engineering canon: 24.6k documents and 165k+ chunks, via a scout expansion with a standing beat list:
+The corpus outgrew Workato documentation and became a general engineering canon (live counts on the knowledge sources page: 104,722 documents and 382,773 chunks across 40 indexed sources as of 2026-10-15), via a scout expansion with a standing beat list:
 
 - **AI engineering**: the major labs' cookbooks and platform docs, the MCP specification, leading AI newsletters, blogs, and research digests.
 - **Systems architecture**: the cloud providers' architecture centers, the SRE and distributed-systems canon, database design classics.
@@ -48,7 +48,7 @@ Chunking is contextual: every chunk carries a header naming source, section, pag
 
 ## The fractal memory layer
 
-One factlet schema at every scale: topic (1), file (112), section (~370), chunk (~64K), with parent links and zoom retrieval (`kb zoom "topic"` answers coarse and drills on demand). The projection covers ALL harness memory: the knowledge tree, the claims ledger, every agent SOP, every skill, the instruction tiers, every project's auto-memory, dream reports, and calibration cards. A coverage auditor checks it mechanically: currently 268 files across 12 surfaces, 0 gaps. Files stay the source of truth; the factlet store is a rebuildable projection. A Matryoshka-style funnel adds a coarse page layer (the situating lines, embedded) that boosts chunk search.
+One factlet schema at every scale: topic, file, section, chunk, with parent links and zoom retrieval (`kb zoom "topic"` answers coarse and drills on demand; live level counts on the knowledge sources page). The projection covers ALL harness memory: the knowledge tree, the claims ledger, every agent SOP, every skill, the instruction tiers, every project's auto-memory, dream reports, and calibration cards. A coverage auditor checks it mechanically: currently 268 files across 12 surfaces, 0 gaps. Files stay the source of truth; the factlet store is a rebuildable projection. A Matryoshka-style funnel adds a coarse page layer (the situating lines, embedded) that boosts chunk search.
 
 **Why fractal memory matters (the case in numbers):** before it, a question paid for a whole file even when one section answered it: 2-10K tokens per memory look-up. The fractal ladder answers at the coarsest level that's correct (~300-500 tokens) and drills only when a decision needs the detail: 10-30x less context per memory question, with provenance (the exact evidence line) one drill away. The single schema at every scale means one tool set serves all of memory: the same zoom works on a transcript line, a knowledge file, a claim, or a docs page, and the coverage auditor makes completeness a checked fact instead of a hope. Brains organize memory this way (the same code recurs at every scale, retrieval zooms by cue); the harness version is queryable at any depth instantly, which is where it beats biology.
 

@@ -152,6 +152,7 @@ agent-applied change a `git revert` away.
 6. [The gossip bus: how the agents talk]
 7. [The dreamer and the trust ladder: self-improvement with a human in the loop]
 8. [The Workato KB: RAG++ over all documentation, and the dreaming team]
+9. [The knowledge sources: what the harness knows, and where it lives]
 
 Verdict: this is a working system, not a proposal. It runs nightly, it
 documents itself, and every layer of it exists because a specific

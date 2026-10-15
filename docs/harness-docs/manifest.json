@@ -55,6 +55,12 @@
       "page_id": "2938929237",
       "title": "The Workato KB: RAG++ over all documentation, and the dreaming team",
       "version": 2
+    },
+    {
+      "file": "09-knowledge-sources.md",
+      "page_id": "2956263903",
+      "title": "The knowledge sources: what the harness knows, and where it lives",
+      "version": 1
     }
   ],
   "last_synced_date": "2026-10-15"
