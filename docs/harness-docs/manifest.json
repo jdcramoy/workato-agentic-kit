@@ -2,8 +2,8 @@
   "space_key": "BTI",
   "space_name": "[External] BT-Business Technology",
   "parent_page_id": "2938830860",
-  "last_synced_commit": "docs-sync-2026-10-15",
-  "sync_schedule": "weekly session-cron, Tuesdays 06:57, self-rearming",
+  "last_synced_commit": "c10981a",
+  "sync_schedule": "nightly session-cron, daily 06:57, self-rearming (was weekly Tuesday; Josh 2026-10-15: nightly to document new functionality as it lands)",
   "policy": {
     "updates_to_existing_pages": "autonomous (sanitized content only, read-back required)",
     "new_pages_or_reparenting": "needs Josh approval first",
@@ -64,15 +64,13 @@
     },
     {
       "file": "10-knowledge-getting-started.md",
-      "page_id": null,
-      "title": "Getting started with the knowledge base: where knowledge lives and how it ships",
-      "status": "pending-josh-approval (new page)"
+      "page_id": "2956034485",
+      "title": "Getting started with the knowledge base: where knowledge lives and how it ships"
     },
     {
       "file": "11-capabilities.md",
-      "page_id": null,
-      "title": "The capability catalog: agents, skills, commands, and servers",
-      "status": "pending-josh-approval (new page)"
+      "page_id": "2956034461",
+      "title": "The capability catalog: agents, skills, commands, and servers"
     }
   ],
   "last_synced_date": "2026-10-15"
