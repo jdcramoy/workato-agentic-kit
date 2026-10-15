@@ -341,8 +341,11 @@ finish_step knowledge+dreams
 # --- step: mods + kb ----------------------------------------------------------
 begin_step mods+kb
 mkdir -p "${KIT_HOME}/mods"
-if ! cp -R mods/* "${KIT_HOME}/mods/"; then
-  fail_step "mod source copy failed: mods/* -> ${KIT_HOME}/mods/ (check the cp error above and directory permissions)"
+# "mods/*" does not match dotfiles (e.g. mods/.claude-plugin, which holds
+# marketplace.json), so the marketplace registration below would silently
+# find nothing. "mods/." copies the directory's full contents, hidden or not.
+if ! cp -R mods/. "${KIT_HOME}/mods/"; then
+  fail_step "mod source copy failed: mods/ -> ${KIT_HOME}/mods/ (check the cp error above and directory permissions)"
 fi
 
 # Workato KB (RAG++ pipeline): the shareable KB ships as its OWN pack now
@@ -432,6 +435,12 @@ case ":$PATH:" in
   *) echo "wt installed: ${KIT_HOME}/.local/bin/wt — add ~/.local/bin to your PATH" ;;
 esac
 echo "wt auth: set WORKATO_API_TOKEN or store a token via workato-platform-cli (keychain)."
+
+# harness-backup (knowledge/scripts/harness-backup.sh): verify.sh and the
+# README both expect this on PATH, but nothing previously copied it there.
+cp knowledge/scripts/harness-backup.sh "${KIT_HOME}/.local/bin/harness-backup"
+chmod +x "${KIT_HOME}/.local/bin/harness-backup"
+echo "harness-backup installed: ${KIT_HOME}/.local/bin/harness-backup (set BACKUP_REPO_LOCAL/BACKUP_REPO_URL in config.sh, then run it once)"
 
 # brain MCP server (read-only knowledge access for any agent)
 cp bin/brain-mcp "${KIT_HOME}/.local/bin/brain-mcp"
