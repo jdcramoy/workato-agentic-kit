@@ -1,2 +1,6 @@
 dist/
 install-logs/
+
+# personal config — rendered by onboard.sh, never shipped (Josh, 2026-10-15)
+config.sh
+config.sh.bak-*
