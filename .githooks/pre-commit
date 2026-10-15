@@ -1,0 +1,24 @@
+#!/bin/bash
+# kit pre-commit: secrets + personal-content scan (2026-10-15)
+fails=""
+# secret-shaped strings in added lines (exclude .githooks: this hook's own
+# pattern definitions legitimately contain the regexes)
+if git diff --cached -U0 -- . ':(exclude).githooks' | grep -E '^\+' | grep -qE 'sk-ant-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|xox[bposa]-[A-Za-z0-9-]{10,}|BEGIN.*PRIVATE KEY'; then
+  fails="$fails secret-shaped-strings"
+fi
+# personal identity content must never commit
+for f in $(git diff --cached --name-only); do
+  case "$f" in
+    config.sh|config.sh.bak-*|*people/*|*voice-reps/*|*josh-voice*|*writing-voice*) fails="$fails $f (personal class)";;
+  esac
+done
+# personal account identifiers in added lines (same self-exclusion)
+if git diff --cached -U0 -- . ':(exclude).githooks' | grep -E '^\+' | grep -qiE 'joshcramoy|jdcramoy'; then
+  fails="$fails personal-identifier"
+fi
+if [ -n "$fails" ]; then
+  echo "COMMIT BLOCKED:$fails"
+  echo "override only with --no-verify after a manual look."
+  exit 1
+fi
+exit 0

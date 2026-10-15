@@ -21,7 +21,13 @@ exported weekly into the team corpus repo, HEAVILY GATED:
    If the push is refused or the repo is missing, STOP and report; never
    create or force-push anything from this job.
 
-4. Heartbeat to garden-reports/heartbeat.jsonl like every fleet job.
+4. Content audit cadence: on the FIRST Tuesday of each month, before
+   pushing, dispatch a content-level audit (the class a mechanical sweep
+   cannot judge: real-person data, confidential business content,
+   personal assessments, non-standard secrets) over the changed files and
+   apply its redactions to the EXPORTED copy first. Weekly runs skip this;
+   the mechanical sweeps always run.
+5. Heartbeat to garden-reports/heartbeat.jsonl like every fleet job.
 
 Never: edit knowledge source files, bypass a sweep, force-push, widen the
 include list, or export dirs outside the include list. Widening what ships is
