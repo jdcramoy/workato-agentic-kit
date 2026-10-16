@@ -94,7 +94,7 @@ def text_of_content(content):
                 if name == 'Bash' and inp.get('command'):
                     cmd = str(inp['command'])
                     sig += ' ' + cmd[:80]
-                    for fp in re.findall(r'/Users/joshcramoy/[^\s"\';&|]+', cmd):
+                    for fp in re.findall(r'/Users/YOUR-USER/[^\s"\';&|]+', cmd):
                         files.append(fp)
                 tools.append(sig)
     return text, tools, files

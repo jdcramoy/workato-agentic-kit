@@ -33,7 +33,7 @@ echo "Creating brain-vault at $VAULT:"
 link "knowledge" "$CLAUDE_DIR/knowledge"
 link "skills"    "$CLAUDE_DIR/skills"
 link "workato-kb" "$HOME/Documents/workato-kb"
-link "memory"    "$CLAUDE_DIR/projects/-Users-joshcramoy-Documents-workbench/memory"
+link "memory"    "$CLAUDE_DIR/projects/-Users-YOUR-USER-Documents-workbench/memory"
 link "kb-corpus" "$KB_CORPUS"
 
 cat <<'NOTE'
