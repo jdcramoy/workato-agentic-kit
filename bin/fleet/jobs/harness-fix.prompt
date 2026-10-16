@@ -40,5 +40,4 @@ fine outcome — say so.
 Output: a 3-5 line summary — fixed (list slugs), escalated (count), all-clear.
 Real content only; the runner's stub test requires it.
 
-LAST STEP (never skip): append {"ts":"<now ISO>","job":"harness-fix"} to
-~/.claude/knowledge/garden-reports/heartbeat.jsonl.
+LAST STEP (never skip): heartbeat check-in: echo '{"ts":"<now ISO>","job":"harness-fix"}' | python3 ~/.claude/knowledge/scripts/atomic_io.py ~/.claude/knowledge/garden-reports/heartbeat.jsonl (atomic writer; NEVER a plain >> append — plain appends get wiped by concurrent atomic replaces)

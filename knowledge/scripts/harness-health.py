@@ -652,6 +652,12 @@ def append_findings(findings):
 
 
 def main():
+    import argparse
+    # --help/-h gate (2026-10-16): bare main() wrote a heartbeat row (and
+    # report/queue rows on findings) even on a naive --help.
+    ap = argparse.ArgumentParser(
+        description="harness-health sweep (bare run = the real sweep)")
+    ap.parse_args()
     findings = []
     jobs = check_fleet(findings)
     runners = check_runner_paths(findings)

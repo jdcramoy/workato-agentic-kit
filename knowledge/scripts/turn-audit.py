@@ -24,6 +24,12 @@ BUS = KB / "dreams" / "bus" / "turn-audit.jsonl"
 
 DAYS = 7
 args = sys.argv[1:]
+# --help/-h gate (2026-10-16): this script executes its audit AT MODULE LEVEL
+# (no main guard), so a naive `--help` ran the full pass — reports, trend row,
+# bus post. Exit before anything side-effecting.
+if "--help" in args or "-h" in args:
+    print(__doc__)
+    sys.exit(0)
 if "--days" in args:
     DAYS = int(args[args.index("--days") + 1])
 

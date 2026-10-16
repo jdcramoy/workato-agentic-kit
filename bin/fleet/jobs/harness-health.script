@@ -3,4 +3,4 @@
 # ledger freshness, queue dedup, known tooling defects. Files findings to
 # harness-fix/queue.jsonl (the auto lane).
 python3 "$HOME/.claude/knowledge/scripts/harness-health.py"
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"harness-health\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"harness-health\"}" | python3 /Users/YOUR-USER/.claude/knowledge/scripts/atomic_io.py /Users/YOUR-USER/.claude/knowledge/garden-reports/heartbeat.jsonl

@@ -1,0 +1,6 @@
+#!/bin/bash
+# regression-nightly: zero-LLM nightly regression pass (runs dev is_test cases,
+# writes garden-reports/regression-latest.md + heartbeat). Restored to the
+# durable fleet lane 2026-10-15 after its durable-cron schedule lapsed 7-day
+# expiry on 10-10 (the 4-night off-fleet P1).
+exec python3 "$HOME/.claude/knowledge/scripts/regression-nightly.py"

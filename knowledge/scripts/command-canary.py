@@ -60,6 +60,15 @@ def heartbeat(passed, detail):
 
 
 def main():
+    import argparse
+    # --help/-h gate (2026-10-16): this script had NO argparse, so any
+    # invocation — including a naive --help during an audit — fired a REAL
+    # canary: a watcher queue row + Slack polling + heartbeat/status writes.
+    # argparse prints usage and exits before the body runs.
+    ap = argparse.ArgumentParser(
+        description="daily end-to-end canary for the Slack command loop "
+                    "(no arguments; run bare to execute the canary)")
+    ap.parse_args()
     started = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     t0 = time.time()
 

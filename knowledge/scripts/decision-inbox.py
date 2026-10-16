@@ -310,6 +310,12 @@ def log_shadow_ranking(scored, rank_map):
 
 
 def main():
+    import argparse
+    # --help/-h gate (2026-10-16): bare main() wrote shadow-rank log rows and
+    # the OUT markdown even on a naive --help.
+    ap = argparse.ArgumentParser(
+        description="decision-inbox scan (bare run = the real scan)")
+    ap.parse_args()
     items = gather()
     work = sorted([i for i in items if i["lane"] == "work"], key=rank_key)
 

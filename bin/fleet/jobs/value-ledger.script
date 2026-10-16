@@ -5,4 +5,4 @@ python3 "$HOME/.claude/knowledge/scripts/value-ledger.py" derive
 if [ "$(date +%d)" = "01" ]; then
   python3 "$HOME/.claude/knowledge/scripts/value-report.py"
 fi
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"value-ledger\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"value-ledger\"}" | python3 /Users/YOUR-USER/.claude/knowledge/scripts/atomic_io.py /Users/YOUR-USER/.claude/knowledge/garden-reports/heartbeat.jsonl

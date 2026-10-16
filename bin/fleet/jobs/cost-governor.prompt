@@ -6,4 +6,4 @@
 
 (3) Verify: both outputs it was asked to produce exist and their tables rendered (head the files). If a script errors, fix nothing silently — report the exact error in one line.
 
-LAST STEP (never skip): Bash-append {"ts":"<now ISO>","job":"cost-governor"} to ~/.claude/knowledge/garden-reports/heartbeat.jsonl.
+LAST STEP (never skip): heartbeat check-in: echo '{"ts":"<now ISO>","job":"cost-governor"}' | python3 ~/.claude/knowledge/scripts/atomic_io.py ~/.claude/knowledge/garden-reports/heartbeat.jsonl (atomic writer; NEVER a plain >> append — plain appends get wiped by concurrent atomic replaces)

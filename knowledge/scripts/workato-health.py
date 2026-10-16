@@ -230,6 +230,13 @@ def bus_post(e):
 
 
 def main():
+    import argparse
+    # --help/-h gate (2026-10-16): bare main() wrote summary JSON, a heartbeat
+    # row and the fleet log on EVERY invocation, including a naive --help.
+    ap = argparse.ArgumentParser(
+        description="workato-health sweep (flags --dry-run/--json still read "
+                    "from argv; run bare for the real sweep)")
+    ap.parse_args()
     dry = "--dry-run" in sys.argv
     as_json = "--json" in sys.argv
     reg = load_registry()

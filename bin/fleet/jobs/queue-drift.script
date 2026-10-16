@@ -6,4 +6,4 @@
 python3 "$HOME/.claude/knowledge/scripts/rebuild-queue.py" --out /tmp/queue-projection-rebuilt.jsonl --compare || {
   echo "$(date '+%F %T') queue-drift: DRIFT DETECTED between outcomes log and live queue" >> "$HOME/.claude/knowledge/garden-reports/queue-drift-alerts.log"
 }
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"queue-drift\"}" >> "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"queue-drift\"}" | python3 /Users/YOUR-USER/.claude/knowledge/scripts/atomic_io.py /Users/YOUR-USER/.claude/knowledge/garden-reports/heartbeat.jsonl

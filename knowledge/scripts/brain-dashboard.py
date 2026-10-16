@@ -912,6 +912,12 @@ def attention_queue():
 
 
 def main():
+    import argparse
+    # --help/-h gate (2026-10-16): bare main() rendered the dashboard HTML and
+    # wrote a heartbeat row even on a naive --help.
+    ap = argparse.ArgumentParser(
+        description="brain dashboard renderer (bare run = render + write)")
+    ap.parse_args()
     os.makedirs(K, exist_ok=True)
     html_out = render()
     with open(OUT, "w") as fh:

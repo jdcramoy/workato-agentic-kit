@@ -14,4 +14,4 @@
 
 (4) RE-ARM: launchd re-fires you hourly; nothing to re-arm.
 
-LAST STEP (never skip): Bash-append {"ts":"<now ISO>","job":"cortex"} to ~/.claude/knowledge/garden-reports/heartbeat.jsonl.
+LAST STEP (never skip): heartbeat check-in: echo '{"ts":"<now ISO>","job":"cortex"}' | python3 ~/.claude/knowledge/scripts/atomic_io.py ~/.claude/knowledge/garden-reports/heartbeat.jsonl (atomic writer; NEVER a plain >> append — plain appends get wiped by concurrent atomic replaces)

@@ -40,5 +40,4 @@ you (evidence) already verified.
 If there are no claims in the window, write a one-line all-clear report —
 never end silently.
 
-LAST STEP (never skip): append {"ts":"<now UTC ISO>","job":"evidence"} to
-~/.claude/knowledge/garden-reports/heartbeat.jsonl.
+LAST STEP (never skip): heartbeat check-in: echo '{"ts":"<now UTC ISO>","job":"evidence"}' | python3 ~/.claude/knowledge/scripts/atomic_io.py ~/.claude/knowledge/garden-reports/heartbeat.jsonl (atomic writer; NEVER a plain >> append — plain appends get wiped by concurrent atomic replaces)

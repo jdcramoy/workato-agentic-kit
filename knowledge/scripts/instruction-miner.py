@@ -276,6 +276,14 @@ def coverage_for(cls):
 
 
 def main():
+    import argparse
+    # --help/-h gate (2026-10-16): bare main() ran the real mining pass and
+    # wrote the coverage file, triage queue rows and a heartbeat even on a
+    # naive --help.
+    ap = argparse.ArgumentParser(
+        description="instruction-miner (flags --dry-run still read from "
+                    "argv; run bare for the real pass)")
+    ap.parse_args()
     dry = "--dry-run" in sys.argv
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 

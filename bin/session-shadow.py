@@ -113,7 +113,7 @@ def text_of_content(content):
                 if name == 'Bash' and inp.get('command'):
                     cmd = str(inp['command'])
                     sig += ' ' + cmd[:80]
-                    for fp in re.findall(r'/Users/joshcramoy/[^\s"\';&|]+', cmd):
+                    for fp in re.findall(r'/Users/YOUR-USER/[^\s"\';&|]+', cmd):
                         files.append(fp)
                 tools.append(sig)
     return text, tools, files
@@ -593,6 +593,41 @@ def selftest():
         MC_EVENTS, CHECKPOINTS_PATH, DROPS_PATH = old
 
 
+def git_autocommit(state):
+    """Revert-protection (2026-10-15, Josh: 'investigate and fix'): the
+    2026-10-15 22:08Z knowledge-deposit commit wiped uncommitted worktree
+    appends (runs.jsonl rows, sweep cursor, a memory file). This cycle
+    auto-commits the knowledge tree at most every 10 minutes so any future
+    history rewrite is recoverable via reflog instead of destructive.
+    Purely additive: add -A + commit, NEVER reset/checkout/clean."""
+    import subprocess
+    now = time.time()
+    last = state.get('last_autocommit', 0)
+    if now - last < 600:
+        return
+    repo = os.path.expanduser('~/.claude/knowledge')
+    try:
+        if subprocess.run(['git', '-C', repo, 'rev-parse', '--is-inside-work-tree'],
+                          capture_output=True).returncode != 0:
+            return
+        dirty = subprocess.run(['git', '-C', repo, 'status', '--porcelain'],
+                               capture_output=True, text=True).stdout.strip()
+        if not dirty:
+            state['last_autocommit'] = now
+            save_state(state)
+            return
+        subprocess.run(['git', '-C', repo, 'add', '-A'], capture_output=True)
+        r = subprocess.run(['git', '-C', repo, 'commit', '-q', '-m',
+                            'session-shadow auto-commit (revert-protection)'],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            log_err('git-autocommit', 'committed %d dirty paths' % len(dirty.splitlines()))
+        state['last_autocommit'] = now
+        save_state(state)
+    except Exception as e:
+        log_err('git-autocommit', e)
+
+
 def main():
     if '--selftest' in sys.argv:
         sys.exit(0 if selftest() else 1)
@@ -604,6 +639,7 @@ def main():
             save_state(state)
     except Exception as e:
         log_err('checkpoint-sweep', e)
+    git_autocommit(state)
     sessions = active_sessions()
     if not sessions:
         return  # nothing live; keep last known state

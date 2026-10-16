@@ -49,6 +49,16 @@ LOCK="/tmp/fleet-$NAME.lock"
 HEARTBEAT="${FLEET_HEARTBEAT:-$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl}"
 VALIDATE_LEDGER="${FLEET_VALIDATE_LEDGER:-$HOME/.claude/knowledge/garden-reports/fleet-validation.jsonl}"
 
+# prelaunch death guard (2026-10-16): a missing jobs/<name>.env used to die
+# silently on `source` — nothing reached fleet-validation.jsonl, so the job
+# vanished from the watchdog's view. Log it and exit nonzero BEFORE locking.
+if [ ! -f "$JOB.env" ]; then
+  mkdir -p "$(dirname "$VALIDATE_LEDGER")"
+  echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\",\"result\":\"prelaunch-death:missing-env\",\"action\":\"logged\"}" >> "$VALIDATE_LEDGER"
+  echo "$(date '+%F %T') $NAME: PRELAUNCH DEATH — $JOB.env missing; ledger row written" >> "$LOG" 2>/dev/null || true
+  exit 1
+fi
+
 # mkdir lock: atomic on macOS; stale locks (host crash) older than 6h are broken
 if ! mkdir "$LOCK" 2>/dev/null; then
   if [ -n "$(find "$LOCK" -maxdepth 0 -mmin +360 2>/dev/null)" ]; then
@@ -140,7 +150,11 @@ run_job() {
     perl -e 'alarm shift; exec @ARGV' "${TIMEOUT:-1200}" "$CLAUDE_BIN" -p "$(cat "$JOB.prompt")" < /dev/null \
       ${EXTRA_ARGS:-} ${PASS_ARGS:-} > "$OUT" 2>&1
   else
-    perl -e 'alarm shift; exec @ARGV' "${TIMEOUT:-1200}" bash "$JOB.script" >> "$OUT" 2>&1
+    # truncate, not append: with >> the OUT capture kept stale content from
+    # old failed attempts forever (the Oct-12 rc=127 "No such file" error
+    # lines re-polluted every nightly log AND made [ -s "$OUT" ] permanently
+    # true, defeating validated()). Found 2026-10-16 triage bundle.
+    perl -e 'alarm shift; exec @ARGV' "${TIMEOUT:-1200}" bash "$JOB.script" > "$OUT" 2>&1
   fi
   # capture the SPAWN's rc, not cat's — cat previously masked the claude exit
   # code here, so an alarm-killed spawn logged "stub rc=0" (found 2026-10-11
@@ -158,13 +172,18 @@ validated() { # $1 = heartbeat count before; real output file or a fresh heartbe
   return 1
 }
 
-attempt() { # echoes "valid" or "stub rc=N"
+attempt() { # echoes "valid", "ran rc=N", or "stub rc=N"
   local h_before rc
   h_before="$(hb_count)"
   run_job
   rc=$?
   if [ "$rc" -eq 0 ] && validated "$h_before"; then
     echo "valid"
+  elif [ "$rc" -ne 0 ] && [ -s "$OUT" ]; then
+    # nonzero rc WITH real output = a genuinely failing job, not a stub.
+    # (2026-10-16: "stub rc=N" used to fire even when OUT was non-empty,
+    # mislabeling real failures and hiding the actual error text.)
+    echo "ran rc=$rc"
   else
     echo "stub rc=$rc"
   fi
@@ -184,6 +203,6 @@ fi
 
 echo "$(date '+%F %T') $NAME: VALIDATION FAILED after retry ($RESULT) — job did not run; escalated" >> "$LOG"
 mkdir -p "$(dirname "$VALIDATE_LEDGER")"
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\",\"result\":\"$RESULT\",\"action\":\"retry-exhausted\",\"note\":\"double stub; watchdog escalates to bus + brief\"}" >> "$VALIDATE_LEDGER"
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\",\"result\":\"$RESULT\",\"action\":\"retry-exhausted\",\"note\":\"validation failed after retry; watchdog escalates to bus + brief\"}" >> "$VALIDATE_LEDGER"
 # Never die loudly: fleet jobs are never cron-critical; the ledger is the alarm.
 exit 0
