@@ -464,27 +464,51 @@ keychain; the wrapper handles that.
 ### Schedules
 
 All agent schedules are self-rearming: each run re-creates its task before
-the platform's 7-day scheduler expiry lapses. See `schedules/README.md` for
-the exact prompts.
+the platform's 7-day scheduler expiry lapses. The canonical fleet is the
+launchd set (`com.josh.fleet.*` via `~/.local/bin/fleet/run-job.sh`, 42
+jobs as of 2026-10-16 — per-job prompts/env, mkdir locks, timeouts, per-job
+logs). See `schedules/README.md` for the full table and the nightly order.
+
+Nightly chain (matters for the gossip bus — first poster to reader-in-chief):
+docs-watch 22:31 → brain gardener 22:43 → watchdog 23:13 → harness-health
+23:20 → backup 23:33 → healer 23:37 → dreamer 23:43 → project-dreamer 00:37 →
+instruction-miner 00:47 → evidence 00:53.
 
 | When | Job |
 |---|---|
-| 22:15 daily (launchd) | Docs crawler, unattended, no session needed |
-| 22:31 daily | Docs crawler summary in-session |
-| 22:43 daily | Brain gardener (incremental) |
-| 23:13 daily | Workato watchdog, including the heartbeat check |
+| hourly | Cortex pulse (fleet coordinator, reads everything, routes attention) |
+| hourly | Health probe; bus actuator at :41 (corroboration tally to consequences) |
+| every 2h | Jira triage loop (identify, triage, investigate, plan; Josh gates builds) |
+| 22:31 daily (launchd, zero-LLM) | Docs crawler (unattended crawl) + in-session summary |
+| 22:43 daily | Brain gardener (drift, conflict, rot checks; proposal pipeline) |
+| 23:13 daily | Workato watchdog (estate health + heartbeat check) |
+| 23:20 daily | Harness health (the watchdog for the harness itself: fleet liveness) |
 | 23:33 daily | Harness backup (git snapshot, secrets redacted, push if configured) |
-| 23:43 daily | Harness dreamer (reader-in-chief of the bus; pragmatic + inventive report) |
+| 23:37 daily | Healer (watchdog's repair phase; DEV workspace only) |
+| 23:43 daily | Harness dreamer (reader-in-chief of the bus; trust-ladder report) |
+| 23:50 daily | Regression harness (zero-LLM test-case pass via the Test Automation API) and value ledger (value half of the ROI loop) |
 | 00:37 daily | Project dreamer (architecture dreamer for one project per night; deep pass Sundays; dissenter-gated proposals) |
+| 00:47 daily | Instruction miner (correction-mining for the instruction-patch loop) |
+| 00:53 daily | Evidence agent (nightly claim hunt: re-checks done/fixed claims against live state) |
+| 01:07 daily | Replay gym (harness-regression replay; Sundays add the immune fire drill) |
+| 03:07–03:47 daily (zero-LLM) | Synaptic strength 03:07, titer report 03:27, replay sample 03:37, index budget 03:17, UAT sweep 03:17, queue drift 03:47 |
+| 04:37 daily | Restore drill (rehearse the backup restore, not just take it) |
+| 04:43 daily (zero-LLM) | Frontier nightly: estate twin refresh, prediction resolution + calibration table, precursor radar, skill-fitness backfill |
+| 05:07 daily (zero-LLM) | Wave-3 nightly: trigger ledger, coincidence scoring, ratchet watch; Sundays add null-miner, pleiotropy graph, MAP-Elites regen. Cost governor at 05:07 |
+| 06:05 daily | Command canary |
+| 06:07 daily / Wed 06:07 | Ops autopsy (failed-job autopsies); Antigen drill Wed (inject one fault class into the dev canary, verify detection, record immunity) |
 | Mon 06:07 | Corpus indexer (recipes + task counters, dev and prod) |
+| Mon 06:27 | Board minutes and ROI weekly (zero-LLM) |
 | Mon 06:37 | Estate architect (full review) |
-| 00:13 daily | Regression harness: run every recipe's test cases via the Test Automation API, report failures with job IDs |
-| 04:43 daily (launchd, zero-LLM) | Frontier nightly: estate twin refresh, prediction resolution + calibration table, precursor radar, skill-fitness backfill and report. Five python scripts, no model spawn |
-| weekly (fleet job) | Antigen drill: inject one fault class into the dedicated dev canary, verify detection, record immunity |
-| 05:07 daily (launchd, zero-LLM) | Wave-3 nightly: trigger ledger, coincidence scoring, ratchet watch, spore shadow row; Sundays add the null-miner permutation run, pleiotropy graph, and MAP-Elites augmentation regen. No model spawn |
-| 05:17 daily (fleet job) | Librarian: corpus consolidation + external-content procurement |
-| Tue 07:07 (launchd, zero-LLM) | Turn audit: weekly turn-discipline classification over session transcripts, paired with the quality guard; report at `knowledge/reports/turn-audit-latest.md` |
+| 07:13 daily | Morning brief (machine + bus + dream + Jira + repos, one digest) |
+| 07:20 daily | Decision inbox (one ranked, budgeted decision surface) |
+| 07:37 / 14:07 / 19:37 daily | KB audit (corpus/pipeline integrity, three passes) |
+| 07:45 daily | Loadout (morning load-out assembled from the brief) |
+| 08:10 daily | Harness fix (auto-lane worker for the harness's own approved fixes) |
+| Tue 07:07 (zero-LLM) | Turn audit: weekly turn-discipline classification; report at `knowledge/reports/turn-audit-latest.md` |
+| Tue 07:27 | KB corpus sync (weekly knowledge-corpus export to the kit repo) |
 | Tue 06:57 | Harness-docs sync: reconcile live harness <-> repo <-> Confluence doc tree (see "Keeping the docs honest") |
+| unscheduled | Ops visibility (event-driven) |
 
 ## Install
 
