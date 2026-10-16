@@ -18,10 +18,26 @@ import datetime as dt
 import json
 from collections import defaultdict
 from pathlib import Path
-from atomic_io import atomic_append
+from atomic_io import atomic_append, atomic_append_validated
 
 STORE = Path.home() / ".claude/knowledge/dreams/predictions.jsonl"
 BUS = Path.home() / ".claude/knowledge/dreams/bus"
+
+# Store-discipline slice 1 (2026-10-11): the check path used to rewrite the
+# WHOLE store with bare write_text per check (non-atomic, loses concurrent
+# appends). Now every state change is an append of the updated record and
+# _load() compacts on read (last line per id wins). Bad rows are refused
+# loudly at append time — never silent coercion.
+PREDICTION_SCHEMA = {
+    "required": ["id", "agent", "action", "expect", "stakes", "opened"],
+    "enums": {"stakes": {"low", "normal", "high"},
+              "verdict": {"matched", "deviated", "failed"}},
+    "timestamps": ["opened", "closed"],
+}
+
+
+def _now() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
 
 def _append(path: Path, rec: dict) -> None:
@@ -29,9 +45,19 @@ def _append(path: Path, rec: dict) -> None:
 
 
 def _load() -> list[dict]:
+    """Compaction-on-read: the file is append-only; the LAST line per id wins."""
     if not STORE.exists():
         return []
-    return [json.loads(l) for l in STORE.read_text().splitlines() if l.strip()]
+    latest: dict[str, dict] = {}
+    order: list[str] = []
+    for line in STORE.read_text().splitlines():
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        if r["id"] not in latest:
+            order.append(r["id"])
+        latest[r["id"]] = r
+    return [latest[i] for i in order]
 
 
 def open_prediction(agent: str, action: str, expect: str, stakes: str = "normal") -> dict:
@@ -41,11 +67,11 @@ def open_prediction(agent: str, action: str, expect: str, stakes: str = "normal"
         "action": action,
         "expect": expect,
         "stakes": stakes,
-        "opened": dt.datetime.now().isoformat(timespec="seconds"),
+        "opened": _now(),
         "closed": None,
         "verdict": None,
     }
-    _append(STORE, rec)
+    atomic_append_validated(STORE, rec, PREDICTION_SCHEMA)
     print(json.dumps(rec, indent=2))
     return rec
 
@@ -59,10 +85,13 @@ def check_prediction(pid: str, observed: str, verdict: str) -> dict:
             break
     if not found:
         raise SystemExit(f"no open prediction {pid}")
-    found["closed"] = dt.datetime.now().isoformat(timespec="seconds")
-    found["observed"] = observed
-    found["verdict"] = verdict
-    STORE.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs))
+    closed = dict(found)
+    closed["closed"] = _now()
+    closed["observed"] = observed
+    closed["verdict"] = verdict
+    # append the closure; the open copy above it stays as history,
+    # compaction-on-read makes this the authoritative version
+    atomic_append_validated(STORE, closed, PREDICTION_SCHEMA)
     if verdict in ("deviated", "failed"):
         # attention spike to the bus: the prediction error IS the signal
         _append(
@@ -76,8 +105,8 @@ def check_prediction(pid: str, observed: str, verdict: str) -> dict:
             },
         )
         print(f"spike posted to bus (prediction-errors)")
-    print(json.dumps(found, indent=2))
-    return found
+    print(json.dumps(closed, indent=2))
+    return closed
 
 
 def stats(agent: str | None) -> dict:

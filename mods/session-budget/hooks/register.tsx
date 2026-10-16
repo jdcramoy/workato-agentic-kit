@@ -38,9 +38,9 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 const DEFAULT_CLOSEOUT =
-  '/Users/joshcramoy/.claude/knowledge/handoffs/session-closeouts.jsonl'
+  '/Users/YOUR-USER/.claude/knowledge/handoffs/session-closeouts.jsonl'
 const COST_HELPER =
-  '/Users/joshcramoy/.fireconnect/cli/packages/setup-cli/lib/harnesses/claude/statusline.mjs'
+  '/Users/YOUR-USER/.fireconnect/cli/packages/setup-cli/lib/harnesses/claude/statusline.mjs'
 
 // Runs OUTSIDE the hooks sandbox (node spawn), so import() and node:fs are
 // fine here. argv[1] = transcript path if known ('' if not — mid-load session),
@@ -109,10 +109,24 @@ let costCache: { path: string; cost: number | null; cachePct: string | null; at:
 async function projectDir($: any): Promise<string> {
   try {
     const cwd = await $.session.cwd()
-    return '/Users/joshcramoy/.claude/projects/' + String(cwd).replace(/\//g, '-')
+    return '/Users/YOUR-USER/.claude/projects/' + String(cwd).replace(/\//g, '-')
   } catch {
     return ''
   }
+}
+
+// EXACT transcript path, no heuristics: transcript files are named
+// <session-id>.jsonl in the cwd's project dir. Newest-file derivation kept
+// only as fallback for a session that hasn't written yet.
+async function resolveTranscript($: any, transcript: string): Promise<string> {
+  if (transcript) return transcript
+  try {
+    const [id, dir] = await Promise.all([$.session.id(), projectDir($)])
+    if (id && dir) return dir + '/' + id + '.jsonl'
+  } catch {
+    // fall through to empty — helper derives by mtime
+  }
+  return ''
 }
 
 async function fireworksCost(
@@ -152,14 +166,13 @@ async function figures($: any, transcript: string): Promise<Figures | null> {
     if (force === 'warn' || force === 'hard') {
       return { usd: null, ctxPct: null, warn: true, hard: force === 'hard' }
     }
-    const [u, pin, dir, fw] = await Promise.all([
+    const [u, pin, dir] = await Promise.all([
       $.session.usage(),
       $.env.get('SESSION_BUDGET_COST_OVERRIDE'),
       projectDir($),
-      fireworksCost($, transcript, ''),
     ])
-    // dir resolved after cwd read; retry the derivation when no transcript
-    const cost = fw ?? (dir ? await fireworksCost($, '', dir) : null)
+    const resolved = await resolveTranscript($, transcript)
+    const cost = await fireworksCost($, resolved, dir)
     const usd = pin != null && pin !== '' ? Number(pin) : cost ? cost.cost : null
     const ctxPct =
       u?.context?.percent != null ? (u.context.percent as number) : null

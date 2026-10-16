@@ -15,7 +15,7 @@ Usage:
   proposal-decide.py replay-gym accept "build it as the nightly gym job"
 """
 import json, os, re, glob, sys, datetime as dt
-from atomic_io import atomic_append
+from atomic_io import atomic_append, atomic_append_validated
 
 HOME = os.path.expanduser("~")
 K = os.path.join(HOME, ".claude", "knowledge")
@@ -43,10 +43,19 @@ def set_status(path, status):
     open(path, "w").write(new)
 
 
+PROPOSAL_OUTCOME_SCHEMA = {
+    "required": ["date", "proposal", "action", "by"],
+    "enums": {"action": {"accepted", "rejected-false-alarm", "accepted-modified", "built"}},
+    # date is a YYYY-MM-DD date field, not a tz timestamp — regex-guarded below
+}
+
+
 def log_outcome(title, action, note):
     row = {"date": dt.date.today().isoformat(), "proposal": title,
            "action": action, "notes": note or "", "by": "josh (proposal-decide)"}
-    atomic_append(OUTCOMES, row)
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", row["date"]):
+        raise ValueError(f"refused: bad date format {row['date']!r}")
+    atomic_append_validated(OUTCOMES, row, PROPOSAL_OUTCOME_SCHEMA)
     return row
 
 

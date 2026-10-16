@@ -110,6 +110,12 @@ what we do and why". Procedure, fixed:
   WebFetch): AI advancements, AI thought leadership, business systems
   best practices, software development best practices, integration
   development patterns. One to two beats per pass, rotated.
+- STANDING BEAT, every pass, not rotated: fetch
+  https://platform.claude.com/docs/en/managed-agents/permission-policies
+  and check the two trigger conditions in
+  `knowledge/domains/managed-agents-policy-watch.md` (beta exit; MCP-tool
+  policy coverage). If either flipped: file a claim row and route to Josh
+  as a decision. If unchanged: no output needed, no digest row.
 - Write the synthesis to `knowledge/library/<topic>.md`: what's new,
   why it matters to THIS house (tie to a project, trap, or platform
   decision where you can), sources with URL + fetch date. Dated

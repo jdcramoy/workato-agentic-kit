@@ -34,7 +34,7 @@ QUEUE = os.environ.get("TRIAGE_QUEUE", os.path.join(K, "triage", "queue.jsonl"))
 OUTCOMES = os.environ.get("TRIAGE_OUTCOMES", os.path.join(K, "garden-reports", "triage-outcomes.jsonl"))
 
 FM = {"accept": "accepted", "reject": "rejected", "defer": "deferred",
-      "build": "built", "filed": "filed"}
+      "build": "built", "filed": "filed", "reopen": "open"}
 
 # allowed transitions: final states (built, rejected) are terminal;
 # deferred can be re-decided later; accepted can still be built or filed.
@@ -44,6 +44,10 @@ ALLOWED = {
     "defer": {"open"},
     "build": {"open", "accepted", "filed"},
     "filed": {"open", "accepted"},
+    # Josh-ordered reversal of a terminal verdict (2026-10-14, decisions-UAT
+    # re-adjudication): back to open for a fresh decision, audit-logged like
+    # any other action. Only ever fired by Josh's explicit call.
+    "reopen": {"built", "rejected", "accepted"},
 }
 
 
@@ -105,7 +109,7 @@ def save(rows):
 
 TRIAGE_OUTCOME_SCHEMA = {
     "required": ["date", "finding", "slug", "action", "by"],
-    "enums": {"action": {"built", "accepted", "rejected", "filed", "deferred"}},
+    "enums": {"action": {"built", "accepted", "rejected", "filed", "deferred", "open"}},
     # date is a YYYY-MM-DD date field, not a tz timestamp — regex-guarded below
 }
 
@@ -129,7 +133,8 @@ def main():
         if not open_rows:
             print("triage queue: nothing open.")
         for r in open_rows:
-            age = (dt.date.today() - dt.date.fromisoformat(r["ts"][:10])).days
+            age = ((dt.date.today() - dt.date.fromisoformat(r["ts"][:10])).days
+                   if r.get("ts") else 0)
             urg = r.get("urgency", "")
             jira = f", {r['jira']}" if r.get("jira") else ""
             print(f"[{r.get('kind','?')}{'/' + urg if urg else ''}] {r['slug']} "

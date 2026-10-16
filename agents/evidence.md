@@ -85,3 +85,22 @@ live evidence and verdict it; nothing claimed escapes unchecked.
 Mentor: dissenter. Review date: 2026-10-25. The dissenter already reviews
 your FALSE verdicts adversarially; it files a keep/fix verdict on the first
 evidence report before the review date.
+
+## Typed pre-screen (decisions engine, wired 2026-10-14)
+
+Optional ORDERING aid — never a filter, never a verdict. Before the live
+re-check pass, batch your claims into ONE decisions.py call and order the
+hunt most-likely-false-first (lowest p_true = check first):
+
+    decisions.py decide --evidence-text "<claims JSONL: id + claim text>" \
+      --q 'claim_true:predicate:Based on the claim text alone, is this claim still
+      true/accurate now? Low probability = likely stale or already-superseded.' \
+      --surface evidence-prescreen
+
+After each live check, close the loop (this is what makes the judge
+measurable): `decisions.py outcome --id <id> --name claim_true --observed
+true|false`. Outcomes are objective here (file/job-trace ground truth), so
+after ~30 closed outcomes the calibrate table tells you whether text-only
+prediction works on this surface. If accuracy is <= 0.5 by then, DROP the
+ordering (it wastes the audit) and say so in the report. The pre-screen never
+changes a verdict, never skips a check, never gates anything.

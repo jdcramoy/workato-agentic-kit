@@ -130,6 +130,14 @@ def load_events(bus_dir, since, only_agent=None):
                         print(f"warn: {os.path.basename(path)}:{n} unparsable",
                               file=sys.stderr)
                         continue
+                    if not isinstance(ev, dict):
+                        # fail-open: a parseable non-object row (bare string,
+                        # list, number) must warn-and-skip, never kill the
+                        # whole merged read (found 2026-10-14 triage batch)
+                        print(f"warn: {os.path.basename(path)}:{n} "
+                              f"non-object row ({type(ev).__name__})",
+                              file=sys.stderr)
+                        continue
                     ev.setdefault("agent", agent_file)
                     events.append(ev)
         except OSError as e:

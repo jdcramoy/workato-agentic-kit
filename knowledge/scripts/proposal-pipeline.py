@@ -54,20 +54,37 @@ def load_outcomes():
 
 
 def latest_dream_inventions():
-    """Count numbered inventions in the newest dream report (file-gate check)."""
+    """Count inventions in the newest dream report (file-gate check).
+
+    Primary source: a numbered list under "## Inventions". Some dream
+    reports file inventions straight into the proposals queue and carry no
+    Inventions section; for those, fall back to counting same-day
+    proposal files whose kind is invention/inventive (BSYS-29460).
+    Returns (dream_filename, invention_count, dream_path); ("none", 0, None)
+    when no dream report exists.
+    """
     dreams = sorted(glob.glob(os.path.join(DREAMS, "2*.md")))
     if not dreams:
-        return "none", 0, None
+        return "none", 0, None, "none"
     f = dreams[-1]
+    dream_day = os.path.basename(f)[:10]
     try:
         body = open(f, errors="replace").read()
     except OSError:
-        return os.path.basename(f), 0, None
+        return os.path.basename(f), 0, None, "none"
     m = re.search(r"^## Inventions.*?$(.*?)(?=^## |\Z)", body, re.MULTILINE | re.DOTALL)
-    if not m:
-        return os.path.basename(f), 0, None
-    n = len(re.findall(r"^\d+\.\s+\*\*", m.group(1), re.MULTILINE))
-    return os.path.basename(f), n, f
+    if m:
+        n = len(re.findall(r"^\d+\.\s+\*\*", m.group(1), re.MULTILINE))
+        return os.path.basename(f), n, f, "section"
+    # No Inventions section: count invention-kind proposals filed the same day.
+    n = 0
+    for p in glob.glob(os.path.join(PROPOSALS, "*.md")):
+        if os.path.basename(p)[:10] != dream_day:
+            continue
+        fm = parse_frontmatter(p) or {}
+        if (fm.get("kind") or "").lower().startswith("invent"):
+            n += 1
+    return os.path.basename(f), n, f, "proposals"
 
 
 def collect():
@@ -81,6 +98,8 @@ def collect():
         fm = parse_frontmatter(p) or {}
         title = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", os.path.basename(p)[:-3]).replace("-", " ")
         status = (fm.get("status") or "proposed").lower()
+        if status == "proposal":  # dreamers file with 'proposal'; queue key is 'proposed'
+            status = "proposed"
         # outcome log wins if it has a newer ruling for this proposal
         oc = outcome_by_proposal.get(title.lower())
         if oc and oc.get("action", "").lower() in ("accepted", "rejected", "built"):
@@ -95,12 +114,12 @@ def collect():
             "date": fm.get("created", os.path.basename(p)[:10]),
         })
     # file-gate: inventions in latest dream vs filed invention proposals that day
-    dream_name, n_inv, _ = latest_dream_inventions()
-    return items, dream_name, n_inv, len(outcomes)
+    dream_name, n_inv, _, inv_basis = latest_dream_inventions()
+    return items, dream_name, n_inv, inv_basis, len(outcomes)
 
 
 def digest():
-    items, dream_name, n_inv, n_outcomes = collect()
+    items, dream_name, n_inv, inv_basis, n_outcomes = collect()
     proposed = [i for i in items if i["status"] == "proposed"]
     incubating = [i for i in items if i["status"] == "incubating"]
     accepted = [i for i in items if i["status"] == "accepted"]
@@ -116,7 +135,11 @@ def digest():
     if dream_name == "none":
         gate = "file-gate: no dream report yet"
     elif n_inv:
-        gate = f"file-gate: latest dream ({dream_name}) has {n_inv} inventions"
+        if inv_basis == "proposals":
+            gate = (f"file-gate: latest dream ({dream_name}) has no Inventions section; "
+                    f"{n_inv} invention-kind proposal(s) filed that day")
+        else:
+            gate = f"file-gate: latest dream ({dream_name}) has {n_inv} inventions"
     else:
         filed = [i for i in items if i["date"] == dream_name[:10]]
         if filed:

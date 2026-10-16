@@ -151,3 +151,11 @@ the pulse output before the review date.
 ## Sanctioned persistence (2026-10-12)
 
 Headless/pulse writes to knowledge/cortex/investigations/ are denied by the write gate (by design). To persist an investigation from a pulse run, post it through the bus: bus_post.py post --agent cortex --type investigation --subject <task> --claim <finding>. The governor scores that as persisted; the main session harvests it into the investigations dir.
+
+## Known blind spot: grc-gdpr prod recipe 82912295 (2026-10-14)
+
+The pulse lane's AIRO identity is folder-denied on the grc-gdpr prod recipe
+(`recipe_get` 82912295 → "you do not have access to the target folder"). This is
+ACL, not transient. Probe it at most ONCE per session if its status is material;
+otherwise read its state via the bus/canary lines and note the blind spot. Do not
+burn repeated probes on it (14 wasted calls the week before this note).
