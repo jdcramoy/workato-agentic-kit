@@ -267,7 +267,7 @@ the scripts live one level up.
 
 ## Where this lives
 
-The kit repo: https://github.com/Workato-All/agentic-workato-kit (docs under
+The kit repo: https://github.com/Workato-All/workato-agentic-kit (docs under
 `docs/harness-docs/`, the CLI under `bin/`, schedules under `schedules/`).
 The knowledge corpus the agents read and write:
 https://github.com/Workato-All/knowledge-corpus, mirrored locally at
