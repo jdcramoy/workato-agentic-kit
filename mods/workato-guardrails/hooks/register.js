@@ -6,7 +6,7 @@
 const AUDIT_DIR = '$HOME/.claude/workato-audit'
 const AUDIT_FILE = AUDIT_DIR + '/prod-writes.log'
 const STANDARDS_PATH =
-  '/Users/joshcramoy/.claude/skills/jira-story-standards/SKILL.md'
+  '/Users/YOUR-USER/.claude/skills/jira-story-standards/SKILL.md'
 
 // Write-surface tools on the prod AIRO server. Read tools pass through untouched.
 const PROD_WRITE = /^mcp__workato-airo-mcp-prod__(recipe_builder_(save|push|init|init_skill|add_step|update_step|remove_step|remove_input_field|move_step|move_steps|set_input_field|set_input_field_v4_mode|set_condition|set_foreach_source|set_error_handling_config|set_block_comments|update_asset_metadata|select_connections|convert_to_skill)|blueprint_(apply|init|push|link_asset|reset)|genie_(create|update)|data_table_(create|delete|update|truncate)|knowledge_base_(create|delete|delete_documents|update|upload_file)|mcp_server_create|connector_builder_(apply_connector_code_patch|init_connector|release_connector|save_latest_connector_code))/
@@ -634,7 +634,7 @@ export function register(on) {
 
   // BYPASS flag path: explicit, time-boxed prod-gate bypass (bin/prod-bypass).
   // Inline at each site ($ may not be passed to helpers — mod validator).
-  const BYPASS_PATH = '/Users/joshcramoy/.claude/workato-audit/prod-bypass.json'
+  const BYPASS_PATH = '/Users/YOUR-USER/.claude/workato-audit/prod-bypass.json'
 
   // 13. PROD-WRITE CONFIRM GATE — EVERY surface, not just AIRO MCP.
   //     The prod AIRO server is already gated (permissions.ask + hook 1).

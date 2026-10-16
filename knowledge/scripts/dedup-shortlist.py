@@ -15,7 +15,7 @@ import re
 import sys
 
 KROOT = os.path.expanduser('~/.claude/knowledge')
-MEMROOT = os.path.expanduser('~/.claude/projects/-Users-joshcramoy-Documents-workbench/memory')
+MEMROOT = os.path.expanduser('~/.claude/projects/-Users-YOUR-USER-Documents-workbench/memory')
 
 STOP = set('the a an and or of to in for on with by at from as is are was were be been it its this that these those not no'.split())
 

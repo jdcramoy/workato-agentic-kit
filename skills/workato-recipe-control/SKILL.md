@@ -9,7 +9,7 @@ Use the bundled `scripts/workato_recipe_control.py` wrapper. It invokes the
 Workato Developer CLI without a shell and previews the exact command unless
 `--execute` is present.
 
-For this Workday project, prefer `/Users/joshcramoy/Documents/Workday/tools/workato-dev.py`
+For this Workday project, prefer `/Users/YOUR-USER/Documents/Workday/tools/workato-dev.py`
 for routine inspection and explicit lifecycle actions. It is portable to
 Claude Code and wraps the same Workato Developer CLI. Use this bundled wrapper
 when working outside that project or when its narrower interface is preferable.

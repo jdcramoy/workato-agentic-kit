@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-const MEM = '/Users/joshcramoy/.claude/projects/-x/memory/'
-const KNOW = '/Users/joshcramoy/.claude/knowledge/'
+const MEM = '/Users/YOUR-USER/.claude/projects/-x/memory/'
+const KNOW = '/Users/YOUR-USER/.claude/knowledge/'
 
 test('memory write without frontmatter gets the lint nudge', async ($, on) => {
   on('tool.call', () => ({ result: 'File written successfully at: ' + MEM + 'x.md' }))
@@ -68,7 +68,7 @@ test('unrelated file writes pass through silently', async ($, on) => {
 
   const answer = await $.tool.call({
     tool: 'Write',
-    file_path: '/Users/joshcramoy/project/src/app.ts',
+    file_path: '/Users/YOUR-USER/project/src/app.ts',
     content: 'const x = 1',
   })
   expect(String(answer.result)).not.toContain('brain-guard')

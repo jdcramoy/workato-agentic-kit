@@ -8,7 +8,7 @@
 //      ~/.claude/knowledge/garden-reports/usage-ledger.jsonl — the evidence
 //      base the gardener uses to judge what knowledge is load-bearing.
 
-const KNOWLEDGE = '/Users/joshcramoy/.claude/knowledge/'
+const KNOWLEDGE = '/Users/YOUR-USER/.claude/knowledge/'
 const LEDGER_DIR = '$HOME/.claude/knowledge/garden-reports'
 const LEDGER = LEDGER_DIR + '/usage-ledger.jsonl'
 
