@@ -57,10 +57,16 @@ silently stop ticking after stop/restart churn — no error, just no jobs.
 
 1. `search_recipe_dependencies` by workspace/folder for the running recipes in
    AI Development + AI Production (or accept a folder list from the caller).
-2. For each `running: true` recipe: read `last_run_at`. Flag any running
-   recipe with last_run_at > 48h ago as "possibly stalled" (v1 heuristic —
+2. For each `running: true` recipe: check the LIVE newest job via `job_list`
+   (AIRO MCP) or `wt jobs list` — flag "possibly stalled" only if the newest
+   live job is older than the expected interval (default 48h; v1 heuristic —
    the recipe might just be a rare scheduler; mark confidence low unless the
    caller supplied expected intervals).
+   NEVER use `wt recipes get` `last_run_at` as the stall signal — it can be
+   48-128h stale and caused a near-miss false-stall storm on 2026-10-11
+   (evidence: recipe 82872626 showed last_run_at=Oct 8 while the live newest
+   job was Oct 11 20:08, succeeded). `last_run_at` may appear in sweep output
+   for reference only; the stall verdict cites a job_list job ID.
 3. Cross-reference: if a flagged recipe was recently stopped/started
    (stopped_at recent + running true), raise confidence — that's the anomaly
    pattern exactly.

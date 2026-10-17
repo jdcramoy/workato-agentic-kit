@@ -295,6 +295,10 @@ def main():
     ap.add_argument("--needs", default="")
     ap.add_argument("--state", default="in-flight")
     ap.add_argument("--by", default="josh (session)")
+    ap.add_argument("--session-id", default="",
+                    help="session id of the recording session — turns closeout "
+                         "attribution from time-proximity guessing into a fact "
+                         "(2026-10-16 deadman FP fix)")
     ap.add_argument("--force", action="store_true",
                     help="add: record despite a near-alias conflict")
     ap.add_argument("--apply", action="store_true",
@@ -319,6 +323,8 @@ def main():
                "project": a.project, "jira": a.jira, "jira_title": a.jira_title,
                "what": a.what, "why": a.why, "end": a.end, "needs": a.needs,
                "state": a.state, "by": a.by}
+        if a.session_id:
+            row["session_id"] = a.session_id
         atomic_append_validated(EVENTS, row, SCHEMA)
         rows = fold()
         board(rows)

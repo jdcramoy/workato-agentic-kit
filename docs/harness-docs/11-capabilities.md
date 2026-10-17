@@ -5,7 +5,7 @@ Parent page: The Agentic Workato Harness
 Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
-against the directories it describes. Counts current as of 2026-10-15.
+against the directories it describes. Counts current as of 2026-10-17.
 
 ## The agents: 12
 
@@ -27,17 +27,20 @@ Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 | cortex | Hourly pulse | Attention (a ranked queue capped at 7), coherence (contradiction hunting across all surfaces), curiosity. Reads everything, mutates nothing. |
 | red-team | On demand, at promotion prep | Independent security review of assets heading to production. A FAIL blocks promotion unless the human overrides by name. |
 
-## The skills: 52
+## The skills: 54
 
 Each skill is a `SKILL.md` in `~/.claude/skills/`, a loaded-on-trigger SOP.
-49 are cataloged below in five groups; 3 are private or empty-described and
-deliberately omitted (noted at the end).
+49 are cataloged below in five groups; 3 are private or intentionally
+unpublished and deliberately omitted (noted at the end).
+(2026-10-17 sync: 54 skills live, up from 52 — additions: failure-close-gate,
+wt-cookbook.)
 
-### Playbooks: how to drive the platform (21)
+### Playbooks: how to drive the platform (22)
 
 | Skill | Purpose |
 |---|---|
 | airo-mcp-playbook | Gotcha catalog for the platform MCP server (recipe builder, data tables, blueprints, Genies). |
+| wt-cookbook | Known-good `wt` invocation recipes — profiles, raw API shapes, hot-swap and test surfaces, and the traps that cost sessions. |
 | google-slides-mcp-playbook | Gotcha catalog for the Google Slides MCP server: decks, templates, tables, shapes. |
 | workato-kb | Query the local RAG++ knowledge base (docs, changelog, blog, Confluence) with cited hits. |
 | kb | Interactive slash-command front end for the same knowledge base. |
@@ -59,7 +62,7 @@ deliberately omitted (noted at the end).
 | wql-query-builder | Build, review, and safely execute Workday Query Language queries. |
 | fusion | Cost-gated multi-model execution: N models answer the same task, answers are cross-checked. |
 
-### Governance and gates: rules as procedure (15)
+### Governance and gates: rules as procedure (16)
 
 | Skill | Purpose |
 |---|---|
@@ -79,7 +82,7 @@ deliberately omitted (noted at the end).
 | grill-gate | Planning gate: pin requirements before designing; batch the real judgment calls to one round. |
 | run-to-completion | Turn discipline: no ending a multi-step task until done and verified, or genuinely blocked. |
 
-### Estate operations (5)
+### Estate operations (6)
 
 | Skill | Purpose |
 |---|---|
@@ -88,6 +91,7 @@ deliberately omitted (noted at the end).
 | tdd-fix-loop | Failing-test-first fix loop for recipe bugs, with a 5-iteration stop rule. |
 | testcase-authoring | Author a test case that reproduces a failure class and proves the fix. |
 | jira-autotriage | The autonomous Jira identify-triage-investigate-plan loop; development stays human-gated. |
+| failure-close-gate | A run may mark a finding resolved only if it updates the durable record (canon row, triage card, ledger) in the same run. |
 
 ### Human interface (6)
 
@@ -148,7 +152,7 @@ prod-write confirm gate. For deliberate batches of production work,
 hours): the flag expires by itself, shows in the status band while active,
 and every write in the window stays audit-logged as bypassed.
 
-## The fleet: 41 launchd jobs
+## The fleet: 42 launchd jobs
 
 Schedules live in launchd plists; job definitions in
 `~/.claude/knowledge/config/fleet/jobs/`. Full mechanics in
@@ -203,9 +207,9 @@ Every job checks in to a shared heartbeat ledger, and the fleet runner
 validates each attempt for evidence of work: a silent zero-output exit is a
 stub, retried once, then escalated.
 
-## The MCP servers: 11
+## The MCP servers: 12
 
-`claude mcp list` as of 2026-10-15:
+`claude mcp list` as of 2026-10-17:
 
 | Server | Provides |
 |---|---|
@@ -214,6 +218,7 @@ stub, retried once, then escalated.
 | slack-workato | Bounded, confirmation-gated Slack operations as the authenticated identity. |
 | workato-dependency-tracker | Blast-radius queries: which recipes touch an object, field, or connection; recipe internals; connection health. |
 | google-slides | Full Google Slides authoring: decks, templates, layouts, tables, shapes, comments. |
+| org-chart | Read-only org-chart lookups (manager, reports, chains) from a materialized snapshot. |
 | google-workspace-semantic | The semantic layer for Gmail, Drive, Calendar, People, Docs, Sheets: reviewed capabilities, mutation plans, explicit confirmation. |
 | workato-kb | The local RAG++ knowledge base server over roughly 25k documents with hybrid retrieval and citations. |
 | brain | The harness's own gossip bus, claim ledger, dream reports, and knowledge-tree read APIs. |

@@ -85,7 +85,8 @@ def load():
 
 
 def find(rows, slug):
-    hits = [r for r in rows if slug in r.get("slug", "")]
+    hits = [r for r in rows if r.get("slug", "") == slug] or \
+           [r for r in rows if slug in r.get("slug", "")]
     if not hits:
         sys.exit(f"no finding matches '{slug}'")
     if len(hits) > 1:
@@ -172,9 +173,12 @@ def main():
             if cur == FM[action]:
                 skipped += 1
                 continue
-            sys.exit(f"{slug}: row is {cur}; '{action}' is only valid from "
-                     f"{'/'.join(sorted(ALLOWED[action]))} (final states are terminal; "
-                     f"file a NEW finding if the evidence changed)")
+            # Terminal-state row sharing the slug (duplicate seed): skip it,
+            # don't abort the fan-out — the open rows still need the verdict.
+            print(f"NOTE: skipping {slug} row already in terminal state '{cur}'",
+                  file=sys.stderr)
+            skipped += 1
+            continue
         row["status"] = FM[action]
         row["decided_ts"] = now
         changed += 1

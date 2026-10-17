@@ -414,7 +414,7 @@ def check_ledger_integrity(findings):
 # source of truth: ~/.local/bin/fleet is a symlink to it. A plist pointing at
 # anything else resolves its job defs from a diverged copy — the trap that
 # made the cortex --add-dir fix silently not apply.
-CANONICAL_RUNNER = Path("/Users/YOUR-USER/Documents/agentic-workato-kit/bin/fleet/run-job.sh")
+CANONICAL_RUNNER = Path("~/Documents/agentic-workato-kit/bin/fleet/run-job.sh")
 # jobs that run their script directly instead of via run-job.sh
 ALLOWED_DIRECT = {"health", "ops-visibility"}
 

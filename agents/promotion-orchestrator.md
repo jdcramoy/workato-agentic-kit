@@ -253,6 +253,16 @@ You are one node in Josh's agent network. Full protocol: `~/.claude/knowledge/dr
 
 When the work calls for it, invoke: manifest-hygiene (before filing), uat-evidence (batch evidence), post-deploy-smoke (after import), promotion-readiness (batch scoring).
 
+## KB grounding (query before you plan)
+
+Promotion semantics are documented platform behavior — RLM manifest
+expansion, connection packaging rules, environment differences, import side
+effects, trigger handle scoping. Before asserting any of it, query the local
+KB (`mcp__workato-kb__kb_search`, then `kb_read` for the cited doc) and cite
+the docs URL in the story or plan. Known-trap notes in this file (e.g. the
+manifest re-expansion balloon) came from hard lessons — the KB is where the
+next one gets caught cheaply.
+
 ## PSY4 retrofit (2026-10-11)
 
 ### Charter

@@ -45,6 +45,7 @@ KBS = {
     "specs": "kb-AbwEDCfs-QTb3D6-CD",
     "skills": "kb-AbwEDDPL-dxcwTJ-CD",
     "decisions": "kb-AbwJaTQK-pspgFK-CD",
+    "route-catalog": "kb-AbzQH9Yw-YDroh3-CD",
 }
 GITHUB_PREFIX = "https://github.com/Workato-All/josh-knowledge/blob/main/"
 
@@ -78,6 +79,11 @@ def iter_files():
         "skills": (SKILLS, Path.home() / ".claude", None),
         "decisions": (None, TREE, GITHUB_PREFIX),  # DECISION_DIRS, handled below
     }
+    rc = TREE / "route-catalog"
+    if rc.exists():
+        for p in sorted(rc.glob("*.md")):
+            rel = p.relative_to(TREE).as_posix()
+            yield "route-catalog", rel, p, GITHUB_PREFIX + rel
     for area, (root, base, url_prefix) in mapping.items():
         if area == "decisions":
             for sub in DECISION_DIRS:

@@ -35,7 +35,9 @@ human the entire night with corroboration counts as the trust signal.
 
 ## Schedule mechanics
 
-The schedules are launchd plists and self-rearming session crons. Recurring
+The schedules are launchd plists and self-rearming session crons — 42 jobs
+total as of the 2026-10-16 inventory (see `schedules/README.md` in the repo
+for the full table). Recurring
 scheduled tasks expire after seven days by platform design, so every job
 re-creates its own schedule before expiry lapses; the fleet launcher keeps
 per-job prompt files, locks, timeouts, and logs. Durable scheduled tasks

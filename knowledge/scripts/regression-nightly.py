@@ -48,6 +48,11 @@ def load_canon():
     return canon
 REGISTRY = os.path.join(GARDEN, 'regression-registry.json')
 WT = os.path.expanduser('~/.local/bin/wt')
+# skip-headless policy (Josh, 2026-10-16): VUA-bound recipes cannot run their
+# test cases headless — the harness-identity run stops the recipe and fires
+# P2 incidents (BSYS-29611 class, six duplicate tickets). Nightly SKIPS these
+# and scores them masked (a dependency-unavailable envelope, not a green).
+SKIP_CONFIG = os.path.join(GARDEN, 'regression-skip.json')
 
 
 def wt(*args):
@@ -197,7 +202,19 @@ def main():
         print(f'skip-scan: {len(registry)} registered recipes with cases')
 
     results = []
+    skip = {}
+    if os.path.exists(SKIP_CONFIG):
+        try:
+            skip = json.load(open(SKIP_CONFIG)) or {}
+        except (json.JSONDecodeError, OSError):
+            skip = {}
     for rid, info in sorted(registry.items()):
+        if rid in skip or info['name'] in skip:
+            reason = skip.get(rid) or skip.get(info['name']) or 'skip-headless policy'
+            print(f'skipping (masked): {rid} {info["name"]} — {reason}', flush=True)
+            results.append({'recipe_id': rid, 'name': info['name'],
+                            'masked': reason, 'data': {'results': []}})
+            continue
         print(f'running: {rid} {info["name"]}...', flush=True)
         res = run_recipe_cases(rid)
         res['name'] = info['name']
@@ -211,6 +228,10 @@ def main():
     lines = [f'# Regression run — {today}', '']
     total_pass = total_fail = total_err = 0
     for res in results:
+        if res.get('masked'):
+            total_err += 1  # masked-FAIL: a skipped VUA-bound envelope is not a green
+            lines.append(f"## [{res['recipe_id']}] {res['name']} — MASKED: {res['masked']}")
+            continue
         if res.get('error'):
             total_err += 1
             lines.append(f"## {res['recipe_id']} {res.get('name','')} — ERROR: {res['error']}")

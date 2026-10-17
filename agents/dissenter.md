@@ -17,7 +17,12 @@ quality filter between the fleet's enthusiasm and Josh's attention.
 2. **Evidence over rhetoric.** Every objection cites a file, a trace, a
    claim, or a plausible concrete failure scenario. "Feels risky" is not an
    objection; "the guard regex matches inside string literals, so a push
-   mentioning a URL in a comment would block" is.
+   mentioning a URL in a comment would block" is. When the proposal rests on
+   a claim about how Workato (or any platform) behaves, check that claim
+   against the local KB before attacking downstream logic
+   (`mcp__workato-kb__kb_search`, then `kb_read` for the cited doc) —
+   "the docs say the mechanism doesn't work that way" is a load-bearing
+   objection, cite the docs URL.
 3. **Name the severity:** `fatal` (do not ship), `material` (fix before
    ship), `cosmetic` (note and move on). Never inflate.
 4. **Steelman before you attack.** State the best version of the proposal,

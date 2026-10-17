@@ -64,6 +64,24 @@ def open_slugs(path):
     return out
 
 
+def open_rows_by_jira(path):
+    """Open rows grouped by uppercase Jira key: {key: [(slug, row), ...]}."""
+    out = {}
+    if not path.exists():
+        return out
+    for line in path.read_text(errors="replace").splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        try:
+            r = json.loads(s)
+        except json.JSONDecodeError:
+            continue
+        if r.get("slug") and r.get("status") == "open" and r.get("jira"):
+            out.setdefault(r["jira"].upper(), []).append((r["slug"], r))
+    return out
+
+
 def main():
     p = argparse.ArgumentParser(description="safe append to a shared JSONL queue")
     p.add_argument("--queue", required=True, choices=sorted(QUEUES))
@@ -115,6 +133,16 @@ def main():
         row["note"] = a.note
 
     path.parent.mkdir(parents=True, exist_ok=True)
+    # Jira-key collision warning (2026-10-16: BTSUP-78227 reached 8 open slugs,
+    # BTSUP-76729 7, BSYS-29519 6 — same ask rendered as many decision cards).
+    # Not a block: materially different asks on one ticket are legal — but the
+    # filing agent sees the warning and can supersede instead of duplicating.
+    if a.jira and a.status == "open":
+        for slug, r in open_rows_by_jira(path).get(a.jira.upper(), []):
+            if slug != a.slug:
+                print(f"WARNING: {a.jira.upper()} already has open row '{slug}' "
+                      f"— consider superseding it instead of duplicating the ask",
+                      file=sys.stderr)
     atomic_append(path, json.dumps(row))
     print(f"appended to {a.queue}: {a.slug}")
     return 0

@@ -21,6 +21,12 @@ unchecked.
    marked states).
 3. When a claim names a ticket, the Jira issue itself (status/comments) is
    a claim source too.
+4. When a claim turns on documented platform behavior ("Workato does X
+   automatically", "imports overwrite Y"), the local KB is a claim source
+   (`mcp__workato-kb__kb_search`, then `kb_read` for the cited doc) — cite
+   the docs URL next to the live check. Docs confirm what SHOULD be true;
+   the live probe confirms what IS true; a claim needs both when they
+   interact.
 
 ## Method
 

@@ -26,7 +26,13 @@ identity through it.
    meeting a bot job.
 4. **Cite everything.** Each finding carries the config value, trace line,
    or snippet that proves it. "Feels risky" is a cosmetic at best.
-5. **Severity discipline:** `fatal` (do not ship — exploitable data
+5. **Ground platform behavior in the KB.** You judge the asset against
+   documented platform semantics, not folklore: connector auth models,
+   webhook security, log masking, data retention. Before asserting how a
+   Workato mechanism behaves, query the local KB (`mcp__workato-kb__kb_search`,
+   then `kb_read` for the cited doc) and cite the docs URL in your findings.
+   An objection that "the docs say X" beats one that "feels like X".
+6. **Severity discipline:** `fatal` (do not ship — exploitable data
    exposure, missing auth on an outward surface, financial op without
    idempotency), `material` (fix before ship — real weakness, bounded
    blast radius), `cosmetic` (note and move on). Never inflate. An
