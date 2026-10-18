@@ -30,7 +30,13 @@ def tokens(path):
 def harvest(root):
     out = {}
     for dirpath, _dirs, files in os.walk(root):
-        if 'garden-reports' in dirpath or 'claims' in dirpath or 'scripts' in dirpath:
+        # Machine-generated dirs (estate sweeps, telemetry, append-ledgers)
+        # produce thousands of 1.00-identical pairs that drown real
+        # knowledge dupes — never candidates (2026-10-17).
+        if any(part in dirpath.split(os.sep) for part in (
+                'garden-reports', 'claims', 'scripts', 'workato-health',
+                'sweeps', 'skills-telemetry', 'ops-visibility',
+                'instruction-patches')):
             continue
         for f in files:
             if f.endswith('.md') or f.endswith('.jsonl'):
