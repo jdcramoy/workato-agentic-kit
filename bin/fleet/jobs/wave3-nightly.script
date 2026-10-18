@@ -46,4 +46,9 @@ if [ "$(date +%u)" = "7" ]; then
   python3 "$HOME/.claude/knowledge/scripts/elites.py" augment >> "$LOG" 2>&1 || true
 fi
 echo "=== wave3-nightly done $(date -u +%FT%TZ) rc=$RC ===" >> "$LOG"
+# work-evidence check-in (2026-10-17): the script logs to $LOG, so the runner's
+# stdout stub test saw an empty capture and misclassified every clean run as a
+# stub. Echo a summary line to stdout AND write the mechanical heartbeat.
+echo "wave3-nightly: rc=$RC trigger/coincidence/ratchet/spore stages done $(date -u +%FT%TZ)"
+printf '{"ts":"%s","job":"wave3-nightly"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | python3 "$HOME/.claude/knowledge/scripts/atomic_io.py" "$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl"
 exit 0

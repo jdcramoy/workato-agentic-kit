@@ -5,7 +5,7 @@ Parent page: The Agentic Workato Harness
 Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
-against the directories it describes. Counts current as of 2026-10-17.
+against the directories it describes. Counts current as of 2026-10-18.
 
 ## The agents: 12
 
@@ -30,10 +30,11 @@ Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 ## The skills: 54
 
 Each skill is a `SKILL.md` in `~/.claude/skills/`, a loaded-on-trigger SOP.
-49 are cataloged below in five groups; 3 are private or intentionally
+51 are cataloged below in five groups; 3 are private or intentionally
 unpublished and deliberately omitted (noted at the end).
 (2026-10-17 sync: 54 skills live, up from 52 — additions: failure-close-gate,
-wt-cookbook.)
+wt-cookbook. 2026-10-18 re-verify: still 54 live, no additions; the catalog
+arithmetic was corrected to 51 cataloged + 3 omitted.)
 
 ### Playbooks: how to drive the platform (22)
 
@@ -62,7 +63,7 @@ wt-cookbook.)
 | wql-query-builder | Build, review, and safely execute Workday Query Language queries. |
 | fusion | Cost-gated multi-model execution: N models answer the same task, answers are cross-checked. |
 
-### Governance and gates: rules as procedure (16)
+### Governance and gates: rules as procedure (15)
 
 | Skill | Purpose |
 |---|---|
@@ -118,7 +119,7 @@ private prose-voice skill), and `otto-house-style` (house rules for one
 specific internal repo). They load locally; they do not belong in a published
 catalog.
 
-## The wt CLI: 15 subcommands
+## The wt CLI: 16 subcommands
 
 `wt`, the Workato Toolbox, wraps the Developer API capabilities that the
 platform MCP and the Dev CLI do not expose. Auth is an API token from the
@@ -138,6 +139,7 @@ environment or the OS keychain; profiles select dev or production.
 | packages | Package export and import. |
 | dt | Data-table records: query and CRUD. |
 | apic | API platform collections and endpoints. |
+| mcp-apps | MCP Apps CRUD on an MCP server. |
 | discover | Self-discover the Developer API surface; coverage and gap report. |
 | testcases | Test Automation API: run and poll recipe test cases. |
 | fixture | Browser-free recipe testing: invoke via webhook, API, or force-run, then assert on the job output. |
@@ -184,6 +186,7 @@ spawn no model.
 | index-budget | Daily 03:17 | Index and file-size budget audit (zero-LLM). |
 | replay-sample | Daily 03:37 | Replay sampling (zero-LLM). |
 | restore-drill | Daily 04:37 | Backup-restore drill (zero-LLM). |
+| regression | Daily 23:50 | Nightly zero-LLM regression pass over recipe test cases; writes the regression report and heartbeat. |
 | frontier-nightly | Daily 04:43 | The zero-LLM frontier stack (below). |
 | wave3-nightly | Daily 05:07 | Wave-3 zero-LLM loop: trigger scoring, coincidence detection, ratchet watch; Sundays add the null-miner run. |
 | instruction-miner | Daily 00:47 | Nightly correction-mining for the instruction-patch loop (zero-LLM). |
@@ -225,6 +228,12 @@ stub, retried once, then escalated.
 | fireworks-websearch | Web search and fetch. |
 | slack-native | Slack's first-party MCP (installed; auth compatibility issue in this environment). |
 | seismic-dev | Seismic MCP (installed; requires OAuth). |
+
+Platform note for in-platform MCP servers: a served tool exists only while
+its backing recipe is running — stopping a recipe silently removes its tool
+from the tools list with no error anywhere. A missing tool is diagnosed by
+checking the recipe's running state first, and every recipe stopped for
+testing is restarted in the same turn.
 
 ## The slash commands
 
