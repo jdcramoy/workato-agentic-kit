@@ -16,9 +16,8 @@ set -euo pipefail
 # the push (safe default; set both in config.sh).
 # Pull repo config from the kit's config.sh when present (the nightly cron
 # runs bare, with no env), then allow explicit env overrides on top.
-for __cfg in "$HOME/Documents/agentic-workato-kit/config.sh"; do
-  [ -f "$__cfg" ] && . "$__cfg"
-done 2>/dev/null || true
+__cfg="$HOME/Documents/agentic-workato-kit/config.sh"
+{ [ -f "$__cfg" ] && . "$__cfg"; } 2>/dev/null || true
 REPO="${BACKUP_REPO_LOCAL:-$HOME/Documents/josh-orca}"
 CLAUDE="$HOME/.claude"
 STAMP="$(date '+%Y-%m-%d %H:%M:%S')"

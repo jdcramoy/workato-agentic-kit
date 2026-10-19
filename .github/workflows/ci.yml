@@ -1,0 +1,34 @@
+name: ci
+
+# Guards for the kit: shell correctness (syntax + shellcheck at error
+# severity) and python syntax across the fleet scripts (compileall).
+# Deliberately does NOT run install.sh/verify.sh: they mutate the runner
+# (~/.claude, keychain, LaunchAgents) and assume a real Workato account.
+# CI proves the code is sound; live verification happens at onboard time.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-and-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+
+      - name: Syntax-check every shell script (bash -n)
+        run: |
+          find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -n1 bash -n
+
+      - name: Shellcheck (error severity)
+        run: |
+          find . -name '*.sh' -not -path './.git/*' -print0 | \
+            xargs -0 shellcheck --severity=error
+
+      - name: Compile-check every python script
+        run: python3 -m compileall -q bin knowledge/scripts kb-pipeline
