@@ -69,7 +69,7 @@ The kit's knowledge layer has two halves, and together they are the part most
 people end up most excited about.
 
 **Where to get it:** the KB ships as its own installable pack,
-[Workato-All/workato-dev-kb](https://github.com/Workato-All/workato-dev-kb),
+[jdcramoy/workato-dev-kb](https://github.com/jdcramoy/workato-dev-kb),
 with the curated playbooks, the sanitized pipeline, and its own hardened
 installer (`git clone` + `./install.sh`). This kit's mechanics work without
 it; the pack is the supported way to add it. The `workato-kb` repo itself is
@@ -102,7 +102,7 @@ the team's own incident history.
 
 ## Quick start (5 minutes)
 
-    git clone https://github.com/Workato-All/workato-agentic-kit.git
+    git clone https://github.com/jdcramoy/workato-agentic-kit.git
     cd workato-agentic-kit
     ./onboard.sh      # ~15 validating questions; tokens go to keychain, not files
     ./install.sh      # renders + installs everything
