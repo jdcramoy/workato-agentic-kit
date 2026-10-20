@@ -29,6 +29,17 @@ to carry the **operational choreography and the traps** that aren't in any tool
 schema and that cost real rework when forgotten. Read the whole file once, then
 work the lifecycle.
 
+## Custom action schema comes before datapill mapping
+
+A custom-connector action has no datapill schema until the action has executed
+once (the platform derives it from a captured sample response). Before building
+or editing recipe steps that call a custom action — especially a fresh ad-hoc
+HTTP action — load the `workato-custom-action-schema` skill, resolve the
+action's schema through the bundled wrapper, probe the action once if it
+reports no schema, and map pills from the resolved schema in the same turn.
+Guessing mappings against a schema-less action produces
+`DatapillSourceBlockNotFound` retries and never resolves on its own.
+
 ## Workato Developer CLI is the default operational surface
 
 For Workato Development work, prefer the authenticated **Workato Developer
