@@ -8,7 +8,7 @@ prose into mechanics. Each hook is a few lines of code; `claude plugin
 validate` lists exactly what each touches before anything is installed. 42
 automated tests cover the guardrails pair.
 
-## workato-guardrails: 13 hooks
+## workato-guardrails: 15 hooks
 
 | Hook | Fires on | What it does |
 |---|---|---|
@@ -25,6 +25,8 @@ automated tests cover the guardrails pair.
 | Slash commands | user | `/guardrails` status, `/builds` ledger summary, `/promotion-ready`, `/promoted`, `/cockpit`, `/snapdiff` (recipe snapshot history). |
 | Snapshot history and cockpit | every push; on demand | After each push, pulls the fresh definition from the matching server and commits it to a local git repo, so "what changed in this recipe" is a diff. |
 | Prod-write confirm gate | any write to production through ANY surface: platform tools, CLI, API wrapper, raw HTTP, browser | Holds the write for an explicit confirm dialog and fails closed on dismissal. Reads pass through. This is what makes handing an agent production credentials safe. |
+| Remote-identity guard | git push to a non-org remote | Holds the push for explicit confirm, and denies outright when the remote's origin is misconfigured — org repos are the only sanctioned push targets (added 2026-10-13, per the mod's own guard list). |
+| Push identity guard | every recipe_builder_push | Warns when the push targets a recipe whose name matches a live recipe elsewhere, so a push cannot silently land on the wrong asset. Warn-only (added 2026-10-13). |
 
 ## brain-guard: 5 hooks for the knowledge system
 

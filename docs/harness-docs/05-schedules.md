@@ -68,6 +68,31 @@ skipped job is the first finding, not an invisible one. The dashboard
 renders the same data as timer chips, green for ran-within-window, grey for
 loaded-but-never-fired, red only for genuinely overdue.
 
+## The receipts gate: artifact existence, not job say-so (added 2026-10-17)
+
+A heartbeat proves a job started; a job's own status line proves only that
+the job says so. The receipts gate closes both gaps: each nightly job's
+OUTPUT is a known artifact (the docs-watch diff, the gardener report, the
+watchdog report, the backup archive, the KB sync diff, the dream report),
+and one launchd gate checks each artifact's existence and parses cleanly
+before the morning brief reads anything. A job that died mid-run leaves a
+receipt gap, and the gap itself is the alarm — the same inversion as the
+heartbeat, one layer deeper. This gate absorbed the dreamer's
+report-existence tripwire as one of its checks rather than letting it ship
+as a separate guard.
+
+## The resume clobber (2026-10-19) and the write rule
+
+Resuming an old session made the harness rewrite the project's scheduled
+tasks file from the resumed session's own state — silently dropping every
+durable task other sessions had created. Eight of nine fleet tasks died at
+once, and the first thing that noticed was the next morning's missed
+firings. Two rules came out of it. Scheduled tasks are created and deleted
+only through the cron tools, never by writing the file directly: a direct
+write is what made the clobber invisible and non-atomic. And a rearm check
+compares the task's own age (five days) before re-creating it, so a fresh
+task is never churned by a job running on schedule.
+
 ## The zero-LLM rule for machine-only work (added 2026-10-11)
 
 Jobs that need no judgment (snapshotting, scoring, reporting) no longer

@@ -266,6 +266,43 @@ function scoreRisk(mcpResult, churn) {
   return { score: score, label: label, reasons: reasons.length ? reasons : ['healthy: running history looks clean'], running: running }
 }
 
+// recipe_list returns a markdown table whose rows start `| <id> | <name …> |`
+// and end in the canonical recipe URL. Names carry pipes ("REC | HR Genie | …"),
+// so never split a row on columns: take the id off the leading cell and slice
+// the name field off the front, cutting at the row's Running flag cell.
+function unescapeHtml(text) {
+  return String(text)
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
+function parseRunningRows(blob) {
+  const rows = []
+  for (const line of blob.split('\\n')) {
+    if (line.indexOf('app.workato.com/recipes/') === -1) continue
+    const lead = line.match(/^\s*\|\s*(\d{6,9})\s*\|/)
+    if (!lead) continue
+    // Everything between the id cell and the True/False flag cell is
+    // name | version | folder | project in some order — the name is the
+    // front of it, matched against the exact pushed name (leading anchor).
+    const body = line.slice(lead[0].length)
+    const flag = body.search(/\|\s*(?:True|False)\s*\|/)
+    rows.push({ id: Number(lead[1]), body: unescapeHtml(flag === -1 ? body : body.slice(0, flag)).trim() })
+  }
+  return rows
+}
+
+// Does the row's name field START with this exact name (the name may span
+// cells because of pipes, and must end at a cell boundary — a name that
+// merely appears in a description or version cell never matches)?
+function rowNameIs(body, name) {
+  return body === name ||
+    (body.indexOf(name) === 0 && /^\s*\|/.test(body.slice(name.length)))
+}
+
 // Count this week's ledgered mutations of a recipe + distinct sessions.
 async function ledgerChurn($, recipeId) {
   try {
@@ -363,6 +400,7 @@ export function register(on) {
         '11. build ledger — CLI/Orca via Bash sniffing + CLI-start claim verification\n' +
         '12. recipe snapshot history → ~/.claude/recipe-history (git) on every push\n' +
         '14. remote-identity guard (git push to non-org remote held for confirm)\n' +
+        '15. push identity guard — same-name live recipe warning on recipe_builder_push (warn-only)\n' +
         '13. prod-write confirm gate — EVERY surface (workato-prod, wt-prod, ' +
         'WORKATO_PROFILE=josh-prod, raw http w/ prod credential, Orca on prod urls)',
     }
@@ -872,6 +910,69 @@ export function register(on) {
           // Read-back unavailable — skip verification, never fail the command.
         }
       }
+    }
+    return result
+  })
+
+  // 15. PUSH IDENTITY GUARD — warn-only, NEVER blocks. The two-copy
+  //     divergence class (BSYS-29488): two live recipes shared the name
+  //     "HR Genie Conversation Event Collector", a fix landed in only one of
+  //     them, and the name was the join key — the name was a lie. After a
+  //     successful push, recipe_get the pushed recipe (its name is the join
+  //     key this check verifies) and list its folder's running recipes (ONE
+  //     recipe_list call, cached 5 min per folder); when ANOTHER running
+  //     recipe carries the same name, annotate the result naming both
+  //     recipe_ids and the URL of each. Warn only: hot-swap staging copies
+  //     and promotion renames create transient same-name live recipes
+  //     legitimately. Folder-scoped on purpose: this workspace holds 3k+
+  //     running recipes and recipe_list has no name filter, so a
+  //     workspace-wide scan cannot fit one cached call — and the staging
+  //     twins this guards are born in the pushed recipe's own folder.
+  //     Best effort: any lookup failure passes the push through unannotated.
+  const folderRunningRows = new Map() // server:folder_id -> { at, rows }
+  const IDENTITY_CACHE_MS = 5 * 60 * 1000
+
+  on('tool.call', { tool: /^mcp__workato-airo-mcp-(server|prod)__recipe_builder_push$/ }, async ($, e, next) => {
+    const result = await next(e)
+    if (!result || result.deny || result.isError) return result
+    const rid = sessionRecipes.get(String(e.session_id ?? ''))
+    if (rid == null) return result
+    const serverName = e.tool.indexOf('mcp-prod') !== -1 ? 'workato-airo-mcp-prod' : 'workato-airo-mcp-server'
+    try {
+      // recipe_get the pushed recipe once — reuse of the pre-verification
+      // read: the name and folder come off the same fetch either way.
+      const fresh = await $.mcp.call(serverName, 'recipe_get', { recipe_id: rid })
+      const blob = JSON.stringify(fresh?.content ?? fresh ?? '')
+      const name = unescapeHtml((blob.match(/### Recipe: (.*?) \(ID: \d+\)/) ?? [])[1] ?? '').trim()
+      const folderId = (blob.match(/\*\*Folder ID\*\*: (\d+)/) ?? [])[1]
+      if (!name || !folderId) return result
+      // ONE recipe_list call per folder, cached 5 min.
+      const cacheKey = serverName + ':' + folderId
+      const cached = folderRunningRows.get(cacheKey)
+      let rows
+      if (cached && Date.now() - cached.at < IDENTITY_CACHE_MS) {
+        rows = cached.rows
+      } else {
+        const listing = await $.mcp.call(serverName, 'recipe_list', {
+          folder_id: Number(folderId), per_page: 100, running: true,
+        })
+        rows = parseRunningRows(JSON.stringify(listing?.content ?? listing ?? ''))
+        folderRunningRows.set(cacheKey, { at: Date.now(), rows: rows })
+      }
+      const twins = rows.filter((r) => r.id !== rid && rowNameIs(r.body, name))
+      if (twins.length > 0) {
+        return annotate(
+          result,
+          '\n\n⚠️ [workato-guardrails] PUSH IDENTITY WARNING (warn-only): another RUNNING recipe in ' +
+            'folder ' + folderId + ' shares the pushed name "' + name + '" — the name is the join ' +
+            'key and the name is a lie (two-copy divergence, BSYS-29488 class). Pushed: ' +
+            'https://app.workato.com/recipes/' + rid + '. Same-name live recipe(s): ' +
+            twins.map((t) => 'https://app.workato.com/recipes/' + t.id).join(', ') +
+            '. A fix lands in only ONE of the copies — verify you fixed the one you meant.',
+        )
+      }
+    } catch {
+      // Identity warning must never fail a push — best effort only.
     }
     return result
   })
