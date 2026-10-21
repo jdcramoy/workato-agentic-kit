@@ -197,6 +197,12 @@ fi
 
 if [ "$RESULT" = "valid" ]; then
   write_heartbeat
+  # success row (2026-10-20): the ledger used to record failures only, so a
+  # clean run was indistinguishable from a never-ran job without raw-log
+  # archaeology. One line per validated-clean run, same shape as the failure
+  # rows (result field carries the verdict; watchdog counts only non-valid).
+  mkdir -p "$(dirname "$VALIDATE_LEDGER")"
+  echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\",\"result\":\"valid\",\"action\":\"validated-clean\"}" | python3 "$HOME/.claude/knowledge/scripts/atomic_io.py" "$VALIDATE_LEDGER"
   echo "$(date '+%F %T') $NAME: done validated" >> "$LOG"
   exit 0
 fi
