@@ -154,3 +154,12 @@ NOT the storage layer. For the projection to be clean, authored memory must:
 Cutover rule (if/when fractal.db becomes a write target): full git tag +
 DB backup first, projections verified against sources row-for-row, and the
 cutover is a Josh decision, not a gardener or dreamer decision.
+
+## Related (KB bridges)
+
+<!-- kb-bridges:v1 begin -->
+- [Memory and the knowledge base architecture](../../kb-corpus/confluence/extbt/2939158533-memory-and-the-knowledge-base-architecture.md)
+- [Knowledge base and database best practices](../../kb-corpus/docs/en/agentic/agent-studio/knowledge-bases/knowledge-base-and-database-best-practices.md)
+- [Customer support agent](../../kb-corpus/claude/docs_en_about-claude_use-case-guides_customer-support-chat.md.md)
+- [Additional resources](../../kb-corpus/claude/docs_en_about-claude_additional-resources.md.md)
+<!-- kb-bridges:end -->

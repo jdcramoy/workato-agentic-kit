@@ -515,3 +515,46 @@ Gotchas learned:
   (backup: /tmp/josh-knowledge-backup.bundle); knowledge-corpus reset to a
   single clean commit (leaked extract files purged; backup bundle in /tmp).
   Teammates with old clones must re-clone.
+
+## Push identity guard (hook 15, 2026-10-20)
+
+- **Hook 15 LIVE in workato-guardrails (accepted dreamer proposal 2026-10-10
+  push-identity-guard, built dev-side 2026-10-20):** warn-only same-name
+  live-recipe warning on every `recipe_builder_push` (dev+prod). On a
+  successful push it recipe_gets the pushed recipe (name = the join key),
+  makes ONE `recipe_list` call for the pushed recipe's folder
+  (`running=true, per_page=100`, cached 5 min per server:folder), and
+  annotates the result naming BOTH recipe_ids + URLs when another RUNNING
+  recipe carries the same name (BSYS-29488 two-copy divergence class: the
+  name is the join key and the name is a lie). NEVER denies — hot-swap
+  staging copies and promotion renames create transient same-name live
+  recipes legitimately.
+- **Scope decision:** the proposal said "one recipe_list call, workspace-wide"
+  — impossible here: dev workspace = 6,284 recipes / 3,183 running,
+  `recipe_list` has NO name filter, and per_page>100 422s. Guard is
+  FOLDER-scoped (where staging twins and promotion copies are born); a
+  cross-folder same-name pair would NOT fire it. Recorded in the hook comment.
+- **Test-sandbox discovery:** the `claude plugin test` engine serves NO
+  `$.mcp` noun at all (`$.mcp` is undefined) — mcp-backed hook paths cannot
+  be stubbed in harness tests; they fail via the hook's own try/catch. The
+  warn path is proven instead by `tests/push-identity-driver.mjs`: a node
+  driver that loads the REAL register.js, fires the REAL tool.call chain, and
+  feeds REAL captured MCP payloads (fixtures recipe_get_A.json +
+  recipe_list_folder.json from a live duplicate pair). Run:
+  `node tests/push-identity-driver.mjs`. Harness tests keep the never-block /
+  graceful-degrade contract; 45/45 green.
+- **recipe_list markdown rows carry pipes INSIDE names** ("REC | HR Genie | …")
+  and inside descriptions — never parse by column position; take the id from
+  the leading cell, cut the name field at the Running flag cell, and match the
+  pushed name leading-anchored at a cell boundary.
+- **CLI-start validation errors are per-field:** starting a triggerless
+  recipe fails `provider/name can't be blank`; with a trigger but unset
+  fields, `Time unit can't be blank` — set trigger inputs via
+  recipe_builder_set_input_field before start. `wt recipes delete <id>` works
+  and 404-confirmed both probes gone.
+- **Live probes:** real duplicate pair 83197137 (stopped) + 83197138 (running),
+  both "TEST push-identity dup probe" in folder 35835951, created + started +
+  deleted for the verification (manifest exemption: test probe). Driver
+  results: CASE1 WARNED naming both ids no-deny; CASE2 one recipe_list across
+  two pushes (cache); CASE3 unique-name no warning; CASE4 mcp-down push
+  passes. Proposal file NOT touched (no proposal-decide.py, status unchanged).

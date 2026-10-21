@@ -26,7 +26,7 @@ automated tests cover the guardrails pair.
 | Snapshot history and cockpit | every push; on demand | After each push, pulls the fresh definition from the matching server and commits it to a local git repo, so "what changed in this recipe" is a diff. |
 | Prod-write confirm gate | any write to production through ANY surface: platform tools, CLI, API wrapper, raw HTTP, browser | Holds the write for an explicit confirm dialog and fails closed on dismissal. Reads pass through. This is what makes handing an agent production credentials safe. |
 | Remote-identity guard | git push to a non-org remote | Holds the push for explicit confirm, and denies outright when the remote's origin is misconfigured — org repos are the only sanctioned push targets (added 2026-10-13, per the mod's own guard list). |
-| Push identity guard | every recipe_builder_push | Warns when the push targets a recipe whose name matches a live recipe elsewhere, so a push cannot silently land on the wrong asset. Warn-only (added 2026-10-13). |
+| Push identity guard | every recipe push (dev and production) | After a successful push, looks the pushed recipe up by name (the join key) and makes one folder-scoped listing of running recipes; when another RUNNING recipe carries the same name it annotates the result naming both recipe IDs and their URLs. Kills the two-copy divergence class: a push that landed on a dead copy while the live one kept running under the same name (one tracked incident). Warn-only (built dev-side 2026-10-20, from a dreamer proposal accepted 2026-10-10). |
 
 ## brain-guard: 5 hooks for the knowledge system
 

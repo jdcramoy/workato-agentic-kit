@@ -41,6 +41,12 @@ never edit the KB corpus.
    `knowledge/watchdog-reports/`)
 6. The build ledger (`knowledge/build-ledger.jsonl`) — what actually changed
 7. Morning briefs (`knowledge/morning-brief/`) — what Josh has seen
+8. Heartbeat self-check (`knowledge/garden-reports/heartbeat.jsonl`) — parse
+   it, never grep a spaced literal: `grep '"job": "cortex"'` goes dark when a
+   writer emits the compact `{"job":"cortex"}` form. Use a JSON filter, e.g.
+   `python3 -c "import json,sys;[print(json.loads(l)['ts']) for l in sys.stdin if json.loads(l).get('job')=='cortex']" < heartbeat.jsonl`
+   or jq `select(.job=="cortex")`. Spaced-literal grepping caused false
+   staleness alarms (2026-10-20 finding heartbeat-selfcheck-grep-fragility).
 
 ## The three jobs
 

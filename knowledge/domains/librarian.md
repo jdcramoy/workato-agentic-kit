@@ -59,7 +59,16 @@ says so; that is a valid outcome.
   `library/` + `positions/` created; schedule armed (Sun 21:37, durable,
   self-rearming, project scheduled_tasks.json); kit sync
   (agentic-workato-kit: agents/, knowledge/domains/, schedules/).
-  First smoke run: see specs/2026-10-11-librarian-design.md verdict.
+- 2026-10-11 SMOKE RUN VERIFIED (commit 7d90a52): first library doc
+  `library/mcp-enterprise-shift-2026.md` (~95 lines, 4 sources cited
+  with URL + fetch date, house ties to the gateway header-routing trap,
+  dedicated-app governance, token budgeting, gossip bus, deprecation
+  clock); INDEX line added; report garden-reports/2026-10-11-librarian-
+  smoke.md; bus finding + gardener audit handoff posted. Skipped by
+  design: consolidation, position piece, full procurement. Phases 1-3
+  still UNEXERCISED — first real weekly pass (Sun 2026-10-12 21:37) is
+  the first live test of the position-piece dissenter loop and the
+  consolidation branch lane.
 
 ## Related
 

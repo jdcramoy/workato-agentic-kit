@@ -56,9 +56,12 @@ and nobody noticed for a full day). The runner repairs the launchd
 environment itself (PATH + gateway env), retries a stub once, and on a
 double stub writes `garden-reports/fleet-validation.jsonl`, a confirmed
 execution failure the watchdog escalates to the bus and the morning burn.
-Success writes the heartbeat mechanically, so the dashboard's
-heartbeat-first evidence ladder is enforced by the runner, not by the
-model's good manners.
+Since 2026-10-20 the ledger also records a success row per validated-clean
+run, same shape as the failure rows (`result: "valid"`): the ledger used to
+record failures only, so a clean run was indistinguishable from a never-ran
+job without raw-log archaeology. Success writes the heartbeat mechanically,
+so the dashboard's heartbeat-first evidence ladder is enforced by the
+runner, not by the model's good manners.
 
 ## The heartbeat contract
 
