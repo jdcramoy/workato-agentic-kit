@@ -312,6 +312,42 @@ def bus_summary():
     return events, threads
 
 
+def topics_rows():
+    """Top agent chat topics — same ranking as the brain MCP's brain_topics tool."""
+    since_ok = time.time() - 86400
+    threads = {}
+    for f in glob.glob(os.path.join(K, "dreams", "bus", "*.jsonl")):
+        agent = os.path.basename(f)[:-6]
+        for e in read_jsonl(f):
+            ep = ts_epoch(e.get("ts", ""))
+            if ep < since_ok:
+                continue
+            tid = e.get("thread_id") or e.get("thread") or e.get("subject") or e.get("key") or ""
+            if not tid:
+                continue
+            t = threads.setdefault(tid, {"agents": set(), "posts": 0, "last": 0, "body": ""})
+            t["agents"].add(agent)
+            t["posts"] += 1
+            t["last"] = max(t["last"], ep)
+            body = e.get("body") or e.get("message") or e.get("text") or e.get("line") or ""
+            if isinstance(body, str) and len(body) > len(t["body"]) and len(body) > 60:
+                t["body"] = body
+    ranked = []
+    for name, t in threads.items():
+        age_h = max(0.0, (time.time() - t["last"]) / 3600.0)
+        score = t["posts"] + 3 * len(t["agents"]) + max(0.0, 6.0 * (1.0 - age_h / 168.0))
+        ranked.append((score, name, t))
+    ranked.sort(reverse=True)
+    rows = []
+    for score, name, t in ranked[:10]:
+        last_h = (time.time() - t["last"]) / 3600.0
+        rows.append(
+            f"<tr><td><b>{esc(name)}</b></td><td>{t['posts']}</td>"
+            f"<td>{len(t['agents'])}</td><td>{last_h:.0f}h ago</td>"
+            f"<td>{esc(t['body'][:200])}</td></tr>")
+    return "".join(rows) or '<tr><td colspan="5">(no threads)</td></tr>'
+
+
 def autonomous_work():
     rows = read_jsonl(os.path.join(K, "build-ledger.jsonl"))
     cut = time.time() - 86400
@@ -567,6 +603,7 @@ def xrow(cells, detail_html):
 def render():
     tmrs = timers()
     events, threads = bus_summary()
+    topics_html = topics_rows()
     work = autonomous_work()
     claims = claims_rows()
     caps = capabilities_rows()
@@ -809,6 +846,9 @@ def render():
     <div class="card"><table><tr><th></th><th>thread</th><th>corr</th><th>witnesses</th><th>what</th></tr>{thread_rows}</table></div>
   </div>
 </div>
+
+<h2 id="topics">Top agent chat topics — 24h (what the fleet is talking about)</h2>
+<div class="card"><table><tr><th>topic</th><th>posts</th><th>agents</th><th>last</th><th>latest word</th></tr>{topics_html}</table></div>
 
 <div class="grid2">
   <div>

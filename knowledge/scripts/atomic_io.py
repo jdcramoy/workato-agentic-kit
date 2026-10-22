@@ -174,6 +174,64 @@ def atomic_write(path, text):
             fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
+class JsonSnapshotRefused(ValueError):
+    """A .json snapshot write carried non-JSON content.
+
+    Loud refusal: the raw output is preserved atomically as <same-name>.txt
+    and the .json path is NEVER created. Born from proposal
+    2026-10-13-snapshot-writer-json-guard (promoted as amended): the corrupt
+    artifact knowledge/regression-canon/snapshots/
+    recipe-82272892-pre-line21-guard-20261011T064016Z.json was a 106KB raw
+    recipe text dump saved under a .json extension, so every consumer that
+    trusted the extension failed at parse time — exactly when a rollback
+    needed it. A single-site guard is theater if writer sites are plural;
+    the enforceable form is this shared helper, which every snapshot writer
+    routes its *.json writes through.
+    """
+
+
+def atomic_write_json(path, payload):
+    """Validate-then-atomic-write for *.json snapshot artifacts.
+
+    payload is either a dict/list (json.dumps'd here) or raw str/bytes
+    content that MUST itself parse as JSON. For a target ending in .json
+    (case-insensitive) the content is validated with json.loads BEFORE the
+    atomic write. On validation failure the raw output is preserved
+    atomically under the same name with a .txt extension (foo.json ->
+    foo.txt) and JsonSnapshotRefused is raised loudly; the .json path is
+    never created. Non-.json targets are written as-is with no validation
+    (use atomic_write/atomic_append for those).
+
+    Every writer of *.json snapshot artifacts (rollback-rehearse.py,
+    twin-snapshot.py, gw_semantic_dashboard_snapshot.py, and any future
+    snapshot site) MUST go through this helper rather than a bare
+    open(path, 'w') + json.dump.
+    """
+    if isinstance(payload, (dict, list)):
+        text = json.dumps(payload, indent=2, ensure_ascii=False)
+    elif isinstance(payload, bytes):
+        text = payload.decode("utf-8")
+    elif isinstance(payload, str):
+        text = payload
+    else:
+        raise TypeError(f"unsupported payload type: {type(payload)}")
+
+    path = os.path.abspath(str(path))
+    if path.lower().endswith(".json"):
+        try:
+            json.loads(text)
+        except ValueError as e:
+            txt_path = path[: -len(".json")] + ".txt"
+            atomic_write(txt_path, text)  # raw output preserved, atomically
+            raise JsonSnapshotRefused(
+                f"REFUSED .json snapshot write to {path}: content is not "
+                f"valid JSON ({e}). Raw output preserved as {txt_path}; "
+                f"the .json path was NOT created. (json-guard: "
+                f"2026-10-13-snapshot-writer-json-guard)"
+            ) from e
+    atomic_write(path, text)
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("usage: python3 atomic_io.py <ledger.jsonl>  (line on stdin)",

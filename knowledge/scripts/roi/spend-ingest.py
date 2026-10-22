@@ -49,7 +49,11 @@ def main():
     else:
         print("note: Sep-2026 gateway actuals unknown (My-spend window not widened "
               "before Oct) — month excluded from gateway totals")
-    gateway["2026-10"] = d["october_2026_partial_14d"]["usd"]
+    # month-to-date preferred: spend-refresh.py projects days past the manual
+    # pull (actuals + calibrated rate card) and writes "<YYYY-MM>_month_to_date"
+    mtd_keys = sorted(k for k in d if k.endswith("_month_to_date"))
+    mtd = d.get(mtd_keys[-1], {}) if mtd_keys else {}
+    gateway["2026-10"] = mtd.get("usd") or d["october_2026_partial_14d"]["usd"]
 
     # codex: sum 'All' credits per month from the workspace CSV
     codex_credits = defaultdict(float)

@@ -19,6 +19,9 @@ Usage:
 """
 import argparse, json, os, subprocess, sys, time
 
+sys.path.insert(0, "~/.claude/knowledge/scripts")
+from atomic_io import atomic_write_json  # noqa: E402  (json-guard shared helper)
+
 TWIN_DIR = os.path.expanduser("~/.claude/knowledge/twin/v1")
 WT = os.path.expanduser("~/.local/bin/wt")
 PER_PAGE = 100
@@ -148,8 +151,9 @@ Re-run with:  twin-snapshot.py --env prod --confirm
             "counts": {"recipes": n_recipes, "connections": len(conns),
                        "schedulers_running": n_sched},
             "wall_s": round(time.time() - t0, 1)}
-    with open(os.path.join(TWIN_DIR, "meta.json"), "w") as f:
-        json.dump(meta, f, indent=2)
+    # json-guard (2026-10-13 proposal): .json snapshot writes go through the
+    # shared helper — non-JSON content refused loudly, raw kept as .txt.
+    atomic_write_json(os.path.join(TWIN_DIR, "meta.json"), meta)
 
     print(f"""
 [twin] snapshot complete ({meta['wall_s']}s, env={env})

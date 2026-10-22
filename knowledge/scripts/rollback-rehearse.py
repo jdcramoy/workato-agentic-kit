@@ -34,6 +34,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from atomic_io import atomic_write_json  # noqa: E402  (json-guard shared helper)
+
 WT = os.path.expanduser("~/.local/bin/wt")
 LEDGER = os.path.expanduser(
     "~/.claude/knowledge/garden-reports/rollback-rehearsals.jsonl"
@@ -174,8 +177,10 @@ def main():
         "code_length": len(code),
         "recipe": recipe_doc,
     }
-    with open(snapshot_path, "w", encoding="utf-8") as fh:
-        json.dump(snapshot, fh, indent=2)
+    # json-guard (2026-10-13 proposal): every .json snapshot write goes through
+    # the shared helper — non-JSON content is refused loudly, raw output kept
+    # as <name>.txt, the .json path never created.
+    atomic_write_json(snapshot_path, snapshot)
     _PARTIAL["snapshot_path"] = snapshot_path
 
     # round-trip: the snapshot must itself prove rollback material exists

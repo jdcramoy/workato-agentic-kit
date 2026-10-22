@@ -189,7 +189,10 @@ def main():
         found, scanned, stale, unclear, capped = scan_for_test_cases(max_recipes)
         for rid, (name, n) in found.items():
             old = registry.get(rid, {})
-            registry[rid] = {'name': name, 'cases': n if n is not None else old.get('cases', '?')}
+            # preserve extra keys (tag-and-skip 'note' etc.) across refreshes —
+            # a bare {'name','cases'} rebuild would wipe them every nightly
+            registry[rid] = {**old, 'name': name,
+                             'cases': n if n is not None else old.get('cases', '?')}
         for entry in stale:  # cached cases no longer exist live — refresh away
             registry.pop(entry.split(' ', 1)[0], None)
         json.dump(registry, open(REGISTRY, 'w'), indent=1)

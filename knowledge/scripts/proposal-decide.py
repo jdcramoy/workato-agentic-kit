@@ -73,7 +73,8 @@ def main():
     fm_status = "built" if action == "build" else action + ("d" if action != "reject" else "ed")
     fm_status = {"accept": "accepted", "reject": "rejected", "build": "built"}[action]
     set_status(p, fm_status)
-    log_outcome(title, fm_status, note)
+    # outcomes schema has no bare 'rejected' enum — rejections log as rejected-false-alarm
+    log_outcome(title, "rejected-false-alarm" if action == "reject" else fm_status, note)
     print(f"logged: {title} -> {fm_status}" + (f' ({note})' if note else ''))
     print("next: python3 ~/.claude/knowledge/scripts/proposal-pipeline.py")
 

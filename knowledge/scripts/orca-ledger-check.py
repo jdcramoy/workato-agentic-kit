@@ -32,6 +32,7 @@ HOME = os.path.expanduser("~")
 PROJECTS = os.path.join(HOME, ".claude", "projects")
 SKILL = os.path.join(HOME, ".claude", "skills", "orca-browser", "SKILL.md")
 OUT_DIR = os.path.join(HOME, ".claude", "knowledge", "dreams", "data")
+ADJ_LOG = os.path.join(OUT_DIR, "orca-ledger-adjudications.jsonl")
 
 # Transcript text signatures of browser-failure work. Deliberately concrete —
 # each traces to a real diagnosed failure on this harness.
@@ -115,6 +116,11 @@ def scan_file(path, max_bytes):
             # failure observation.
             if "Hard-won rules" in line or "orca-ledger-check" in line:
                 continue
+            # dream-report text and skill-text quotes re-enter transcripts as
+            # tool results; they re-trigger the same signatures night after
+            # night (self-pollution, adjudicated 2026-10-17) — never live days.
+            if "knowledge/dreams/" in line or "knowledge/skills/orca-browser" in line:
+                continue
             if not ('"toolUseResult"' in line or '"tool_result"' in line):
                 continue
             if not any(s.search(line) for s in SIGNATURES):
@@ -142,7 +148,18 @@ def main():
     ap.add_argument("--max-file-mb", type=int, default=30)
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--adjudicate", metavar="DAY",
+                    help="record a CLEAN verdict for DAY (YYYY-MM-DD) and exit")
     args = ap.parse_args()
+
+    if args.adjudicate:
+        os.makedirs(OUT_DIR, exist_ok=True)
+        row = {"day": args.adjudicate, "verdict": "CLEAN", "by": "dreamer",
+               "ts": dt.datetime.now(dt.timezone.utc).isoformat()}
+        with open(ADJ_LOG, "a") as f:
+            f.write(json.dumps(row) + "\n")
+        print(f"adjudicated CLEAN: {args.adjudicate} -> {ADJ_LOG}")
+        return
 
     if args.selftest:
         print("SELFTEST: signature table + ledger parser")
@@ -165,6 +182,18 @@ def main():
         return
 
     covered = ledger_dates(SKILL)
+    # adjudicated-CLEAN days (dreamer verdicts) are resolved — a MISSING verdict
+    # for one is a phantom re-flag of settled history
+    adjudicated = set()
+    if os.path.exists(ADJ_LOG):
+        with open(ADJ_LOG, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if str(row.get("verdict", "")).upper() == "CLEAN" and row.get("day"):
+                    adjudicated.add(row["day"])
     today = dt.date.today().isoformat()
     ledger_birth = min(covered) if covered else today
     days_hits = {}
@@ -192,7 +221,8 @@ def main():
         else:
             verdicts[date] = "MISSING"
 
-    missing = [d for d, v in verdicts.items() if v == "MISSING"]
+    missing = [d for d, v in verdicts.items()
+               if v == "MISSING" and d not in adjudicated]
     pre_ledger = [d for d, v in verdicts.items() if v == "PRE_LEDGER"]
     report = {
         "date": today,

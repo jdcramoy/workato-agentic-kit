@@ -9,14 +9,32 @@ DERIVED projections only this script writes.
 
 Subcommands:
   fold       rebuild registry.json from the events log (last event per
-             workstream wins; done rows older than 14d drop off the board)
-  board      render mission-control/board.html (auto-refresh, groups by state)
+             workstream wins; done rows older than 14d drop off the board;
+             rows past their TTL demote to the expired digest — see below)
+  board      render mission-control/board.html (auto-refresh, groups by state,
+             expired digest at the bottom)
   needs      print workstreams in state needs-josh (for briefs and /today)
+  expired    print the expired digest: one line per row past its TTL, plus
+             deadman rows closed on drop (re-raise = append a new event)
   add        append one event (used by the closeout ritual and seeding):
              --event claim|closeout|state|note --workstream SLUG --project P
              --jira KEY --jira-title T --what ... --why ... --end ...
              --needs ... --state in-flight|needs-josh|blocked|done --by WHO
-             [--force to record despite a near-alias conflict]
+             [--ttl-hours N] [--force to record despite a near-alias conflict]
+
+TTL / expired digest (proposal 2026-10-15-mc-defer-expiry-ttl, promoted on the
+2026-10-18 reshaped core): --ttl-hours N sets an explicit clock. Class
+defaults when the flag is omitted: needs-josh rows get NO ttl (a Josh decision
+never auto-expires; an explicit --ttl-hours on a needs-josh row DOES expire it,
+carrying the --needs sentence into the digest); in-flight rows default to a
+24h clock; deadman `dropped-*` rows never age as stale — fold closes them on
+drop (projected done, one line in the expired digest, gone after 14d). Fold
+never mutates the event log and never auto-CLOSES anything: expiry changes
+visibility class only. A row's effective TTL is the last ttl_hours recorded on
+an event of the SAME state (a state flip to needs-josh drops an inherited
+in-flight clock). Re-raise an expired row by appending any new event for the
+workstream — the fresh timestamp clears expiry. Existing rows without a TTL
+field behave exactly as before the only change being deadman demotion.
   reconcile  one-time slug-duplicate pass (dry-run by default, --apply to
              execute): groups registry rows that share a Jira key or are
              slug anagrams, keeps the fresher row, supersedes the loser
@@ -91,6 +109,10 @@ SCHEMA = {
 STATES = ["needs-josh", "blocked", "in-flight", "done"]
 STALE_DONE_DAYS = 14
 STALE_NONDONE_HOURS = 24
+# TTL / expired-digest constants (proposal 2026-10-15-mc-defer-expiry-ttl)
+DEFAULT_INFLIGHT_TTL_HOURS = 24   # in-flight rows get a 24h clock by default
+DEADMAN_PREFIX = "dropped-"       # deadman sessions close on drop, never age
+DEADMAN_DROP_DAYS = 14            # closed-on-drop rows leave the digest after this
 
 
 def read_events():
@@ -107,7 +129,20 @@ def read_events():
 
 
 def fold():
+    rows, _ = fold_all()
+    return rows
+
+
+def fold_all():
+    """Fold events into (active rows, expired digest). The digest holds rows
+    past their TTL (state unchanged, `expired: true` stamped) and deadman
+    `dropped-*` rows closed on drop (`closed_on_drop: true`, projected done).
+    Expiry is a PROJECTION: the event log is never mutated, so any agent can
+    re-raise an expired row by appending a fresh event (proposal 2026-10-15)."""
     reg = {}
+    last_ttl = {}  # canonical slug -> (state when set, ttl_hours): a TTL is
+    # state-scoped — an in-flight clock must not silently expire a later
+    # needs-josh row, and a fresh same-state event re-arms the clock
     for e in read_events():
         w = e.get("workstream")
         if not w:
@@ -115,45 +150,79 @@ def fold():
         # canonical-slug fold (proposal 2026-10-12): spelling variants
         # aggregate into one row; the displayed workstream is the LATEST
         # event's raw slug, so existing callers keep their spelling
-        reg[canonical_slug(w)] = e  # last event per workstream wins
+        c = canonical_slug(w)
+        reg[c] = e  # last event per workstream wins
+        ttl = e.get("ttl_hours")
+        if isinstance(ttl, (int, float)) and ttl > 0:
+            last_ttl[c] = (e.get("state"), ttl)
     # drop done rows older than the window
     now = dt.datetime.now(dt.timezone.utc)
     fresh = {}
+    expired = []
     for w, e in reg.items():
         age_hours = None
+        age_days = None
         try:
             ts = dt.datetime.fromisoformat(e["ts"].replace("Z", "+00:00"))
             age_hours = (now - ts).total_seconds() / 3600.0
+            age_days = age_hours / 24.0
         except (ValueError, KeyError):
             pass
+        # deadman close-on-drop (proposal 2026-10-15, reshaped core): a
+        # `dropped-*` session row is FINISHED the moment it was dropped —
+        # project it done and park it in the digest instead of aging it as a
+        # stale in-flight row forever. Older than the digest window it drops
+        # off entirely, same as done rows.
+        if w.startswith(DEADMAN_PREFIX):
+            if age_days is not None and age_days > DEADMAN_DROP_DAYS:
+                continue
+            de = dict(e)
+            de["state"] = "done"
+            de["closed_on_drop"] = True
+            if age_hours is not None:
+                de["age_hours"] = round(age_hours, 1)
+            expired.append(de)
+            continue
+        ttl_state = last_ttl.get(w)
+        ttl = ttl_state[1] if ttl_state and ttl_state[0] == e.get("state") else None
         if e.get("state") == "done":
             try:
                 if (now - ts).days > STALE_DONE_DAYS:
                     continue
             except (ValueError, KeyError, NameError):
                 pass
-        else:
-            # staleness pass for NON-done workstreams (cortex finding 2026-10-13:
-            # fold previously computed no staleness here, hiding stale in-flight/
-            # blocked/needs-josh rows from registry.json and board.html)
-            e = dict(e)
-            if age_hours is not None:
-                e["age_hours"] = round(age_hours, 1)
-                e["stale"] = age_hours > STALE_NONDONE_HOURS
+            fresh[w] = e
+            continue
+        # staleness pass for NON-done workstreams (cortex finding 2026-10-13:
+        # fold previously computed no staleness here, hiding stale in-flight/
+        # blocked/needs-josh rows from registry.json and board.html)
+        e = dict(e)
+        if age_hours is not None:
+            e["age_hours"] = round(age_hours, 1)
+            if ttl is not None and age_hours > ttl:
+                # expired, not closed: visibility class changes, the state of
+                # the world does not (proposal item 4 — never auto-CLOSE)
+                e["expired"] = True
+                e["ttl_hours"] = ttl
+                expired.append(e)
+                continue
+            e["stale"] = age_hours > STALE_NONDONE_HOURS
         fresh[w] = e
     rows = sorted(fresh.values(),
                   key=lambda e: (STATES.index(e.get("state", "in-flight")),
                                  e.get("ts", "")))
+    expired.sort(key=lambda e: e.get("ts", ""))
     atomic_write(REGISTRY, json.dumps({"folded_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                       "workstreams": rows}, indent=1) + "\n")
-    return rows
+                                       "workstreams": rows,
+                                       "expired": expired}, indent=1) + "\n")
+    return rows, expired
 
 
 def esc(s):
     return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def board(rows):
+def board(rows, expired=()):
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     parts = ["""<!doctype html><html><head><meta charset="utf-8">
 <title>Mission Control</title><meta http-equiv="refresh" content="300">
@@ -166,6 +235,8 @@ h1{font-size:22px} .ts{color:#64748b;font-size:12px;margin-bottom:16px}
 .jira{color:#38bdf8;font-weight:600} .meta{color:#94a3b8;font-size:12px}
 .what{margin:4px 0}.why{color:#94a3b8;font-size:13px}
 .needs{color:#fca5a5;font-size:13px;margin-top:6px}
+.expired-line{color:#64748b;font-size:12px;margin:4px 0;padding-left:8px;border-left:2px solid #334155}
+.expired-line b{color:#94a3b8}
 h2{font-size:14px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-top:28px}
 </style></head><body>
 <h1>Mission Control — in-flight work</h1><div class="ts">folded %s &middot; auto-refresh 5m</div>""" % now]
@@ -184,6 +255,17 @@ h2{font-size:14px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;ma
 <div class="why">why: {esc(e.get("why"))} &rarr; end: {esc(e.get("end"))}</div>
 {needs}{stale}<div class="meta">{esc(e.get("workstream"))} &middot; {esc(e.get("project", ""))} &middot; by {esc(e.get("by"))} &middot; {esc(e.get("ts"))}</div>
 </div>""")
+    if expired:
+        parts.append(f'<h2>expired ({len(expired)}) &middot; past TTL / closed on drop '
+                     f'&mdash; re-raise by appending a new mission-control event</h2>')
+        for e in expired:
+            tag = ("closed-on-drop" if e.get("closed_on_drop")
+                   else f"TTL {e.get('ttl_hours')}h")
+            needs = (f' &#9888; needs Josh: {esc(e.get("needs"))}'
+                     if e.get("needs") else "")
+            parts.append(f'<div class="expired-line">[{esc(e.get("state"))} &middot; {tag}] '
+                         f'<b>{esc(e.get("workstream"))}</b> &middot; {esc(e.get("what"))}'
+                         f'{needs} &middot; {esc(e.get("ts"))}</div>')
     parts.append("</body></html>")
     atomic_write(BOARD, "\n".join(parts))
 
@@ -193,6 +275,30 @@ def needs(rows):
         if e.get("state") == "needs-josh":
             j = f" [{e.get('jira')} {e.get('jira_title')}]" if e.get("jira") else ""
             print(f"- {e.get('workstream')}{j}: {e.get('what')} — NEEDS: {e.get('needs')}")
+
+
+def expired_digest(expired):
+    """One line per expired row — the re-raisable listing (proposal item 2).
+    needs-josh rows keep their --needs sentence so a dropped Josh decision
+    stays one grep away (proposal item 3)."""
+    if not expired:
+        print("expired digest: empty")
+        return
+    print(f"expired digest: {len(expired)} row(s) (re-raise = append a new event for the workstream)")
+    for e in expired:
+        tag = "closed-on-drop" if e.get("closed_on_drop") else f"TTL {e.get('ttl_hours')}h"
+        needs = f" — NEEDS: {e.get('needs')}" if e.get("needs") else ""
+        print(f"- [{e.get('state')} / {tag}] {e.get('workstream')}: {e.get('what')}{needs} ({e.get('ts')})")
+
+
+def headline(rows, expired):
+    """One-line census for humans and cortex pulses: active counts by state,
+    non-done stale, and digest size."""
+    counts = {s: sum(1 for r in rows if r.get("state") == s) for s in STATES}
+    stale = sum(1 for r in rows if r.get("stale"))
+    return (f"needs-josh {counts['needs-josh']} | blocked {counts['blocked']} | "
+            f"in-flight {counts['in-flight']} | done {counts['done']} | "
+            f"stale>{STALE_NONDONE_HOURS}h {stale} | expired {len(expired)}")
 
 
 def _parse_ts(ts):
@@ -276,14 +382,14 @@ def reconcile(apply):
                      thread="mission-control-slug-canonicalization")
             merged += 1
             print(f"superseded {r['workstream']} -> pointer to {winner['workstream']}")
-    rows = fold()
-    board(rows)
+    rows, expired = fold_all()
+    board(rows, expired)
     print(f"reconcile: {merged} duplicate row(s) superseded; registry refolded to {len(rows)} rows")
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["fold", "board", "needs", "add", "reconcile"])
+    ap.add_argument("cmd", choices=["fold", "board", "needs", "expired", "add", "reconcile"])
     ap.add_argument("--event", dest="ev")
     ap.add_argument("--workstream")
     ap.add_argument("--project", default="")
@@ -293,6 +399,12 @@ def main():
     ap.add_argument("--why", default="")
     ap.add_argument("--end", default="")
     ap.add_argument("--needs", default="")
+    ap.add_argument("--ttl-hours", dest="ttl_hours", type=int, default=None,
+                    help="add: hours past which this row demotes to the expired "
+                         "digest (fold never closes anything). Omit for the class "
+                         "default: none for needs-josh, %dh for in-flight, "
+                         "close-on-drop for deadman dropped-* rows. 0 = never "
+                         "expires." % DEFAULT_INFLIGHT_TTL_HOURS)
     ap.add_argument("--state", default="in-flight")
     ap.add_argument("--by", default="josh (session)")
     ap.add_argument("--session-id", default="",
@@ -325,9 +437,18 @@ def main():
                "state": a.state, "by": a.by}
         if a.session_id:
             row["session_id"] = a.session_id
+        # TTL class defaults (proposal 2026-10-15-mc-defer-expiry-ttl): an
+        # explicit flag wins; in-flight rows get the 24h clock; needs-josh and
+        # everything else get none. Deadman dropped-* rows need no field —
+        # fold closes them on drop by name. 0 = explicit "never expires".
+        if a.ttl_hours is not None:
+            if a.ttl_hours > 0:
+                row["ttl_hours"] = a.ttl_hours
+        elif a.state == "in-flight":
+            row["ttl_hours"] = DEFAULT_INFLIGHT_TTL_HOURS
         atomic_append_validated(EVENTS, row, SCHEMA)
-        rows = fold()
-        board(rows)
+        rows, expired = fold_all()
+        board(rows, expired)
         print(f"recorded {row['event']} for {row['workstream']} -> {row['state']}; board refolded")
         if row['event'] == 'claim' and row.get('state') == 'in-flight':
             print("REMINDER (Josh 2026-10-12): if this claim involves a Workato build, open the living export manifest NOW — `wt manifests create` + mirror to <repo>/manifests/<BSYS-id>.manifest.json — BEFORE the first builder edit. Assets enter AS touched, same turn. (BSYS-29560/29564 drift: manifests opened after the pushes.)")
@@ -335,15 +456,22 @@ def main():
     if a.cmd == "reconcile":
         reconcile(a.apply)
         return
-    rows = fold()
+    rows, expired = fold_all()
     if a.cmd == "board":
-        board(rows)
-        print(f"board: {len(rows)} workstreams -> {BOARD}")
+        board(rows, expired)
+        print(f"board: {len(rows)} workstreams (+{len(expired)} expired) -> {BOARD}")
     elif a.cmd == "needs":
         needs(rows)
+    elif a.cmd == "expired":
+        expired_digest(expired)
     else:
-        print(f"folded {len(rows)} workstreams -> {REGISTRY}")
+        print(f"folded {len(rows)} workstreams (+{len(expired)} expired) -> {REGISTRY}")
+        print(f"headline: {headline(rows, expired)}")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BrokenPipeError:
+        # `mission-control.py expired | head` is a normal pattern — exit quietly
+        os._exit(0)
