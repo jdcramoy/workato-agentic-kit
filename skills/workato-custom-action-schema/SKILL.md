@@ -18,8 +18,10 @@ first.
 1. **Resolve** the connector and its actions with the bundled
    `scripts/workato_action_schema.py`. It authenticates to the Workato
    Developer API with `WORKATO_TOKEN` or `--token` (the workspace token is
-   normally in the keychain: `security find-generic-password -s
-   workato-platform-cli -a dev -w`), lists custom connectors, and reads the
+   normally in the keychain under the `workato-platform-cli` service; the
+   account attribute matches your Workato CLI profile name — list it with
+   `security find-generic-password -s workato-platform-cli` and add `-a
+   <account> -w` to print the token), lists custom connectors, and reads the
    connector's SDK code to report each action's `input_fields`,
    `output_fields`, and `sample_output` presence and source. Never guess IDs.
 2. **Probe** when the action reports no schema (typical for a fresh ad-hoc
