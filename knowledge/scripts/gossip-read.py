@@ -166,6 +166,31 @@ def load_events(bus_dir, since, only_agent=None):
         except OSError as e:
             print(f"warn: cannot read {path}: {e}", file=sys.stderr)
 
+    # Fan-in dedup (triage bus-writer-duplicate-malformed-lines, 2026-10-22):
+    # writers posted exact repeats (dissenter findings 5-8x) before the
+    # write-time gate existed. Collapse rows with identical content (every
+    # field except ts), keeping the earliest ts — a repeat adds no
+    # information and inflated corroboration tallies. History files are
+    # never rewritten; this collapses at merge time only.
+    seen: dict[str, dict] = {}
+    for ev in events:
+        try:
+            key = json.dumps(
+                {k: v for k, v in ev.items() if k != "ts"},
+                sort_keys=True, default=str)
+        except Exception:
+            key = id(ev)
+        prev = seen.get(key)
+        if prev is None:
+            seen[key] = ev
+        else:
+            try:
+                if str(ev.get("ts", "")) < str(prev.get("ts", "")):
+                    seen[key] = ev
+            except Exception:
+                pass
+    events = list(seen.values())
+
     # TTL expiry (skip events older than their ttl)
     fresh = []
     for ev in events:

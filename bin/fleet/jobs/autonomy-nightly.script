@@ -1,0 +1,12 @@
+#!/bin/bash
+# Autonomy nightly — zero-LLM loop: score evidence -> derive authority ->
+# emit recommendations. Reads the ledgers only; never mutates mission
+# control, proposals, or any claim store. No claude spawn; pure python.
+# (2026-10-23)
+set -u
+LOG="$HOME/.local/state/fleet/autonomy-nightly.log"
+echo "=== autonomy-nightly start $(date -u +%FT%TZ) ===" >> "$LOG"
+python3 "$HOME/.claude/knowledge/scripts/autonomy.py" >> "$LOG" 2>&1
+rc=$?
+echo "=== autonomy-nightly done $(date -u +%FT%TZ) rc=$rc ===" >> "$LOG"
+echo "autonomy-nightly: evidence/authority/recommendations refreshed $(date -u +%FT%TZ)"

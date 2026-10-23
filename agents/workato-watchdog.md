@@ -91,17 +91,27 @@ do not autopsy it yourself.
 
 The build ledger (`~/.claude/knowledge/build-ledger.jsonl`) only captures
 Claude-driven mutations. Recipes changed by Josh in the UI, Codex, or Orca
-sessions are invisible to it — catch them by subtraction:
+sessions are invisible to it — catch them by running the deterministic sweep
+(2026-10-23; replaces freehand subtraction, which paged the managed:external
+[DRIFT FIX] fleet as unknown-actor edits):
 
-1. For the recipes in scope, read `updated_at` from the tracker/AIRO listing.
-   Named in-scope (2026-10-09, BSYS-29462): the externally-maintained
-   [DRIFT FIX] project 10593549 (folder 35202337) — its mutations never hit
-   the build ledger by construction, so subtraction-scanning it is mandatory,
-   not optional.
-2. A recipe updated in the last 48h with NO build-ledger entry since its
-   previous known state = "external edit" — flag it P2: the multi-agent
-   ledger has a blind spot exactly where a human worked.
-3. These entries also mean /promotion-ready under-reports — note which
+    python3 ~/.claude/knowledge/scripts/external-edit-sweep.py [--recipes id1,id2] [--json]
+
+1. Default scope: every recipe with a `managed: "external"` ledger row
+   (BSYS-29462 backfill) — the externally-maintained [DRIFT FIX] project
+   10593549 (folder 35202337) is in-scope by construction, including net-new
+   recipes built there after the backfill (membership is by FOLDER, not just
+   backfill row).
+2. The sweep classifies: `quiet`, `harness-managed` (ledger row exists),
+   `external-managed-update` (expected class for managed:external assets —
+   INFORMATIONAL, never page it as unknown-actor), and
+   `unexplained-external-edit` (the genuine P2). Exit code 2 = pages exist.
+3. Every alert body links the Activity Audit Log attribution runbook
+   (knowledge/projects/drift-fix/bsys-29828-overnight-incident-findings-2026-10-21.md,
+   proven in BSYS-29829) — attribute the actor BEFORE calling anything
+   unknown. The sweep refreshes its baseline sidecar each run, replacing the
+   stale backfill `last_updated` as the comparison point.
+4. These entries also mean /promotion-ready under-reports — note which
    externally-edited recipes look promotion-relevant.
 
 ## The neuromodulation writer (when a P1 exists, mandatory first)

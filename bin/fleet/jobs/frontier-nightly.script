@@ -9,5 +9,6 @@ python3 "$HOME/.claude/knowledge/scripts/brier-resolve.py" >> "$LOG" 2>&1
 python3 "$HOME/.claude/knowledge/scripts/precursor-radar.py" >> "$LOG" 2>&1
 python3 "$HOME/.claude/knowledge/scripts/skill-fitness.py" backfill --transcripts-dir "$HOME/.claude/projects" --sample 40 >> "$LOG" 2>&1
 python3 "$HOME/.claude/knowledge/scripts/skill-fitness.py" report >> "$LOG" 2>&1
+python3 "$HOME/.claude/knowledge/scripts/claim-latency.py" >> "$LOG" 2>&1
 echo "=== frontier-nightly done $(date -u +%FT%TZ) rc=$? ===" >> "$LOG"
 echo "frontier-nightly: fitness report refreshed $(date -u +%FT%TZ)"

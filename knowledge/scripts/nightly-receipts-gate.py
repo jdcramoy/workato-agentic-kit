@@ -88,9 +88,17 @@ JOBS = [
     {
         "job": "gardener", "plist": "com.josh.fleet.gardener",
         "fire": (22, 43), "weekday": None,
-        "artifact": str(GARDEN / "{run_date}-brain-gardener-nightly.md"),
+        # name-family fix (2026-10-22, triage nightly-receipts-no-output): the
+        # gardener legitimately writes -nightly (nightly pass), -weekly-full
+        # (weekly pass) or plain (current prompt) variants; the gate's single
+        # -nightly pattern produced a false RED on every weekly/new-name night.
+        "artifact": [
+            str(GARDEN / "{run_date}-brain-gardener-nightly.md"),
+            str(GARDEN / "{run_date}-brain-gardener-weekly-full.md"),
+            str(GARDEN / "{run_date}-brain-gardener.md"),
+        ],
         "check": "exists",
-        "desc": "garden report for the run date",
+        "desc": "garden report for the run date (any nightly/weekly/plain variant)",
     },
     {
         "job": "watchdog", "plist": "com.josh.fleet.watchdog",
@@ -292,7 +300,13 @@ def main() -> None:
     for job in JOBS:
         run_date = run_date_for(*job["fire"], job["weekday"], now)
         rd = run_date.isoformat()
-        art = Path(job["artifact"].format(run_date=rd))
+        # artifact may be one pattern or a list of accepted variants:
+        # first EXISTING variant wins; if none exist, the primary is reported.
+        if isinstance(job["artifact"], list):
+            arts = [Path(p.format(run_date=rd)) for p in job["artifact"]]
+            art = next((a for a in arts if a.is_file()), arts[0])
+        else:
+            art = Path(job["artifact"].format(run_date=rd))
         ok, why = CHECKS[job["check"]](art, run_date)
         verdict = {
             "job": job["job"], "run_date": rd, "fire": f"{job['fire'][0]:02d}:{job['fire'][1]:02d}",

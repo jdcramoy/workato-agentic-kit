@@ -27,6 +27,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 from atomic_io import atomic_append
+import bus_schema
 
 BUS = Path.home() / ".claude/knowledge/dreams/bus"
 TYPES = {"finding", "opinion", "proposal", "vote", "question"}
@@ -47,8 +48,11 @@ def post(agent: str, type_: str, subject: str, fields: dict, thread: str = "") -
         "typed": True,
     }
     out = BUS / f"{agent}.jsonl"
-    atomic_append(out, rec)
-    return rec
+    # 2026-10-22 bus-schema gate (triage bus-writer-duplicate-malformed-lines):
+    # required ts/agent/thread/kind enforced at append time; an exact-content
+    # repeat (the dissent 5-8x defect) is suppressed instead of re-appended.
+    rec = bus_schema.write_row(out, rec)
+    return rec  # a suppressed duplicate comes back with dedup_skipped=True
 
 
 def corroborate(subject: str) -> dict:

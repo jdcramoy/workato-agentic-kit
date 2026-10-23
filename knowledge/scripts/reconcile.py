@@ -28,7 +28,9 @@ import time
 import urllib.parse
 
 KB = os.path.expanduser("~/.claude/knowledge")
-DEFAULT_CLAIMS = os.path.join(KB, "integrity", "claims.jsonl")
+# Canonical ledger (2026-10-22 dual-claims-ledger-merge): integrity/claims.jsonl
+# was merged into claims/claims.jsonl and retired as .merged-2026-10-22.
+DEFAULT_CLAIMS = os.path.join(KB, "claims", "claims.jsonl")
 JIRA_HOST = "https://workato.atlassian.net"
 BSYS_RE = re.compile(r"BSYS-(\d+)", re.IGNORECASE)
 DONE_RE = re.compile(r"\b(fixed|done|resolved|closed|completed|shipped|deployed|verified)\b", re.IGNORECASE)
@@ -49,6 +51,14 @@ def parse_ts(s):
 
 
 def load_claims(path):
+    """Load claims, normalizing BOTH ledger schemas to the receipt view.
+
+    2026-10-22 (triage: dual-claims-ledger-merge): the canonical ledger is now
+    claims/claims.jsonl (schema: id/subject/claim/evidence/...). integrity/
+    claims.jsonl was merged into it and retired. Map id->claim_id,
+    claim->statement, and synthesize tier so the orphan/ghost checks keep
+    working on either shape.
+    """
     claims = []
     if not os.path.exists(path):
         sys.exit(f"claims file not found: {path}")
@@ -58,9 +68,17 @@ def load_claims(path):
             if not ln:
                 continue
             try:
-                claims.append(json.loads(ln))
+                row = json.loads(ln)
             except json.JSONDecodeError as e:
                 print(f"WARN {path}:{n} malformed line skipped: {e}", file=sys.stderr)
+                continue
+            row.setdefault("claim_id", row.get("id"))
+            row.setdefault("statement", row.get("claim", ""))
+            if "tier" not in row:
+                row["tier"] = "proved" if row.get("proof") else "asserted"
+            if not row.get("ts"):
+                row["ts"] = row.get("asserted_at")
+            claims.append(row)
     return claims
 
 

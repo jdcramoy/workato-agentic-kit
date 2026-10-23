@@ -135,6 +135,29 @@ def main():
     # fleet session, attributed by fleet-cost.py (prompt-prefix matching).
     # Replaces/annotates the invocation-count byte-proxy for fleet jobs where
     # rows exist; interactive + cortex dispatch spend is still proxy-only.
+
+    # Writer restore (2026-10-22, triage fleet-cost-collector-dark-since-1012):
+    # NOTHING scheduled ever called `fleet-cost.py --report` after its 10-13
+    # build — the ledger's last row is 2026-10-12T15:08Z and every cost-governor
+    # report since has read stale spend (claim-verification 10-19 row 12 ruled
+    # the "fine" claim FALSE). The governor now refreshes the collector inline
+    # before reading: one zero-LLM pass, fail-open (a collector bug must never
+    # block the governor report — the row below still reports what it can).
+    import subprocess  # noqa: E402 — used only for the collector refresh
+
+    try:
+        _fc = subprocess.run(
+            [sys.executable, str(K / "scripts" / "fleet-cost.py"), "--report"],
+            capture_output=True, text=True, timeout=600,
+        )
+        if _fc.returncode == 0:
+            print("[cost-governor] fleet-cost.py --report refreshed")
+        else:
+            print(f"[cost-governor] fleet-cost.py --report rc={_fc.returncode} "
+                  f"(fail-open): {_fc.stderr.strip()[:200]}")
+    except Exception as _e:  # noqa: BLE001 — fail-open per P1 PRICEBOOK contract
+        print(f"[cost-governor] fleet-cost.py --report failed (fail-open): {_e}")
+
     fleet_rows = [r for r in read_jsonl(FLEET_COST)
                   if within_window(r.get("ts", ""), WINDOW_DAYS)]
     fleet_by_job = {}

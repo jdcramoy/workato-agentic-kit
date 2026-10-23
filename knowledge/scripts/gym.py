@@ -12,6 +12,7 @@ Assertions (each independent, all read-only):
   A4 fleet-prompt-integrity  every fleet prompt exists, references known agents
   A5 bus-liveness         >=1 agent posted to the bus in 24h (warn-only)
   A6 science-layer        cases/curiosity/gym state fresh (<36h)
+  A7 deploy-integrity     fleet jobfiles unredacted + knowledge==executed copies (2026-10-16/17 night-chain class)
 
 A failure -> canon entry (regression-canon/gym-canon.jsonl) + triage finding
 + bus post (thread: gym). Exit 0 always; the log line is the verdict.
@@ -124,13 +125,77 @@ def a5_bus_liveness():
             ["bus silent 24h — network health check"] if not alive else [f"{len(alive)} agents alive"])
 
 
+def a7_deploy_integrity():
+    """Fleet jobfile deploy integrity — the 2026-10-16 night-chain class.
+
+    Regression guard for two canonized failure classes:
+    1. redacted-path deploy corruption: jobfiles carrying /Users/YOUR-USER/
+       placeholders (fleet-config corruption 2026-10-16; the night chain then
+       failed to spawn jobs while heartbeat atomic_io exited rc=2 — jobs were
+       fine, the PATHS were the lie).
+    2. wave3 false-stub / partial deploy: the knowledge-tree copy edited and
+       verified while the plist-executed ~/.local/bin copy stayed stale or
+       missing (wave3-nightly 2026-10-17 "stub rc=0", log "No such file or
+       directory" 2026-10-16).
+    Read-only: compares shas of knowledge/config/fleet/{run-job.sh,jobs/*}
+    against the deployed ~/.local/bin/fleet copies. Comment lines documenting
+    the historical corruption are not flagged; live placeholder paths are.
+    """
+    knowledge_fleet = os.path.join(K, "config", "fleet")
+    deployed_fleet = os.path.join(HOME, ".local", "bin", "fleet")
+    bad = []
+
+    def sha(p):
+        try:
+            import hashlib
+            return hashlib.sha256(open(p, "rb").read()).hexdigest()
+        except OSError:
+            return None
+
+    # 1. redacted /Users/YOUR-USER placeholders on EXECUTABLE (non-comment) lines
+    for root in (os.path.join(knowledge_fleet, "jobs"), os.path.join(deployed_fleet, "jobs")):
+        if not os.path.isdir(root):
+            continue
+        for f in sorted(os.listdir(root)):
+            if f.startswith(".") or ".bak" in f:
+                continue
+            path = os.path.join(root, f)
+            if not os.path.isfile(path):
+                continue
+            try:
+                for n, line in enumerate(open(path, errors="replace"), 1):
+                    if "YOUR-USER" in line and not line.strip().startswith("#"):
+                        bad.append(f"redacted path {root.split('/')[-3]}/{f}:{n}")
+            except OSError:
+                continue
+
+    # 2. partial deploy: knowledge copy vs executed copy must be sha-identical
+    pairs = [("run-job.sh", os.path.join(knowledge_fleet, "run-job.sh"))]
+    kj = os.path.join(knowledge_fleet, "jobs")
+    if os.path.isdir(kj):
+        for f in sorted(os.listdir(kj)):
+            if f.startswith(".") or ".bak" in f:
+                continue
+            pairs.append((f"jobs/{f}", os.path.join(kj, f)))
+    for rel, kpath in pairs:
+        dpath = os.path.join(deployed_fleet, rel)
+        if not os.path.exists(dpath):
+            bad.append(f"deployed copy MISSING: {rel} (Oct-16 wave3 class)")
+            continue
+        ks, ds = sha(kpath), sha(dpath)
+        if ks is not None and ds is not None and ks != ds:
+            bad.append(f"deploy drift: {rel} knowledge != executed copy (stale-deploy class)")
+    return ("fail" if bad else "pass", bad[:8])
+
+
 def main():
     checks = {"A1-heartbeat-contract": a1_heartbeat_contract,
               "A2-proposal-file-gate": a2_proposal_file_gate,
               "A3-guardrails-installed": a3_guardrails_installed,
               "A4-fleet-prompt-integrity": a4_fleet_prompt_integrity,
               "A5-bus-liveness": a5_bus_liveness,
-              "A6-science-layer": check_a6}
+              "A6-science-layer": check_a6,
+              "A7-deploy-integrity": a7_deploy_integrity}
     results = {}
     fails = []
     for name, fn in checks.items():

@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Efficiency over time — token burn per shipped work unit</title>
+<style>
+:root { color-scheme: light;
+  --surface-0:#f4f4f2; --surface-1:#fcfcfb; --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#8a8984;
+  --grid:#e4e3df; --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --accent:#2a78d6; }
+:root[data-theme="dark"] { color-scheme: dark;
+  --surface-0:#121211; --surface-1:#1a1a19; --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e88;
+  --grid:#2c2c2a; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --accent:#3987e5; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark;
+  --surface-0:#121211; --surface-1:#1a1a19; --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e88;
+  --grid:#2c2c2a; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --accent:#3987e5; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface-0); color:var(--text-primary);
+  font:14px/1.45 -apple-system,"SF Pro Text",Helvetica,Arial,sans-serif; }
+.wrap { max-width:1080px; margin:0 auto; padding:28px 20px 60px; }
+header { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+h1 { font-size:19px; margin:0; font-weight:650; }
+.sub { color:var(--text-secondary); font-size:13px; margin-top:4px; }
+button.theme { border:1px solid var(--grid); background:var(--surface-1); color:var(--text-secondary);
+  border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin:20px 0 8px; }
+.tile { background:var(--surface-1); border:1px solid var(--grid); border-radius:10px; padding:14px 16px; }
+.tile .v { font-size:24px; font-weight:650; letter-spacing:-.02em; }
+.tile .k { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+.tile .n { font-size:11px; color:var(--text-muted); margin-top:4px; }
+.card { background:var(--surface-1); border:1px solid var(--grid); border-radius:12px; padding:18px 18px 10px; margin-top:14px; }
+.card h2 { font-size:14px; font-weight:650; margin:0 0 2px; }
+.card .note { font-size:12px; color:var(--text-secondary); margin:0 0 10px; }
+svg { display:block; width:100%; height:auto; }
+.grid-line { stroke:var(--grid); stroke-width:1; }
+.tick-text { fill:var(--text-muted); font-size:10.5px; }
+.series-text { fill:var(--text-secondary); font-size:11px; font-weight:600; }
+.legend { display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--text-secondary); margin:6px 0 4px; }
+.legend .sw { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+.tooltip { position:fixed; pointer-events:none; background:var(--surface-1); border:1px solid var(--grid);
+  border-radius:8px; padding:8px 10px; font-size:12px; color:var(--text-primary); box-shadow:0 4px 14px rgba(0,0,0,.12);
+  opacity:0; transition:opacity .08s; z-index:5; max-width:280px; }
+.tooltip .t { font-weight:650; margin-bottom:4px; }
+.ann { font-size:10.5px; fill:var(--text-secondary); }
+table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+th,td { text-align:right; padding:5px 8px; border-bottom:1px solid var(--grid); }
+th:first-child,td:first-child { text-align:left; }
+th { color:var(--text-secondary); font-weight:600; }
+.unverified { font-size:11px; color:var(--text-muted); margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Efficiency over time — token burn per shipped work unit</h1>
+      <div class="sub">Harness optimization story: raw burn is meaningless without the denominator. Ship more, spend proportionally less.</div>
+    </div>
+    <button class="theme" onclick="const r=document.documentElement; r.dataset.theme = r.dataset.theme==='dark'?'light':'dark';">Toggle theme</button>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2>Tokens per unit of shipped work — trailing 3-day (the headline)</h2>
+    <p class="note">Total tokens (in+out+cache) over trailing 3 days ÷ work units over the same 3 days. Per-closeout panel: SOLID = trailing window fully covered by the registry (from 10-13); DOTTED = denominator estimated from story-point density (points ÷ points-per-closeout) for days the registry didn't yet cover — including 10-11/12, whose trailing windows contain pre-registry days. The 10-11 hump is real token burn against a thin denominator, not a data error. Numbered badges on dashed lines: days an optimization shipped — numbers keyed to the footnote below.</p>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--s1)"></span>per closeout (own scale; dotted = projected from story-point line)</span>
+      <span><span class="sw" style="background:var(--s2)"></span>per build action (own scale)</span>
+      <span><span class="sw" style="background:var(--s3)"></span>per story point (own scale)</span>
+      <span><span class="sw" style="background:var(--grid)"></span>story points shipped/day (bottom panel)</span>
+    </div>
+    <div id="c1a"></div>
+    <div id="c1b" style="margin-top:6px"></div>
+    <div id="c1c" style="margin-top:6px"></div>
+    <div id="c1d" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Daily token burn by class</h2>
+    <p class="note">Input (forwarded+fresh), cache read, output. Stack shows where burn lives; cache-share growth is itself an efficiency story.</p>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--s1)"></span>input</span>
+      <span><span class="sw" style="background:var(--s3)"></span>cache read</span>
+      <span><span class="sw" style="background:var(--s2)"></span>output</span>
+    </div>
+    <div id="c2"></div>
+  </div>
+
+  <div class="card">
+    <h2>Loop discipline — failure rate, hooked vs unhooked classes</h2>
+    <p class="note">Share of tool calls ending in error. Green = classes the 10-14 hooks cover (AIRO schema errors, Jira comment calls) — expect this line to fall from 10-14 on. Orange = everything else, which the hooks do NOT touch. Hooks shipped today: zero post-hook days exist yet.</p>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--s3)"></span>hooked classes (AIRO schema + Jira comments)</span>
+      <span><span class="sw" style="background:var(--s2)"></span>unhooked classes</span>
+    </div>
+    <div id="c3"></div>
+  </div>
+
+  <div class="card">
+    <h2>Daily burn by session class — the normalization layer</h2>
+    <p class="note">Every session classified by what it DID: workato-build (AIRO mutations), harness (edits to ~/.claude, KB corpus, mods — self-improvement), code-other (product repos), ops-analysis (Jira/Slack/investigations). Analysis burn is a LINE ITEM with outcomes in the catalog below, not invisible overhead.</p>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--s1)"></span>workato-build</span>
+      <span><span class="sw" style="background:var(--s2)"></span>harness self-improvement</span>
+      <span><span class="sw" style="background:var(--s3)"></span>code-other</span>
+      <span><span class="sw" style="background:var(--s4)"></span>ops-analysis</span>
+    </div>
+    <div id="cclass"></div>
+  </div>
+
+  <div class="card">
+    <h2>Session catalog — top burners with outcomes</h2>
+    <p class="note">Classified sessions, biggest first. Files-edited is the outcome evidence; full catalog (all sessions) at knowledge/garden-reports/session-catalog.json.</p>
+    <div id="catlog"></div>
+  </div>
+
+  <div class="card" id="tablecard" hidden>
+    <h2>Table view</h2>
+    <div id="table"></div>
+  </div>
+  <button class="theme" onclick="const c=document.getElementById('tablecard'); c.hidden=!c.hidden;">Toggle table view</button>
+
+  <div class="unverified" id="foot"></div>
+</div>
+<div class="tooltip" id="tip"></div>
+
+<script>
+const DATA = __DATA__;
+const TILES = __TILES__;
+
+// ---- tiles
+document.getElementById('tiles').innerHTML = TILES.map(t =>
+  `<div class="tile"><div class="v">${t[1]}</div><div class="k">${t[0]}</div><div class="n">${t[2]}</div></div>`).join('');
+
+// ---- svg helpers (viewBox coords)
+const W = 1000, H = 240, M = {l: 64, r: 16, t: 18, b: 26};
+const rows = DATA.rows;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function xScale(i, n) { return M.l + (W - M.l - M.r) * (n <= 1 ? 0.5 : i / (n - 1)); }
+function line(pts) { return pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(''); }
+
+function axis(g, yMax, fmt) {
+  let s = '';
+  for (let k = 0; k <= 4; k++) {
+    const y = M.t + (H - M.t - M.b) * (1 - k / 4);
+    s += `<line class="grid-line" x1="${M.l}" x2="${W - M.r}" y1="${y}" y2="${y}"/>` +
+         `<text class="tick-text" x="${M.l - 8}" y="${y + 3}" text-anchor="end">${fmt(yMax * k / 4)}</text>`;
+  }
+  g.innerHTML = s;
+}
+
+function xTicks(g, n) {
+  const step = Math.ceil(n / 8);
+  let s = '';
+  rows.forEach((r, i) => { if (i % step === 0)
+    s += `<text class="tick-text" x="${xScale(i, n)}" y="${H - 8}" text-anchor="middle">${r.day.slice(5)}</text>`; });
+  g.innerHTML = s;
+}
+
+function annotations(g, yMax, vMax) {
+  // Event markers: dashed line + numbered badge at the top of the line.
+  // Full label text lives in the footnote (numbered) — in-plot text collided
+  // whenever events landed on adjacent days, and every panel repeated it.
+  const byDay = new Map();
+  DATA.annotations.forEach((d, k) => {
+    const i = rows.findIndex(r => r.day === d);
+    if (i < 0) return;
+    if (!byDay.has(d)) byDay.set(d, { i, nums: [] });
+    byDay.get(d).nums.push(k + 1);
+  });
+  let s = '';
+  byDay.forEach(({ i, nums }) => {
+    const x = xScale(i, rows.length);
+    const label = nums.join(',');
+    s += `<line x1="${x}" x2="${x}" y1="${M.t}" y2="${H - M.b}" stroke="${css('--grid')}" stroke-dasharray="3 3"/>` +
+         `<circle cx="${x}" cy="${M.t + 11}" r="8.5" fill="${css('--surface-1')}" stroke="${css('--accent')}" stroke-width="1.5"/>` +
+         `<text class="ann" x="${x}" y="${M.t + 14.5}" text-anchor="middle" font-weight="600">${label}</text>`;
+  });
+  g.innerHTML = s;
+}
+
+const tip = document.getElementById('tip');
+function showTip(html, ev) { tip.innerHTML = html; tip.style.opacity = 1;
+  tip.style.left = Math.min(ev.clientX + 14, innerWidth - 300) + 'px'; tip.style.top = (ev.clientY + 14) + 'px'; }
+function hideTip() { tip.style.opacity = 0; }
+const n = rows.length;
+
+// ---- chart 1: tokens per unit of shipped work — small multiples (own scale each)
+function miniLine(divId, key, colorVar, annVal, tipRows, opts = {}) {
+  const el = document.getElementById(divId);
+  const projKey = opts.projKey, realKey = opts.realKey;
+  const vals = rows.map(r => r[key]);
+  const defined = vals.filter(v => v != null);
+  if (!defined.length) { el.innerHTML = '<em style="color:var(--text-muted)">no data</em>'; return; }
+  const yMax = Math.max(...defined) * 1.15;
+  const fmt = v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(v < 1e7 ? 1 : 0)+'M' : (v/1e3).toFixed(0)+'k';
+  let g = `<svg viewBox="0 0 ${W} ${H}"><g id="${divId}ax"></g><g id="${divId}xt"></g><g id="${divId}an"></g>`;
+  const pts = vals.map((v, i) => v == null ? null : [xScale(i, n), M.t + (H - M.t - M.b) * (1 - v / yMax)]);
+  const split = (test) => { const segs = []; let cur = [];
+    pts.forEach((p, i) => { if (p && test(i)) cur.push(p); else { if (cur.length) segs.push(cur); cur = []; } });
+    if (cur.length) segs.push(cur); return segs; };
+  if (projKey && realKey) {
+    // projected days dotted, real days solid
+    split(i => rows[i][realKey] == null).forEach(sg =>
+      g += `<path d="${line(sg)}" fill="none" stroke="${css(colorVar)}" stroke-width="2" stroke-dasharray="5 4" opacity="0.75"/>`);
+    split(i => rows[i][realKey] != null).forEach(sg =>
+      g += `<path d="${line(sg)}" fill="none" stroke="${css(colorVar)}" stroke-width="2"/>`);
+  } else {
+    const segs = []; let cur = [];
+    pts.forEach(p => { if (p) cur.push(p); else { if (cur.length) segs.push(cur); cur = []; } });
+    if (cur.length) segs.push(cur);
+    segs.forEach(sg => g += `<path d="${line(sg)}" fill="none" stroke="${css(colorVar)}" stroke-width="2"/>`);
+  }
+  pts.forEach((p, i) => { if (!p) return;
+    g += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${css(colorVar)}"${projKey && rows[i][realKey] == null ? ' opacity="0.6"' : ''}/>`; });
+  g += `<rect x="${M.l}" y="${M.t}" width="${W - M.l - M.r}" height="${H - M.t - M.b}" fill="transparent" id="${divId}hit"/></svg>`;
+  el.innerHTML = g;
+  axis(document.getElementById(divId + 'ax'), yMax, fmt);
+  xTicks(document.getElementById(divId + 'xt'), n);
+  annotations(document.getElementById(divId + 'an'), yMax, annVal);
+  const hit = document.getElementById(divId + 'hit');
+  hit.addEventListener('mousemove', ev => {
+    const b = el.getBoundingClientRect();
+    const vx = (ev.clientX - b.left) * (W / b.width);            // client px -> viewBox x
+    const i = Math.round((vx - M.l) / (W - M.l - M.r) * (n - 1));
+    showTip(tipRows(rows[Math.max(0, Math.min(n - 1, i))]), ev);
+  });
+  hit.addEventListener('mouseleave', hideTip);
+}
+miniLine('c1a', 'tok_per_co3_proj', '--s1',
+  k => { const r = rows.find(x => x.day === DATA.annotations[k]); return r ? (r.tok_per_co3_proj ?? 0) : 0; },
+  r => `<div class="t">${r.day}${r.co3_projected ? ' · PROJECTED' : ''}</div><b style="color:${css('--s1')}">${r.tok_per_co3_proj == null ? '—' : (r.tok_per_co3_proj/1e6).toFixed(1)+'M'}</b> tok/closeout (3d)${r.co3_projected ? ' <em>(estimated from story-point line)</em>' : ''}<br>${r.closeouts} closeouts · ${fmt3(r.total)} tok`,
+  { projKey: 'tok_per_co3_proj', realKey: 'tok_per_co3' });
+miniLine('c1b', 'tok_per_build3', '--s2',
+  k => { const r = rows.find(x => x.day === DATA.annotations[k]); return r ? (r.tok_per_build3 ?? 0) : 0; },
+  r => `<div class="t">${r.day}</div><b style="color:${css('--s2')}">${r.tok_per_build3 == null ? '—' : (r.tok_per_build3/1e6).toFixed(2)+'M'}</b> tok/build action (3d)<br>${fmt2(r.builds)} actions · ${fmt3(r.total)} tok`);
+miniLine('c1c', 'tok_per_point3', '--s3',
+  k => { const r = rows.find(x => x.day === DATA.annotations[k]); return r ? (r.tok_per_point3 ?? 0) : 0; },
+  r => `<div class="t">${r.day}</div><b style="color:${css('--s3')}">${r.tok_per_point3 == null ? '—' : (r.tok_per_point3/1e6).toFixed(2)+'M'}</b> tok/story point (3d)<br>${r.points ?? 0} pts done · ${r.jira_done ?? 0} tickets · ${fmt3(r.total)} tok`);
+
+// ---- chart 1d: story points shipped per day (bars — the volume overlay)
+(function() {
+  const el = document.getElementById('c1d');
+  const vals = rows.map(r => r.points || 0);
+  const yMax = Math.max(...vals, 1) * 1.15;
+  const bw = Math.min(34, (W - M.l - M.r) / n * 0.6);
+  let g = `<svg viewBox="0 0 ${W} ${H}"><g id="c1dax"></g><g id="c1dxt"></g>`;
+  rows.forEach((r, i) => {
+    const v = r.points || 0, h = (H - M.t - M.b) * v / yMax;
+    if (v > 0) g += `<rect x="${xScale(i, n) - bw / 2}" y="${H - M.b - h}" width="${bw}" height="${h}" rx="3" fill="${css('--s3')}"><title>${r.day}: ${v} story points (${r.jira_done ?? 0} tickets)</title></rect>`;
+  });
+  g += '</svg>';
+  el.innerHTML = g;
+  axis(document.getElementById('c1dax'), yMax, v => v.toFixed(0));
+  xTicks(document.getElementById('c1dxt'), n);
+  el.addEventListener('mousemove', ev => {
+    const t = ev.target.closest('rect') && ev.target.closest('rect').querySelector('title');
+    if (t) showTip(`<div class="t">${t.textContent.split(':')[0]}</div>${t.textContent.split(': ')[1]}`, ev);
+  });
+  el.addEventListener('mouseleave', hideTip);
+})();
+
+// ---- chart 2: stacked bars by class
+(function() {
+  const keys = [['inp','input','--s1'], ['cr','cache read','--s3'], ['out','output','--s2']];
+  const yMax = Math.max(...rows.map(r => r.total), 1) * 1.15;
+  const fmt = v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : (v/1e6).toFixed(0)+'M';
+  const bw = Math.min(34, (W - M.l - M.r) / n * 0.6);
+  let g = `<svg viewBox="0 0 ${W} ${H}"><g id="c2ax"></g><g id="c2xt"></g>`;
+  rows.forEach((r, i) => {
+    const x = xScale(i, n) - bw / 2; let y = H - M.b;
+    keys.forEach(([k,,c]) => {
+      const v = r[k] || 0, h = (H - M.t - M.b) * v / yMax; y -= h;
+      if (v > 0) g += `<rect x="${x}" y="${y}" width="${bw}" height="${Math.max(h - 2, 0.5)}" rx="3" fill="${css(c)}"><title>${r.day} ${k}: ${fmt3(v)}</title></rect>`;
+    });
+  });
+  g += '</svg>';
+  const el = document.getElementById('c2'); el.innerHTML = g;
+  axis(document.getElementById('c2ax'), yMax, fmt); xTicks(document.getElementById('c2xt'), n);
+  el.addEventListener('mousemove', ev => {
+    const r = ev.target.closest('rect'); if (!r) { hideTip(); return; }
+    const t = r.querySelector('title');
+    if (t) showTip(`<div class="t">${t.textContent.split(' ')[0]}</div>${t.textContent.split(' ').slice(1).join('')}`, ev);
+  });
+  el.addEventListener('mouseleave', hideTip);
+})();
+
+// ---- chart: daily burn stacked by session class
+(function() {
+  const classes = [
+    ['workato-build', '--s1'],
+    ['harness', '--s2'],
+    ['code-other', '--s3'],
+    ['ops-analysis', '--s4'],
+  ];
+  const cd = DATA.class_days || {};
+  const totals = classes.map(([c]) => Object.values(cd).reduce((a, d) => a + (d[c] || 0), 0));
+  const order = classes.map((c, i) => i).sort((a, b) => totals[b] - totals[a]); // biggest = slot 1
+  const slotFor = { '--s1': '--s1', '--s2': '--s2', '--s3': '--s3', '--s4': '--s4' };
+  const yMax = Math.max(...rows.map(r => r.total), 1) * 1.15;
+  const fmt = v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : (v/1e6).toFixed(0)+'M';
+  const bw = Math.min(34, (W - M.l - M.r) / n * 0.6);
+  let g = `<svg viewBox="0 0 ${W} ${H}"><g id="cdax"></g><g id="cdxt"></g>`;
+  rows.forEach((r, i) => {
+    const dayCls = cd[r.day] || {}; let y = H - M.b;
+    order.forEach(oi => {
+      const [c, cv] = classes[oi]; const v = dayCls[c] || 0;
+      const h = (H - M.t - M.b) * v / yMax; y -= h;
+      if (v > 0) g += `<rect x="${xScale(i, n) - bw / 2}" y="${y}" width="${bw}" height="${Math.max(h - 2, 0.5)}" rx="3" fill="${css(slotFor[cv])}"><title>${r.day} · ${c}: ${fmt(v)}</title></rect>`;
+    });
+  });
+  g += '</svg>';
+  const el = document.getElementById('cclass'); el.innerHTML = g;
+  axis(document.getElementById('cdax'), yMax, fmt); xTicks(document.getElementById('cdxt'), n);
+  el.addEventListener('mousemove', ev => {
+    const t = ev.target.closest('rect') && ev.target.closest('rect').querySelector('title');
+    if (t) showTip(`<div class="t">${t.textContent.split(' · ')[0]}</div>${t.textContent.split(' · ')[1]}`, ev);
+  });
+  el.addEventListener('mouseleave', hideTip);
+})();
+
+// ---- session catalog table
+(function() {
+  const clsColor = { 'workato-build': '--s1', 'harness': '--s2', 'code-other': '--s3', 'ops-analysis': '--s4' };
+  document.getElementById('catlog').innerHTML = '<table><tr><th>day</th><th>class</th><th>tokens</th><th>outcomes (files/mutations)</th><th>started with</th></tr>' +
+    DATA.catalog_top.map(s => `<tr><td>${s.day || '—'}</td>` +
+      `<td><span class="sw" style="background:var(${clsColor[s.class] || '--s4'})"></span> ${s.class}</td>` +
+      `<td>${fmt3(s.tok)}</td>` +
+      `<td style="text-align:left;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.airo_mut ? `AIRO×${s.airo_mut} ` : ''}${s.harness_writes ? `harness-writes×${s.harness_writes} ` : ''}${s.code_writes ? `code-writes×${s.code_writes} ` : ''}${(s.files || []).slice(0, 3).map(f => f.split('/').slice(-2).join('/')).join(', ')}</td>` +
+      `<td style="text-align:left;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.first_prompt || '').replace(/</g, '&lt;').slice(0, 80)}</td></tr>`).join('') +
+    '</table>';
+})();
+
+// ---- chart 3: failure rate, hooked vs unhooked (2 series, shared % axis)
+(function() {
+  const series = [
+    { key: 'fail_rate_hooked', color: '--s3' },
+    { key: 'fail_rate_other',  color: '--s2' },
+  ];
+  const yMax = Math.max(...rows.flatMap(r => [r.fail_rate_hooked, r.fail_rate_other]).filter(v => v != null), 1) * 1.3;
+  let g = `<svg viewBox="0 0 ${W} ${H}"><g id="c3ax"></g><g id="c3xt"></g>`;
+  series.forEach(s => {
+    const pts = rows.map((r, i) => r[s.key] == null ? null : [xScale(i, n), M.t + (H - M.t - M.b) * (1 - r[s.key] / yMax)]);
+    const segs = []; let cur = [];
+    pts.forEach(p => { if (p) cur.push(p); else { if (cur.length) segs.push(cur); cur = []; } });
+    if (cur.length) segs.push(cur);
+    segs.forEach(sg => g += `<path d="${line(sg)}" fill="none" stroke="${css(s.color)}" stroke-width="2"/>`);
+    pts.forEach((p, i) => { if (!p) return;
+      g += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${css(s.color)}"><title>${rows[i].day}: ${rows[i][s.key].toFixed(1)}% of ${fmt2(rows[i].calls)} calls</title></circle>`; });
+  });
+  g += `<line x1="${xScale(rows.findIndex(r => r.day === '2026-10-14'), n)}" x2="${xScale(rows.findIndex(r => r.day === '2026-10-14'), n)}" y1="${M.t}" y2="${H - M.b}" stroke="${css('--grid')}" stroke-dasharray="3 3"/><text class="ann" x="${M.l + 6}" y="${M.t + 12}">hooks live →</text></svg>`;
+  const el = document.getElementById('c3'); el.innerHTML = g;
+  axis(document.getElementById('c3ax'), yMax, v => v.toFixed(1) + '%'); xTicks(document.getElementById('c3xt'), n);
+})();
+
+// ---- table view
+document.getElementById('table').innerHTML = '<table><tr><th>day</th><th>tokens</th><th>closeouts</th><th>tok/closeout (3d)</th><th>build actions</th><th>tok/action (3d)</th><th>Jira done</th><th>story pts</th><th>tok/pt (3d)</th><th>failure %</th><th>$ (calibrated)</th></tr>' +
+  rows.map(r => `<tr><td>${r.day}</td><td>${fmt3(r.total)}</td><td>${r.closeouts}</td><td>${r.tok_per_co3_proj == null ? '—' : fmt3(r.tok_per_co3_proj) + (r.co3_projected ? ' †' : '')}</td><td>${r.builds}</td><td>${r.tok_per_build3 == null ? '—' : fmt3(r.tok_per_build3)}</td><td>${r.jira_done ?? '—'}</td><td>${r.points ?? '—'}</td><td>${r.tok_per_point3 == null ? '—' : fmt3(r.tok_per_point3)}</td><td>${r.fail_rate == null ? '—' : r.fail_rate.toFixed(1) + '%'}</td><td>$${r.usd.toFixed(0)}</td></tr>`).join('') + '</table>';
+
+document.getElementById('foot').textContent =
+  `Sources: usage-ledger (turn-usage), mission-control events (closeouts), build-ledger, Jira BSYS day-bounded closed queries (story points), session transcripts (failure rates). ` +
+  `Optimizations marked: ${DATA.annotation_labels.map((l, k) => `${k + 1}: ${l}`).join(' · ')}. Cost calibrated to ACTUAL Grafana basis $5,045/30d — daily $ is calibrated throughput, not nominal rates.`;
+
+function fmt2(v) { return (v ?? 0).toLocaleString(); }
+function fmt3(v) { return (v ?? 0).toLocaleString(undefined, {maximumFractionDigits: 0}); }
+</script>
+</body>
+</html>

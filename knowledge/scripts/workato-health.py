@@ -31,7 +31,7 @@ Usage:
   workato-health.py --dry-run     select assets, call nothing
   workato-health.py --json        summary as JSON
 """
-import fcntl, json, os, subprocess, sys, tempfile, time, datetime as dt
+import fcntl, json, os, re, subprocess, sys, tempfile, time, datetime as dt
 from atomic_io import atomic_append
 
 HOME = os.path.expanduser("~")
@@ -100,6 +100,116 @@ def wt_failed_jobs(rid, server, timeout=25):
         return (data.get("items") or []) if isinstance(data, dict) else []
     except (subprocess.TimeoutExpired, ValueError):
         return []
+
+
+def wt_recent_jobs(rid, server, timeout=25):
+    """Newest page of jobs (ANY status) for a recipe (empty on any error).
+
+    The live-job source of truth for stall/new-failure verdicts (finding
+    workato-health-last-run-at-false-stall): `wt recipes get` fields
+    (last_run_at, job_failed_count) can lag 48-128h behind reality, while
+    `wt jobs list` reflects the newest tick immediately.
+    """
+    cmd = [WT, "jobs", "list", str(rid), "--raw",
+           "--profile", PROFILE.get(server, "josh-us")]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if r.returncode != 0 or not r.stdout.strip().startswith("{"):
+            return []
+        data = json.loads(r.stdout)
+        return (data.get("items") or []) if isinstance(data, dict) else []
+    except (subprocess.TimeoutExpired, ValueError):
+        return []
+
+
+def newest_job_id(jobs):
+    """First job's ID from a jobs-list page (newest first), '' if none."""
+    for j in jobs:
+        if isinstance(j, dict) and j.get("id"):
+            return str(j["id"])
+    return ""
+
+
+def _job_epoch(ts):
+    """Epoch seconds for a job/cutoff timestamp, or None if unparseable.
+
+    Handles the two live shapes: sweep cutoffs ('...Z', UTC) and job_list
+    started_at ('...-07', Workato PT). Timezone-aware on purpose — a
+    string compare of '2026-10-23T02:00Z' vs '2026-10-22T20:00-07' (the
+    same instant) would misread a real failure as old by 7h.
+    """
+    s = str(ts or "").strip()
+    if not s:
+        return None
+    fmts = ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z")
+    s = re.sub(r"([+-]\d{2})$", r"\g<1>:00", s)  # '-07' -> '-07:00' (strptime %z needs minutes)
+    s = re.sub(r"Z$", "+00:00", s)
+    for fmt in fmts:
+        try:
+            t = dt.datetime.strptime(s, fmt)
+            return t.timestamp()
+        except ValueError:
+            continue
+    try:  # fallback: naive prefix, treated as UTC (sweep-cutoff shape)
+        return dt.datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=dt.timezone.utc).timestamp()
+    except ValueError:
+        return None
+
+
+def classify_failure_delta(rid, server, cutoff_iso):
+    """Stale-index-guarded new-failures verdict (2026-10-23, finding
+    workato-health-last-run-at-false-stall).
+
+    A `fails > prev` delta from `wt recipes get` job_failed_count is only a
+    TRIGGER: that count (and last_run_at) can lag 48-128h — proven on dev
+    82862205, flagged new-failures with fails 77->78 / last_run=10-16 while
+    the live job_list showed green jobs every 15min (newest succeeded job
+    j-Ac6XKKsg-3REMRc-CD, 20:39 PT 10-22). The verdict now cites the live
+    job_list: a real failure must show a FAILED (non-probe, non-test-case)
+    job STARTED after the previous sweep (cutoff); otherwise the delta is
+    stale-index catch-up and the verdict is ok, citing the newest live job
+    ID as evidence. last_run_at stays sweep-output reference only, never a
+    verdict input. Fail-open: if the live jobs page is empty/unreadable the
+    conservative legacy verdict stands (a real failure is never muted by a
+    fetch hiccup).
+
+    Returns (verdict, detail_suffix, real_failed_jobs, probes_excluded).
+    """
+    fj = wt_failed_jobs(rid, server)
+    probes = sum(1 for j in fj if is_probe_job(j))
+    cases = sum(1 for j in fj if is_test_case_job(j))
+    real = [j for j in fj if not (is_probe_job(j) or is_test_case_job(j))]
+    suffix = ""
+    if probes:
+        suffix += f" ({probes} probe jobs excluded)"
+    if cases:
+        suffix += f" ({cases} test-case jobs excluded)"
+    if fj and not real:
+        return "ok", suffix, real, probes  # probe / red-test-case noise only
+    live = wt_recent_jobs(rid, server)
+    newest_live = newest_job_id(live)
+    cutoff_epoch = _job_epoch(cutoff_iso)
+    if cutoff_epoch is None:  # unparseable cutoff: fail-open, never mute
+        return "new-failures", suffix, real, probes
+    recent = [j for j in real
+              if _job_epoch(j.get("started_at")) is None  # unparseable = recent (never mute)
+              or _job_epoch(j.get("started_at")) > cutoff_epoch]
+    if real and not recent:
+        newest = live[0] if live else {}
+        return ("ok",
+                f" (stale-index: fails delta confirmed stale — no failed job "
+                f"newer than {cutoff_iso}; newest live job {newest_job_id(live) or 'none'} "
+                f"status={newest.get('status', 'unknown')} started_at={str(newest.get('started_at', ''))[:19]})"
+                + suffix, real, probes)
+    if recent:
+        top = recent[0]
+        return ("new-failures",
+                f" (newest failed job {top.get('id', '?')} started_at="
+                f"{str(top.get('started_at', ''))[:19]} — live job_list cited)"
+                + suffix, real, probes)
+    # no live jobs page available: fail-open to the legacy trigger verdict
+    return "new-failures", suffix, real, probes
 
 
 def is_probe_job(job):
@@ -325,19 +435,13 @@ def main():
             elif not running and stop_cause:
                 verdict = "stopped"
             elif fails > prev:
-                fj = wt_failed_jobs(rid, server)
-                probes = sum(1 for j in fj if is_probe_job(j))
-                cases = sum(1 for j in fj if is_test_case_job(j))
-                probe_excluded += probes
-                real = [j for j in fj if not (is_probe_job(j) or is_test_case_job(j))]
-                if fj and not real:
-                    verdict = "ok"  # probe / red-test-case noise only
-                else:
-                    verdict = "new-failures"
-                if probes:
-                    detail += f" ({probes} probe jobs excluded)"
-                if cases:
-                    detail += f" ({cases} test-case jobs excluded)"
+                # 2026-10-23: verdict now confirmed against live job_list
+                # (classify_failure_delta) — the raw fails delta is only a
+                # trigger; last_run_at (48-128h stale) is reference-only.
+                cutoff_iso = state.get("last_sweep_ts") or \
+                    dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+                verdict, extra, _real, _nprobes = classify_failure_delta(rid, server, cutoff_iso)
+                detail += extra
             elif not running:
                 verdict = "not-running"
             else:
@@ -368,7 +472,12 @@ def main():
                     prev_fails[r["id"]] = int(m[1].split(" ")[0])
                 except (ValueError, IndexError):
                     pass
-        json.dump({"updated": now, "failed_counts": prev_fails}, open(STATE, "w"), indent=1)
+        # full-state write (2026-10-23): keeps escalated_ts alongside
+        # failed_counts and records last_sweep_ts — the cutoff the next
+        # sweep's stale-index guard compares live failed jobs against
+        state["updated"] = now
+        state["last_sweep_ts"] = now
+        json.dump(state, open(STATE, "w"), indent=1)
 
     # failures -> triage queue + bus, with mute-on-ownership + escalation
     # (2026-10-14, graduated from incubating proposal sweep-finding-mute-on-

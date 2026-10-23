@@ -1,0 +1,136 @@
+{
+ "version": 0,
+ "updated": "2026-10-11",
+ "rule": "store-discipline-v0",
+ "spec": "specs/harness-store-discipline-slice1.md",
+ "what_this_is": "Write registers for the shared jsonl ledger surfaces and INDEX.md. A writer is identified by script/process name (env override: HARNESS_WRITER). Registered writers get the modes listed here; the DEFAULT for an unregistered writer is append-only everywhere, rewrite nowhere.",
+ "incidents": [
+  "2026-10-11: 49 decided triage/proposal decisions destroyed by git checkout -f over a dirty tree (uncommitted-ledger loss class)",
+  "2026-10-10: triage/queue.jsonl corruption from whole-file write races (commit 31ac8df; repair file triage/queue.jsonl.pre-repair-2026-10-10)"
+ ],
+ "conventions": {
+  "append": "add lines, never remove or reorder existing ones",
+  "rewrite": "whole-file read-modify-write permitted, ONLY under the surface's lock (flock via atomic_io.atomic_write)",
+  "identity": "writer name = the script or process doing the write (e.g. 'triage-decide.py'); sessions default to 'unregistered'"
+ },
+ "surfaces": [
+  {
+   "surface": "heartbeat.jsonl",
+   "path": "~/.claude/knowledge/garden-reports/heartbeat.jsonl",
+   "mode": "append",
+   "appenders": [
+    "run-job.sh"
+   ],
+   "rewriters": [],
+   "notes": "the liveness heartbeat; run-job.sh writes it mechanically. Timestamp format discipline enforced here since 2026-10-11 (three-format incident)."
+  },
+  {
+   "surface": "fleet-validation.jsonl",
+   "path": "~/.claude/knowledge/garden-reports/fleet-validation.jsonl",
+   "mode": "append",
+   "appenders": [
+    "run-job.sh"
+   ],
+   "rewriters": [],
+   "notes": "run-job.sh validation contract: evidence-of-work verdicts (stub/retry/pass)."
+  },
+  {
+   "surface": "triage-queue",
+   "path": "~/.claude/knowledge/triage/queue.jsonl",
+   "mode": "append+rewrite",
+   "appenders": [
+    "queue-append.py"
+   ],
+   "rewriters": [
+    "triage-decide.py",
+    "workato-health.py"
+   ],
+   "notes": "appends go through queue-append.py; status transitions (whole-file RMW under flock) only by triage-decide.py save() and workato-health.py triage_append. 2026-10-10 corruption and 2026-10-11 checkout -f loss were both this file."
+  },
+  {
+   "surface": "triage-outcomes",
+   "path": "~/.claude/knowledge/garden-reports/triage-outcomes.jsonl",
+   "mode": "append",
+   "appenders": [
+    "triage-decide.py"
+   ],
+   "rewriters": [],
+   "notes": "IMMUTABLE audit log of every triage decision; the source of truth triage/queue.jsonl is a projection of (see rebuild-queue.py). Never rewritten, ever."
+  },
+  {
+   "surface": "proposal-outcomes",
+   "path": "~/.claude/knowledge/garden-reports/proposal-outcomes.jsonl",
+   "mode": "append",
+   "appenders": [
+    "proposal-decide.py"
+   ],
+   "rewriters": [],
+   "notes": "append-only audit trail of proposal verdicts; mirror of triage-outcomes."
+  },
+  {
+   "surface": "build-ledger",
+   "path": "~/.claude/knowledge/build-ledger.jsonl",
+   "mode": "append",
+   "appenders": [
+    "workato-guardrails (hook 4 build attribution)",
+    "value-ledger.py",
+    "replay-gym.py",
+    "changelog.py"
+   ],
+   "rewriters": [],
+   "notes": "multi-writer append-only build attribution; the 2026-10-09 torn line (line 4837) is why every append is atomic."
+  },
+  {
+   "surface": "value-ledger",
+   "path": "~/.claude/knowledge/garden-reports/value-ledger.jsonl",
+   "mode": "append",
+   "appenders": [
+    "value-ledger.py"
+   ],
+   "rewriters": [],
+   "notes": "value events; rollups are read-time projections, never rewrites."
+  },
+  {
+   "surface": "bus-outboxes",
+   "path_glob": "~/.claude/knowledge/dreams/bus/*.jsonl",
+   "mode": "append",
+   "appenders": [
+    "bus_post.py"
+   ],
+   "rewriters": [],
+   "notes": "one outbox per agent; only bus_post.py appends. Archives (.bak-*, .flood-archive-*) are separate files, not rewrites."
+  },
+  {
+   "surface": "INDEX.md",
+   "path": "~/.claude/knowledge/INDEX.md",
+   "mode": "append-line-only",
+   "appenders": [
+    "any harness session (one routing line per new domain/project file)"
+   ],
+   "rewriters": [
+    "brain-gardener"
+   ],
+   "notes": "sessions APPEND one line per new file; removing/reordering lines is the brain-gardener's architecture pass only. Line-removing edits by anyone else are the checkout -f loss class from 2026-10-11."
+  },
+  {
+   "surface": "mission-control-events",
+   "path": "~/.claude/knowledge/mission-control/events.jsonl",
+   "mode": "append",
+   "appenders": [
+    "mission-control.py (via any session's closeout/claim ritual)"
+   ],
+   "rewriters": [],
+   "notes": "in-flight work registry event log (Josh 2026-10-11). Schema-validated via atomic_append_validated inside mission-control.py."
+  },
+  {
+   "surface": "mission-control-projections",
+   "path": "~/.claude/knowledge/mission-control/{registry.json,board.html}",
+   "mode": "rewrite",
+   "appenders": [],
+   "rewriters": [
+    "mission-control.py fold/board"
+   ],
+   "notes": "DERIVED projections only \u2014 no session hand-edits these (the voices law: state is the event log; views are rebuilt)."
+  }
+ ]
+}

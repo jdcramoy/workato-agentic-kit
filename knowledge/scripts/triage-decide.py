@@ -9,6 +9,7 @@ gardener's Phase 0 and the watchers' taste-matching read it).
 
 Usage:
   triage-decide.py list                                  show open findings
+  triage-decide.py sync                                  ingest mission-control needs-josh rows as kind=decision cards
   triage-decide.py <slug> accept ["note"] [--jira KEY]   accepted (filed under KEY if given)
   triage-decide.py <slug> filed  "note"   --jira KEY     story/bug created -> status: filed
   triage-decide.py <slug> build  ["note"]                built (dev-scoped work done) -> status: built
@@ -16,6 +17,10 @@ Usage:
   triage-decide.py <slug> defer  ["note"]                deferred -> status: deferred
 
 <slug> is any unique fragment of the finding's slug field.
+
+mc- decision rows (synced from mission-control needs-josh, kind=decision)
+write their verdict back: any final disposition appends a superseding
+mission-control event closing the registry row; defer leaves it open.
 
 NEVER hand-edit the queue: status changes go through this script so the
 outcomes ledger stays complete. Findings are APPENDED by their source
@@ -25,13 +30,15 @@ jira-autotriage) as one JSON line:
    "source":"workato-watchdog","title":"one line","evidence":"path or job id",
    "work":"the proposed fix, one line","points":2,"status":"open"}
 """
-import json, os, re, sys, datetime as dt
+import json, os, re, subprocess, sys, datetime as dt
 from atomic_io import atomic_append, atomic_append_validated
 
 HOME = os.path.expanduser("~")
 K = os.path.join(HOME, ".claude", "knowledge")
 QUEUE = os.environ.get("TRIAGE_QUEUE", os.path.join(K, "triage", "queue.jsonl"))
 OUTCOMES = os.environ.get("TRIAGE_OUTCOMES", os.path.join(K, "garden-reports", "triage-outcomes.jsonl"))
+MC_LOG = os.path.join(K, "mission-control", "events.jsonl")
+MC_SCRIPT = os.path.join(K, "scripts", "mission-control.py")
 
 FM = {"accept": "accepted", "reject": "rejected", "defer": "deferred",
       "build": "built", "filed": "filed", "reopen": "open"}
@@ -108,6 +115,93 @@ def save(rows):
     os.replace(tmp, QUEUE)
 
 
+def sync_mc():
+    """Ingest mission-control needs-josh rows as kind=decision queue rows
+    (2026-10-23, Josh-approved /triage integration): every open registry
+    decision renders as a card in ONE queue, and a verdict on an mc- row
+    writes back a superseding mission-control event so the registry row
+    closes too. Idempotent: a workstream already in the queue is never
+    re-ingested."""
+    if not os.path.exists(MC_LOG):
+        sys.exit(f"no mission-control log at {MC_LOG}")
+    latest = {}
+    with open(MC_LOG, errors="replace") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                e = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            w = e.get("workstream", "")
+            if w:
+                latest[w] = e
+    open_rows = [r for r in latest.values() if r.get("state") == "needs-josh"]
+    rows = load()
+    existing = {r.get("slug", "") for r in rows}
+    appended = 0
+    refreshed = 0
+    for r in open_rows:
+        ws = r["workstream"]
+        slug = f"mc-{ws}"
+        # evidence points at the events file itself — a real path, so the
+        # mandatory evidence gate resolves it (no #fragment: the checker
+        # treats it as part of the path and fails the existence test)
+        evidence = MC_LOG
+        if slug in existing:
+            # refresh our own rows' evidence format in place (the recorder
+            # is the only writer of mc- rows; never touches verdict fields)
+            for q in rows:
+                if q.get("slug") == slug and q.get("evidence") != evidence:
+                    q["evidence"] = evidence
+                    refreshed += 1
+            continue
+        decision_txt = r.get("needs") or r.get("what") or "(no decision text)"
+        row = {"ts": r.get("ts", ""), "slug": slug, "kind": "decision",
+               "source": "mission-control",
+               "title": decision_txt[:200],
+               "evidence": evidence,
+               "work": decision_txt[:400], "jira": r.get("jira", ""),
+               "status": "open"}
+        atomic_append(QUEUE, row)
+        existing.add(slug)
+        appended += 1
+    if refreshed:
+        save(rows)
+    print(f"sync: {appended} mission-control needs-josh row(s) ingested "
+          f"as decision cards ({len(open_rows) - appended} already in queue,"
+          f" {refreshed} evidence refreshed)")
+
+
+def mc_write_back(workstream, action, note):
+    """Verdict write-back for mc- decision rows: a final disposition closes
+    the mission-control row with a superseding event; reopen re-raises it.
+    Defer deliberately does NOT write back — the decision stays open in the
+    registry and re-renders at the next triage pass."""
+    if action == "reopen":
+        what = f"re-raised by triage reopen: {note or 'no note'} (decision back in needs-josh)"
+        subprocess.run([sys.executable, MC_SCRIPT, "add", "--event", "state",
+                        "--workstream", workstream, "--state", "needs-josh",
+                        "--what", what, "--why", "triage verdict write-back (reopen re-raises the registry row)",
+                        "--end", "decision re-opened; renders again at next triage",
+                        "--by", "triage-decide"], capture_output=True, text=True)
+        return
+    acts = {"reject": "REJECTED", "build": "BUILT (dev work executed)",
+            "filed": "FILED (story/bug created)", "accept": "ACCEPTED (queued for later work)"}
+    if action not in acts:
+        return  # defer / unknown: registry row stays open
+    what = f"triage verdict {acts[action]}: {note or 'no note'}"
+    if len(what) < 20:
+        what += " (recorded by the triage-decide write-back)"
+    subprocess.run([sys.executable, MC_SCRIPT, "add", "--event", "closeout",
+                    "--workstream", workstream, "--state", "done",
+                    "--what", what, "--why",
+                    "triage verdict write-back: needs-josh decisions render as /triage decision cards (2026-10-23 integration)",
+                    "--end", "decision made; row closed; re-raise by appending a fresh event",
+                    "--by", "triage-decide"], capture_output=True, text=True)
+
+
 TRIAGE_OUTCOME_SCHEMA = {
     "required": ["date", "finding", "slug", "action", "by"],
     "enums": {"action": {"built", "accepted", "rejected", "filed", "deferred", "open"}},
@@ -128,6 +222,9 @@ def log_outcome(row, action, note, jira):
 
 def main():
     args = sys.argv[1:]
+    if args and args[0] == "sync":
+        sync_mc()
+        return
     if not args or args[0] in ("-h", "--help", "list"):
         rows = load() if os.path.exists(QUEUE) else []
         open_rows = [r for r in rows if r.get("status") == "open"]
@@ -194,6 +291,8 @@ def main():
         row["note"] = note
     save(rows)
     log_outcome(row, FM[action], note, jira)
+    if row["slug"].startswith("mc-"):
+        mc_write_back(row["slug"][3:], action, note)
     line = f"logged: {row['slug']} -> {FM[action]}"
     if jira:
         line += f" ({jira})"

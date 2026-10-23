@@ -36,10 +36,22 @@ if "--days" in args:
 cutoff = time.time() - DAYS * 86400
 
 # --- signatures ------------------------------------------------------------
+# v2 (2026-10-23, finding turn-audit-verif-def-false-positives): the bare
+# `\bkb\b` alternation counted EVERY Bash command merely containing the word
+# "kb" as verification — the rate swung with KB-corpus churn, not with actual
+# verification behavior. Dropped; `kb_search` (a real read-back shape) stays.
+# Verification-shaped MCP/Read calls are now CREDITED too (they used to fall
+# into the productive bucket by default).
+SIG_VERSION = "v2-no-bare-kb+tool-credit"
 STALE_SIG = re.compile(r"404 Not Found|Unknown data table field|schema_version|"
                        r"not on the appropriate screen", re.I)
 VERIFY_SIG = re.compile(r"unittest|pytest|\btest\b|job_get|job handle|trace|"
-                        r"verify|read.?back|kb_search|kb\b", re.I)
+                        r"verify|read.?back|kb_search", re.I)
+VERIFY_TOOL_SIG = re.compile(r"job_get|job_list|recipe_get|get_recipe|"
+                             r"kb_search|search_recipe_dependencies|verify|"
+                             r"trace", re.I)
+VERIFY_READ_SIG = re.compile(r"trace|verif|audit|evidence|report|regression",
+                             re.I)
 PERM_SIG = re.compile(r"haven'?t granted|requested permissions|permission .*(denied|required)|"
                       r"operation not permitted", re.I)
 
@@ -94,7 +106,14 @@ for proj in PROJECTS:
                             pending[c.get("id")] = cmd
                             last_cmd, last_cmd_err = cmd, False
                         else:
-                            s_cls["productive"] += 1
+                            # v2: verification-shaped MCP/Read calls credit the
+                            # verification class instead of defaulting to
+                            # productive (job traces, read-backs, KB checks)
+                            if VERIFY_TOOL_SIG.search(name) or \
+                               (name == "Read" and VERIFY_READ_SIG.search(str(inp.get("file_path", "")))):
+                                s_cls["verification"] += 1
+                            else:
+                                s_cls["productive"] += 1
                             last_cmd_err = False
             elif d.get("type") == "user":
                 for c in (d.get("message") or {}).get("content") or []:
@@ -183,7 +202,11 @@ REPORT.write_text("\n".join(rep))
 with open(TREND, "a") as fh:
     fh.write(json.dumps({"ts": time.time(), "sessions": sessions, "turns": n_turns,
                          "waste_rate": round(waste_rate, 2), "verif_rate": round(verif_rate, 2),
-                         "errors": tot["errored"], "quality": {k: str(v) for k, v in quality.items()}}) + "\n")
+                         "errors": tot["errored"], "quality": {k: str(v) for k, v in quality.items()},
+                         "sig": SIG_VERSION,
+                         "note": "sig v2 2026-10-23: VERIFY_SIG dropped bare kb (false positives from "
+                                 "kb-word Bash reads, corpus-churn swing); verification-shaped "
+                                 "MCP/Read tools now credited — rows before this one use the v1 definition"}) + "\n")
 with open(BUS, "a") as fh:
     fh.write(json.dumps({"ts": time.time(), "agent": "turn-audit", "type": "report",
                          "subject": f"turn discipline {DAYS}d: waste {waste_rate:.1f}%, "

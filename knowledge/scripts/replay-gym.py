@@ -21,6 +21,8 @@ import json
 import re
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from atomic_io import atomic_append
 
@@ -142,6 +144,32 @@ def wt(args, timeout=90):
     return r.returncode, (r.stdout or "") + (r.stderr or "")
 
 
+def direct_recipe_get(rid, profile):
+    """Transport-independent second read (the two-tool bar — see cortex/
+    investigations/gym-unreadable-1009-batch-verify.md): raw HTTPS to
+    /api/recipes/<id> with the profile's keychain token, bypassing wt's
+    socket handling (the known wt rc=1 transport class — canary-alarm-loop).
+    Returns the HTTP status code, or None on a transport-shaped failure."""
+    try:
+        cfg = json.loads((Path.home() / ".workato/profiles").read_text())
+        p = cfg["profiles"].get(profile) or cfg["profiles"][cfg["current_profile"]]
+        tok = subprocess.run(
+            ["security", "find-generic-password", "-s", "workato-platform-cli",
+             "-a", profile, "-w"],
+            capture_output=True, text=True, check=True).stdout.strip()
+        req = urllib.request.Request(
+            f"{p['region_url'].rstrip('/')}/api/recipes/{rid}",
+            headers={"Authorization": f"Bearer {tok}",
+                     "User-Agent": "replay-gym/1.0 (second-tool retry)",
+                     "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            return resp.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception:
+        return None
+
+
 def heartbeat(job, extra=None):
     row = {"ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
            "job": job}
@@ -211,9 +239,18 @@ def replay_pass(findings):
             if "404" in out or "Not found" in out:
                 findings.append(f"info: recipe {rid} deleted since yesterday (404 both profiles)")
             else:
-                findings.append(f"asset-liveness: recipe {rid} unreadable on BOTH profiles (rc={rc}) — auth/schema problem?")
-                canon_add(f"gym-recipe-unreadable-{rid}", rid, "harness-regression",
-                          f"replay gym: recipe {rid} unreadable on dev AND prod (non-404)")
+                # Two-tool bar: a non-404 wt failure is transport-shaped until a
+                # second read path answers — canonize only if the direct API
+                # read also fails (None), not on a lone wt rc=1 blip.
+                direct = direct_recipe_get(rid, "josh-us")
+                if direct is None:
+                    direct = direct_recipe_get(rid, "josh-prod")
+                if direct is None:
+                    findings.append(f"asset-liveness: recipe {rid} unreadable on BOTH profiles (rc={rc}) — auth/schema problem?")
+                    canon_add(f"gym-recipe-unreadable-{rid}", rid, "harness-regression",
+                              f"replay gym: recipe {rid} unreadable on dev AND prod (non-404)")
+                else:
+                    findings.append(f"info: recipe {rid} wt-unreadable (rc={rc}) but direct API read returned HTTP {direct} — transport blip, not canonized")
         else:
             try:
                 running = json.loads(out).get("running")

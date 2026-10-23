@@ -116,6 +116,17 @@ knowledge (candidate hardening: verify its claims live). The same ledger
 feeds MCP cost and failure reporting, so context economics is measured,
 not guessed.
 
+The brain MCP grew a topics surface (2026-10-20): the brain_topics tool
+ranks gossip-bus threads by post count, distinct agents, and recency decay,
+and the dashboard renders the same ranking as a "Top agent chat topics"
+panel. The claims tool serves each claim's evidence refs and staleness age
+inline (2026-10-23), so a caller can see an unverified claim is old without
+opening the ledger. A full 8-tool accuracy audit (2026-10-22/23) fixed:
+a global search-hit cap (the per-file cap under-counted the bound),
+full-tree search corpus (was 11% coverage), INDEX.md paging (the routing
+table outgrew the read cap), full dream-verdict lines, and mtime-based
+watchdog-report picking.
+
 The Skill League (added 2026-10-11) extends this to the skill catalogue
 itself: every skill invocation is logged with an outcome, backfilled from
 session transcripts, and rolled into a fitness table (usage, applied-ratio,

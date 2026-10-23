@@ -41,6 +41,13 @@ def _now() -> str:
 
 
 def _append(path: Path, rec: dict) -> None:
+    # 2026-10-22 bus-schema gate (triage bus-writer-duplicate-malformed-
+    # lines): bus-side rows get the required ts/agent/thread/kind gate +
+    # dedup; the predictions store keeps its own validated append.
+    if str(path).startswith(str(BUS)):
+        import bus_schema
+        bus_schema.write_row(path, rec)
+        return
     atomic_append(path, rec)
 
 
@@ -100,6 +107,7 @@ def check_prediction(pid: str, observed: str, verdict: str) -> dict:
                 "ts": found["closed"],
                 "agent": found["agent"],
                 "type": "prediction_error",
+                "thread": f"prediction-error-{pid}",
                 "summary": f"{verdict.upper()}: predicted [{found['expect'][:120]}] but got [{observed[:120]}]",
                 "details": {"prediction_id": pid, "action": found["action"], "stakes": found["stakes"]},
             },

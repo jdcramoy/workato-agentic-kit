@@ -31,12 +31,15 @@ human the entire night with corroboration counts as the trust signal.
 | daily 06:23 | Efficiency dashboard (zero-LLM) | renders the fleet's whole bill as one self-contained page: burn by day and token class, failure rates with hooked classes split from unhooked, tokens per shipped closeout and per story point, the full session catalog. Appends its own heartbeat, so a silent failure shows up in the morning brief |
 | 04:43 | Frontier nightly (zero-LLM) | no model is spawned: refresh the estate twin, resolve due predictions and publish the calibration table, run the precursor radar, backfill and report skill fitness. Five python scripts, one log, zero tokens |
 | 05:xx | Evidence hunt | re-checks the last 24 hours' "done/fixed/verified" claims against live state; FALSE verdicts get a dissenter review |
+| daily 07:07 | Nightly receipts gate | reads each nightly job's OUTPUT artifact (freshness-checked), not self-reported receipts: a job that ran but produced nothing is RED; escalations post to the bus before the morning brief (born from the crash-after-work class the 2026-10-20 build caught live) |
+| every 900s | Knowledge write stash | hardlink-cumulative snapshots of the mutable knowledge ledgers (8-point rotation) with a restore command; born from the silent git-revert class that ate bash appends (2026-10-19/20) |
+| daily 06:57 | Harness-docs sync (nightly, was weekly Tuesday per Josh 2026-10-15) | live-harness-to-repo sync + doc drift check + sanitized Confluence publish, self-rearming durable cron |
 | 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits, plus the decision inbox: today's ranked decisions with a budget, deferred ones rolling forward, and the day's loadout with work pre-staged |
 
 ## Schedule mechanics
 
-The schedules are launchd plists and self-rearming session crons — 42 jobs
-total as of the 2026-10-16 inventory (see `schedules/README.md` in the repo
+The schedules are launchd plists and self-rearming session crons — 60+ jobs
+total (2026-10-20 count; see `schedules/README.md` in the repo (see `schedules/README.md` in the repo
 for the full table). Recurring
 scheduled tasks expire after seven days by platform design, so every job
 re-creates its own schedule before expiry lapses; the fleet launcher keeps

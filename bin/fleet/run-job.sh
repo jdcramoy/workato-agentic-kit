@@ -76,7 +76,15 @@ trap 'rm -rf "$LOCK" 2>/dev/null' EXIT
 source "$JOB.env"
 
 echo "$(date '+%F %T') $NAME: start" >> "$LOG"
-cd "$JOB_CWD" || { echo "$(date '+%F %T') $NAME: cwd fail" >> "$LOG"; exit 1; }
+# cwd-fail fallback (2026-10-22, triage watchdog-dark-3-nights-cwd-fail): a
+# dead JOB_CWD used to kill the job outright — the 2026-10-20/21 watchdog ran
+# two dark nights on exactly this. Fleet prompts use absolute knowledge-tree
+# paths, so falling back to $HOME keeps the job alive and the report landing;
+# the fallback is logged loudly so the degraded cwd is never silent.
+if ! cd "$JOB_CWD" 2>/dev/null; then
+  echo "$(date '+%F %T') $NAME: cwd fail ($JOB_CWD) — falling back to \$HOME (job still runs)" >> "$LOG"
+  cd "$HOME" || exit 1
+fi
 
 # launchd environment repair: launchd gives us a minimal PATH (no ~/.local/bin,
 # where claude/wt live) and never reads ~/.zshenv (where the AI-gateway and

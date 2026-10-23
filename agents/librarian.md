@@ -134,6 +134,17 @@ every new file has its line, one line per entry.
 
 ## Hard rules
 
+- **Scheduled-tasks contract (2026-10-22, after the 10-19 resume-time wipe):**
+  `<project>/.claude/scheduled_tasks.json` is HARNESS-MANAGED — it is rewritten
+  from session-local state at `--resume` startup and full-overwrite writes from
+  Bash/python (`json.dump` dedupes included) silently drop every durable task
+  created by other sessions (8 fleet tasks lost 2026-10-19 13:10). Rearm /
+  dedupe / redate ONLY via the CronCreate/CronDelete tools, one task at a time;
+  that is the only read-modify-write merge this file supports. NEVER write the
+  file directly — no cat, no python json.load/json.dump, no editor. When
+  recreating a task, never copy a hardcoded date into its prompt: prompts that
+  need today's date must run `date +%F` via Bash and use the output verbatim
+  (the 2026-10-18 cron morning brief hallucinated +1 day from a hardcoded date).
 - Never delete or rewrite existing content on main. Additive only.
 - Git safety procedure before ANY checkout (top of file — non-negotiable).
 - Cite sources for all procured content: URL + fetch date. No orphan facts.

@@ -82,6 +82,34 @@ def main():
     if x or y or z or n:
         lines.append(f"QUEUE HYGIENE: {x} stale claims ({y} flagged POSSIBLE UNFINISHED PROD STATE), "
                      f"{z} needs-josh >7d, {n} silent agents. Details: reports/claims-sweep-latest.json")
+    # DRAFT CLOSEOUTS pending review (session-closeout.py SessionEnd hook drafts):
+    # oldest first, cap 5, fail-open (no drafts dir = print nothing)
+    try:
+        drafts_dir = os.path.join(HOME, ".claude", "knowledge", "mission-control", "drafts")
+        drafts = []
+        if os.path.isdir(drafts_dir):
+            for name in os.listdir(drafts_dir):
+                if not name.endswith(".json"):
+                    continue
+                try:
+                    d = json.load(open(os.path.join(drafts_dir, name)))
+                except Exception:
+                    continue
+                if d.get("status") == "pending":
+                    drafts.append(d)
+        if drafts:
+            drafts.sort(key=lambda d: d.get("ended_at", ""))
+            lines.append(f"DRAFT CLOSEOUTS PENDING REVIEW: {len(drafts)}. "
+                         "Correct + record, or discard:")
+            for d in drafts[:5]:
+                when = (d.get("ended_at") or "")[:16].replace("T", " ")
+                proj = os.path.basename((d.get("cwd") or "").rstrip("/")) or "?"
+                lines.append(f'  - "{d.get("first_ask","")[:70]}" ({d.get("turns","?")} turns, '
+                             f"{proj}, {when}) [{d.get('session_id','?')}] "
+                             "python3 ~/.claude/knowledge/scripts/session-closeout.py --adopt "
+                             f"{d.get('session_id','?')}")
+    except Exception:
+        pass  # fail-open: a broken draft sweep must never blank the digest
     late = late_timers()
     if late:
         names = ", ".join(f'{t["name"]} ({t["detail"]})' for t in late[:4])
