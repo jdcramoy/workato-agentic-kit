@@ -558,3 +558,22 @@ Gotchas learned:
   results: CASE1 WARNED naming both ids no-deny; CASE2 one recipe_list across
   two pushes (cache); CASE3 unique-name no warning; CASE4 mcp-down push
   passes. Proposal file NOT touched (no proposal-decide.py, status unchanged).
+
+## Hook 16 josh-model briefing (2026-10-23) — two NEW engine traps
+
+- **ONE bare `on('prompt.submit', ...)` per module, validator-enforced.** A
+  second registration without a matcher fails the WHOLE module at load
+  ("on(...) is registered twice without a matcher") and takes all plugin tests
+  down with it. Hook 16 (josh-model first-prompt briefing) lives INSIDE hook
+  5's existing prompt.submit handler; never add a second bare one.
+- **A stubbed prompt.submit answer may not carry both `drop` and `context`**
+  ("returned a drop that carries a context" skips the test's hook). To assert
+  on injected context, capture `e.context` in a closure inside the stub and
+  return only `{ drop: 'captured' }`.
+- Positive-path proof for hooks needing `$.process` (absent from the test
+  sandbox, same as `$.mcp`): self-staging node driver pattern —
+  tests/josh-model-driver.mjs copies the real register.js to a temp .mjs,
+  mocks `$.process.run`, fires the real prompt.submit chain (first-prompt
+  inject, once-per-session sentinel, empty-output no-op, throw = fail-open).
+- Once-per-session state needs NO /tmp sentinel: `register()` runs per
+  session, so a register-scoped `let briefed = false` IS the sentinel.

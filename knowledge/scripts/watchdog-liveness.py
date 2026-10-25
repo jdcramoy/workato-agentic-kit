@@ -39,6 +39,22 @@ FIRE_HOUR, FIRE_MIN = 23, 13  # com.josh.fleet.watchdog StartCalendarInterval
 GRACE_HOURS = 4.0             # hours after the fire before "dark" is declared
 
 
+def write_status_heartbeat(status: str, detail: str) -> bool:
+    """Plain heartbeat row so harness-health liveness sees this job ran.
+
+    The ALARM row (job "watchdog-liveness-ALARM") only fires when the
+    watchdog is dark; on a quiet night this script was fully silent, which
+    harness-health reported as "never writes heartbeat.jsonl" (2026-10-25).
+    """
+    row = {"ts": datetime.now().isoformat(), "job": "watchdog-liveness",
+           "status": status, "detail": detail}
+    hb = subprocess.run(
+        [sys.executable, str(ATOMIC_IO), str(HEARTBEAT)],
+        input=json.dumps(row), capture_output=True, text=True,
+    )
+    return hb.returncode == 0
+
+
 def main():
     now = datetime.now()
 
@@ -53,12 +69,17 @@ def main():
     newest_date = newest.stem if newest else None
 
     if hours_since_fire < GRACE_HOURS:
+        ok = write_status_heartbeat(
+            "ok-grace", f"grace window, {hours_since_fire:.1f}h since fire; "
+                        f"newest report {newest_date or 'none'}")
         print(f"OK (grace window, {hours_since_fire:.1f}h since fire): newest report {newest_date or 'none'}")
-        return 0
+        return 0 if ok else 1
 
     if newest_date and newest_date >= fire.strftime("%Y-%m-%d"):
+        ok = write_status_heartbeat(
+            "ok", f"watchdog report for run-date {fire:%Y-%m-%d} present")
         print(f"OK: watchdog report for run-date {fire:%Y-%m-%d} present ({newest.name})")
-        return 0
+        return 0 if ok else 1
 
     dark_reason = (
         f"no watchdog report for run-date {fire:%Y-%m-%d} "
@@ -74,6 +95,7 @@ def main():
         except (ValueError, OSError):
             state = {}
     if state.get("last_alarm_date") == fire.strftime("%Y-%m-%d"):
+        write_status_heartbeat("already-paged", dark_reason)
         print(f"ALREADY-PAGED: {dark_reason}; alarm already posted for {fire:%Y-%m-%d}")
         return 0
 
@@ -96,6 +118,9 @@ def main():
     bus_ok = r.returncode == 0
 
     # Channel 2: alarm row in the heartbeat ledger (morning-brief input)
+    # plus the plain liveness row (the ALARM job name is a different job as
+    # far as heartbeat liveness matching is concerned).
+    write_status_heartbeat("dark", dark_reason)
     row = {
         "ts": now.isoformat(),
         "job": "watchdog-liveness-ALARM",

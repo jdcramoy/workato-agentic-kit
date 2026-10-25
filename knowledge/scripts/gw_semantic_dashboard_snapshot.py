@@ -21,11 +21,11 @@ import sys
 import shutil
 import time
 
-sys.path.insert(0, "~/.claude/knowledge/scripts")
+sys.path.insert(0, "/Users/YOUR-USER/.claude/knowledge/scripts")
 from atomic_io import atomic_write_json  # noqa: E402  (json-guard shared helper)
 
 # launchd PATH is minimal; resolve wt explicitly (broke 2026-10-18 when wt moved to ~/.local/bin)
-WT = shutil.which("wt") or "~/.local/bin/wt"
+WT = shutil.which("wt") or "/Users/YOUR-USER/.local/bin/wt"
 from datetime import datetime, timezone
 from pathlib import Path
 

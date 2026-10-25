@@ -30,7 +30,7 @@ Extraction (heuristics are allowed to be crude — it is a DRAFT):
   turns             non-meta user rows (skips isMeta, <command-name>/<local-command>
                     rows, tool_result-only rows, and subagent isSidechain rows)
   files_touched     file_path/path/notebook_path from Write/Edit/NotebookEdit
-                    tool_use, plus absolute paths under ~ pulled
+                    tool_use, plus absolute paths under /Users/YOUR-USER pulled
                     from Bash commands; deduped, cap 20
   jira_keys         \\b[A-Z]{2,6}-\\d+\\b over user+assistant text, deduped
   workato_assets    recipes/<digits> -> recipe:<digits> (same for genies,
@@ -67,7 +67,7 @@ ASSET_RES = [
     ("lookup_table", re.compile(r"\blookup_tables/(\d+)\b")),
 ]
 # absolute paths under Josh's home, pulled out of Bash command strings
-HOME_PATH_RE = re.compile(r"~[^\s\"'`);&|,]*")
+HOME_PATH_RE = re.compile(r"/Users/YOUR-USER[^\s\"'`);&|,]*")
 # terminal-sounding last user message -> suggested state "done" (crude on purpose)
 TERMINAL_RE = re.compile(
     r"^(thanks|thank you|thx|ty|done|perfect|great|good|nice|awesome|excellent|"

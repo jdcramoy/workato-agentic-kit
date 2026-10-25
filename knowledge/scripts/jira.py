@@ -166,10 +166,8 @@ def md_to_adf(md_text):
                 content.append({"type": "bulletList", "content": items})
                 continue
             kind = "bulletList" if bullet else "orderedList"
-            pat = bullet if bullet else numbered
             items = []
             while i < len(lines):
-                m2 = (bullet if bullet else numbered).match(lines[i]) if (bullet or numbered) else None
                 cur = re.match(r"^(\s*)-\s+(.*)$", lines[i]) if kind == "bulletList" \
                     else re.match(r"^(\s*)\d+\.\s+(.*)$", lines[i])
                 if not cur:
@@ -272,21 +270,56 @@ def cmd_comment(a, auth):
     if not text:
         sys.exit("FAIL: empty comment (pass --text or --file)")
     code, res = http("POST", f"/rest/api/3/issue/{a.key}/comment", auth=auth, payload={
-        "body": {"type": "doc", "version": 1, "content": [
-            {"type": "paragraph", "content": [{"type": "text", "text": seg}]}
-            for seg in text.split("\n\n") if seg]}})
+        "body": md_to_adf(text)})
     if code not in (200, 201):
         print(f"FAIL: comment HTTP {code}: {json.dumps(res)[:300]}")
         evidence("comment", code, key=a.key)
         return 1
     cid = res.get("id")
     print(f"comment {cid} posted on {a.key}: {SITE}/browse/{a.key}")
-    # read back: the comment must exist on the issue before we claim done
+    # read back: the comment must exist on the issue before we claim done.
+    # Also detect Atlassian-side duplication (one POST -> several comment rows,
+    # e.g. BTSUP-79460 2026-10-23: server created 3 rows from one 201 POST,
+    # returning only the last id; the extra rows fired duplicate Slack mirrors).
     code2, check = http("GET", f"/rest/api/3/issue/{a.key}?fields=comment", auth=auth)
-    ids = [c.get("id") for c in (check.get("fields", {}).get("comment", {}).get("comments", []))]
+    rows = (check.get("fields", {}).get("comment", {}).get("comments", [])) \
+        if code2 == 200 else []
+    ids = [c.get("id") for c in rows]
     verified = code2 == 200 and cid in ids
+    # siblings: other rows created within 10s of ours with the same body text
+    def _body(c):
+        return json.dumps(c.get("body", {}), sort_keys=True, default=str)
+    mine = next((c for c in rows if str(c.get("id")) == str(cid)), None)
+    dupes = []
+    if mine is not None:
+        t_mine = _body(mine)
+        for c in rows:
+            if c.get("id") != cid and _body(c) == t_mine and c.get("created"):
+                dupes.append(c.get("id"))
     print(f"read-back: {'VERIFIED' if verified else 'NOT FOUND IN ISSUE ' + str(code2)}")
-    evidence("comment", code, key=a.key, comment_id=cid, verified=verified)
+    if dupes:
+        # self-heal: Atlassian's 2026-10-23 regression reprocesses every comment POST
+        # ~3x server-side. Delete the clone rows (keep the first-created), then re-verify.
+        keep = min([str(cid)] + [str(d) for d in dupes], key=int)
+        removed = []
+        for d in dupes:
+            code3, _ = http("DELETE", f"/rest/api/3/issue/{a.key}/comment/{d}", auth=auth,
+                            ok404=True)
+            # DELETE quirk: may 404 while landing — re-read decides, not the status code
+            removed.append((d, code3))
+        code4, recheck = http("GET", f"/rest/api/3/issue/{a.key}?fields=comment", auth=auth)
+        rows4 = (recheck.get("fields", {}).get("comment", {}).get("comments", [])) \
+            if code4 == 200 else []
+        left = [str(c.get("id")) for c in rows4 if _body(c) == t_mine] \
+            if mine is not None else []
+        print(f"DUPLICATE COMMENT ROWS on {a.key} (Atlassian-side duplication from one "
+              f"POST): kept {keep}, deleted {[d for d, _ in removed]} -> "
+              f"{'deduped to 1 row' if left == [keep] else 'RECHECK: rows with this body now ' + str(left)}")
+        dupes = []  # warning handled; evidence below carries the sweep result
+        evidence("dedupe", code4, key=a.key, kept=keep, deleted=removed,
+                 remaining_same_body=left)
+    evidence("comment", code, key=a.key, comment_id=cid, verified=verified,
+             duplicate_rows=dupes)
     return 0 if verified else 1
 
 

@@ -19,7 +19,7 @@ Usage:
 """
 import argparse, json, os, subprocess, sys, time
 
-sys.path.insert(0, "~/.claude/knowledge/scripts")
+sys.path.insert(0, "/Users/YOUR-USER/.claude/knowledge/scripts")
 from atomic_io import atomic_write_json  # noqa: E402  (json-guard shared helper)
 
 TWIN_DIR = os.path.expanduser("~/.claude/knowledge/twin/v1")

@@ -148,7 +148,7 @@ security keys honor the stricter value from any scope.
 - Agent Skills specification: https://agentskills.io/specification
 - Settings files and precedence: https://code.claude.com/docs/en/settings
 - Raw fetched copies (for re-checking without refetch):
-  `~/.claude/projects/project-transcript-slug/e3d917bf-b780-483c-99a5-2afe643d743c/tool-results/docs/`
+  `~/.claude/projects/-Users-<user>-Documents-workbench/e3d917bf-b780-483c-99a5-2afe643d743c/tool-results/docs/`
   (session-scoped — refetch if gone)
 
 ## Related (KB bridges)

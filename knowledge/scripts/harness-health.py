@@ -452,9 +452,12 @@ def check_ledger_integrity(findings):
 # source of truth: ~/.local/bin/fleet is a symlink to it. A plist pointing at
 # anything else resolves its job defs from a diverged copy — the trap that
 # made the cortex --add-dir fix silently not apply.
-CANONICAL_RUNNER = Path("~/Documents/agentic-workato-kit/bin/fleet/run-job.sh")
+CANONICAL_RUNNER = Path("/Users/YOUR-USER/Documents/agentic-workato-kit/bin/fleet/run-job.sh")
 # jobs that run their script directly instead of via run-job.sh
-ALLOWED_DIRECT = {"health", "ops-visibility"}
+# watchdog-liveness (2026-10-23): intentionally direct — its whole contract is
+# its OWN alarm heartbeat (watchdog-liveness-ALARM rows), not the run-job
+# heartbeat; routing it through the runner would double the heartbeat path.
+ALLOWED_DIRECT = {"health", "ops-visibility", "watchdog-liveness"}
 
 
 # Ledger-shrink alarm: the Oct-11 heartbeat wipe (1402 rows -> 448, a writer

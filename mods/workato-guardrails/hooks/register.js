@@ -6,7 +6,7 @@
 const AUDIT_DIR = '$HOME/.claude/workato-audit'
 const AUDIT_FILE = AUDIT_DIR + '/prod-writes.log'
 const STANDARDS_PATH =
-  '~/.claude/skills/jira-story-standards/SKILL.md'
+  '/Users/YOUR-USER/.claude/skills/jira-story-standards/SKILL.md'
 
 // Write-surface tools on the prod AIRO server. Read tools pass through untouched.
 const PROD_WRITE = /^mcp__workato-airo-mcp-prod__(recipe_builder_(save|push|init|init_skill|add_step|update_step|remove_step|remove_input_field|move_step|move_steps|set_input_field|set_input_field_v4_mode|set_condition|set_foreach_source|set_error_handling_config|set_block_comments|update_asset_metadata|select_connections|convert_to_skill)|blueprint_(apply|init|push|link_asset|reset)|genie_(create|update)|data_table_(create|delete|update|truncate)|knowledge_base_(create|delete|delete_documents|update|upload_file)|mcp_server_create|connector_builder_(apply_connector_code_patch|init_connector|release_connector|save_latest_connector_code))/
@@ -25,6 +25,9 @@ const BUILD_LEDGER = BUILD_LEDGER_DIR + '/build-ledger.jsonl'
 const ATOMIC_APPEND_PY = '$HOME/.claude/knowledge/scripts/atomic_io.py'
 const SYSPY = '/usr/bin/python3'
 const RECIPE_HISTORY = '$HOME/.claude/recipe-history'
+// Josh Model context compiler (hook 16): the Python CLI owns all retrieval,
+// scoring, and briefing logging; the hook is a thin fail-open shim.
+const JM_SCRIPT = '$HOME/.claude/knowledge/scripts/josh-model.py'
 
 // AIRO mutation tools (dev + prod). Reads never ledger.
 const AIRO_MUTATION = /^mcp__workato-airo-mcp-(server|prod)__(recipe_builder_(save|push|init|init_skill|add_step|update_step|remove_step|remove_input_field|move_step|move_steps|set_input_field|set_input_field_v4_mode|set_condition|set_foreach_source|set_error_handling_config|set_block_comments|update_asset_metadata|select_connections|convert_to_skill)|blueprint_(apply|init|push|link_asset|reset)|genie_(create|update)|data_table_(create|delete|update|truncate)|knowledge_base_(create|delete|delete_documents|update|upload_file)|mcp_server_create|connector_builder_(apply_connector_code_patch|init_connector|release_connector|save_latest_connector_code))$/
@@ -384,7 +387,7 @@ export function register(on) {
   on('command.run', { command: 'guardrails' }, async () => {
     return {
       text:
-        'workato-guardrails v0.7.0 active hooks:\n' +
+        'workato-guardrails v0.8.0 active hooks:\n' +
         '1. secret redaction on tool results (outermost)\n' +
         '2. prod-write audit → ' + AUDIT_FILE + ' (this session: ' + prodWrites +
           ' · all time: ' + lifetimeWrites + ')\n' +
@@ -402,7 +405,8 @@ export function register(on) {
         '14. remote-identity guard (git push to non-org remote held for confirm)\n' +
         '15. push identity guard — same-name live recipe warning on recipe_builder_push (warn-only)\n' +
         '13. prod-write confirm gate — EVERY surface (workato-prod, wt-prod, ' +
-        'WORKATO_PROFILE=josh-prod, raw http w/ prod credential, Orca on prod urls)',
+        'WORKATO_PROFILE=josh-prod, raw http w/ prod credential, Orca on prod urls)\n' +
+        '16. josh-model session briefing (first prompt, fail-open)',
     }
   })
 
@@ -637,10 +641,39 @@ export function register(on) {
   // 5. JIRA-STANDARDS PROMPT INJECTION + ticket tracking.
   //    The last ticket key mentioned in a prompt becomes the session's current
   //    ticket; build-ledger entries carry it for traceability.
+  //
+  //    ENGINE CONSTRAINT (validator-enforced): prompt.submit may be registered
+  //    ONCE per module without a matcher. Hook 16 therefore lives inside this
+  //    handler — do not add a second bare on('prompt.submit', ...) anywhere.
   let currentTicket = null
+  let briefed = false
   on('prompt.submit', async ($, e, next) => {
     const tk = e.text.match(TICKET_KEY)
     if (tk) currentTicket = tk[1]
+
+    // 16. JOSH-MODEL SESSION BRIEFING — the first prompt of each session gets
+    //     a task-conditioned briefing from the Josh Model store (spec:
+    //     ~/.claude/knowledge/specs/2026-10-23-josh-model-context-compiler-design.md).
+    //     SessionStart fires before the task is known; the first prompt IS the
+    //     task signal. `briefed` is register-scoped, and register runs per
+    //     session — the flag IS the once-per-session sentinel, no /tmp file.
+    //     FAIL OPEN: any error (missing store, python failure, sandbox without
+    //     $.process) passes the prompt through untouched.
+    if (!briefed) {
+      briefed = true
+      try {
+        const res = await $.process.run([SYSPY,
+          JM_SCRIPT.replace('$HOME', process.env.HOME), 'brief',
+          '--task', String(e.text ?? '').slice(0, 2000),
+          '--cwd', String(e.cwd ?? e.workingDir ?? ''),
+          '--session-id', String(e.session_id ?? '')])
+        const out = String((res && (res.stdout ?? res.result ?? res)) || '').trim()
+        if (out) e = { ...e, context: [...(e.context ?? []), out] }
+      } catch {
+        // fail open: a broken briefing must be invisible
+      }
+    }
+
     if (!isJiraWritePrompt(e.text)) return next(e)
     const body = '--- [workato-guardrails] jira-story-standards govern this request ---\n' +
       (standards ?? STANDARDS_FALLBACK)
@@ -672,7 +705,7 @@ export function register(on) {
 
   // BYPASS flag path: explicit, time-boxed prod-gate bypass (bin/prod-bypass).
   // Inline at each site ($ may not be passed to helpers — mod validator).
-  const BYPASS_PATH = '~/.claude/workato-audit/prod-bypass.json'
+  const BYPASS_PATH = '/Users/YOUR-USER/.claude/workato-audit/prod-bypass.json'
 
   // 13. PROD-WRITE CONFIRM GATE — EVERY surface, not just AIRO MCP.
   //     The prod AIRO server is already gated (permissions.ask + hook 1).
@@ -1074,7 +1107,7 @@ export function register(on) {
         children: [
           'prod writes: ' + prodWrites + '   mutations: ' + mutationCount +
             '   ticket: ' + (currentTicket ?? 'none yet') +
-            '\nhooks active: 12   audit: ~/.claude/workato-audit/prod-writes.log',
+            '\nhooks active: 13   audit: ~/.claude/workato-audit/prod-writes.log',
         ],
       })
     } else {

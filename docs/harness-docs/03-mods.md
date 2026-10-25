@@ -8,7 +8,9 @@ prose into mechanics. Each hook is a few lines of code; `claude plugin
 validate` lists exactly what each touches before anything is installed. 42
 automated tests cover the guardrails pair.
 
-## workato-guardrails: 15 hooks
+## workato-guardrails: 16 hooks
+
+(v0.8.0 as of 2026-10-24; v0.7.0 through 2026-10-23 with 15 hooks.)
 
 | Hook | Fires on | What it does |
 |---|---|---|
@@ -27,6 +29,7 @@ automated tests cover the guardrails pair.
 | Prod-write confirm gate | any write to production through ANY surface: platform tools, CLI, API wrapper, raw HTTP, browser | Holds the write for an explicit confirm dialog and fails closed on dismissal. Reads pass through. This is what makes handing an agent production credentials safe. |
 | Remote-identity guard | git push to a non-org remote | Holds the push for explicit confirm, and denies outright when the remote's origin is misconfigured — org repos are the only sanctioned push targets (added 2026-10-13, per the mod's own guard list). |
 | Push identity guard | every recipe push (dev and production) | After a successful push, looks the pushed recipe up by name (the join key) and makes one folder-scoped listing of running recipes; when another RUNNING recipe carries the same name it annotates the result naming both recipe IDs and their URLs. Kills the two-copy divergence class: a push that landed on a dead copy while the live one kept running under the same name (one tracked incident). Warn-only (built dev-side 2026-10-20, from a dreamer proposal accepted 2026-10-10). |
+| Josh-model session briefing | first prompt of each session (fail-open) | The Python CLI owns retrieval, scoring, and briefing logging; the hook is a thin shim that hands the first prompt to the josh-model context compiler and injects a task-conditioned briefing. Registered once inside the shared prompt-submit handler (added v0.8.0, 2026-10-24; spec dated 2026-10-23 in the knowledge tree). |
 
 ## brain-guard: 5 hooks for the knowledge system
 

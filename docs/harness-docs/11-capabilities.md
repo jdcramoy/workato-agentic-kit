@@ -27,16 +27,18 @@ Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 | cortex | Hourly pulse | Attention (a ranked queue capped at 7), coherence (contradiction hunting across all surfaces), curiosity. Reads everything, mutates nothing. |
 | red-team | On demand, at promotion prep | Independent security review of assets heading to production. A FAIL blocks promotion unless the human overrides by name. |
 
-## The skills: 54
+## The skills: 57
 
 Each skill is a `SKILL.md` in `~/.claude/skills/`, a loaded-on-trigger SOP.
-51 are cataloged below in five groups; 3 are private or intentionally
+54 are cataloged below in five groups; 3 are private or intentionally
 unpublished and deliberately omitted (noted at the end).
 (2026-10-17 sync: 54 skills live, up from 52 — additions: failure-close-gate,
 wt-cookbook. 2026-10-18 re-verify: still 54 live, no additions; the catalog
-arithmetic was corrected to 51 cataloged + 3 omitted.)
+arithmetic was corrected to 51 cataloged + 3 omitted. 2026-10-24 sync: 57
+live, up from 54 — additions: workato-brand-2026, workato-custom-action-schema,
+extend-not-replace; catalog now 54 + 3 omitted, re-counted live.)
 
-### Playbooks: how to drive the platform (22)
+### Playbooks: how to drive the platform (24)
 
 | Skill | Purpose |
 |---|---|
@@ -62,8 +64,10 @@ arithmetic was corrected to 51 cataloged + 3 omitted.)
 | workday-wsdl-lookup | Look up Workday SOAP operations and fields from a pre-built index. |
 | wql-query-builder | Build, review, and safely execute Workday Query Language queries. |
 | fusion | Cost-gated multi-model execution: N models answer the same task, answers are cross-checked. |
+| workato-brand-2026 | The 2026 official brand system for Workato-branded UI, pages, and decks: tokens, component CSS, usage notes. |
+| workato-custom-action-schema | Resolve a custom-connector action's schema before mapping datapills; the fix for schema-not-available errors. |
 
-### Governance and gates: rules as procedure (15)
+### Governance and gates: rules as procedure (16)
 
 | Skill | Purpose |
 |---|---|
@@ -82,6 +86,7 @@ arithmetic was corrected to 51 cataloged + 3 omitted.)
 | claim-verification | Systematic re-verification procedures for claims in the ledger, per claim type. |
 | grill-gate | Planning gate: pin requirements before designing; batch the real judgment calls to one round. |
 | run-to-completion | Turn discipline: no ending a multi-step task until done and verified, or genuinely blocked. |
+| extend-not-replace | Guard before overwriting a data file with a transformed version: compare schemas, name every dropped column. |
 
 ### Estate operations (6)
 
@@ -210,24 +215,28 @@ Every job checks in to a shared heartbeat ledger, and the fleet runner
 validates each attempt for evidence of work: a silent zero-output exit is a
 stub, retried once, then escalated.
 
-## The MCP servers: 12
+## The MCP servers: 14
 
-`claude mcp list` as of 2026-10-17:
+`claude mcp list` as of 2026-10-24 (was 12 on 2026-10-17: fireworks-websearch
+was removed 2026-10-18 and slack-native retired; ai-directory-dev,
+workato-airo-mcp-prod, devapi-workato, and company-brain were added):
 
 | Server | Provides |
 |---|---|
 | workato-airo-mcp-server | The Workato platform MCP for the dev workspace: recipe builder, Genies, data tables, blueprints, MCP servers, knowledge bases, jobs, docs. |
+| workato-airo-mcp-prod | The production twin of the platform MCP: same surfaces, live production workspace, prod-gated. |
 | atlassian | Jira and Confluence: tickets, comments, pages. |
 | slack-workato | Bounded, confirmation-gated Slack operations as the authenticated identity. |
 | workato-dependency-tracker | Blast-radius queries: which recipes touch an object, field, or connection; recipe internals; connection health. |
 | google-slides | Full Google Slides authoring: decks, templates, layouts, tables, shapes, comments. |
 | org-chart | Read-only org-chart lookups (manager, reports, chains) from a materialized snapshot. |
 | google-workspace-semantic | The semantic layer for Gmail, Drive, Calendar, People, Docs, Sheets: reviewed capabilities, mutation plans, explicit confirmation. |
+| ai-directory-dev | The internal AI estate directory: Genies, MCP servers, skills, folders, data tables, with usage and ROI metrics. |
+| devapi-workato | Workato-hosted MCP endpoint, installed and connected; purpose not yet documented. |
 | workato-kb | The local RAG++ knowledge base server over roughly 25k documents with hybrid retrieval and citations. |
 | brain | The harness's own gossip bus, claim ledger, dream reports, and knowledge-tree read APIs. |
-| fireworks-websearch | Web search and fetch. |
-| slack-native | Slack's first-party MCP (installed; auth compatibility issue in this environment). |
 | seismic-dev | Seismic MCP (installed; requires OAuth). |
+| company-brain | Internal company-knowledge MCP (installed; requires OAuth). |
 
 Platform note for in-platform MCP servers: a served tool exists only while
 its backing recipe is running — stopping a recipe silently removes its tool

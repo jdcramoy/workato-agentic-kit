@@ -63,7 +63,7 @@ architecture):
   re-creates itself before the 7-day auto-expiry lapses (recurring native
   tasks die after 7 days — this is the workaround). **Persists to the
   PROJECT's `.claude/scheduled_tasks.json`**
-  (`~/Documents/workbench/.claude/scheduled_tasks.json`), NOT
+  (`/Users/YOUR-USER/Documents/workbench/.claude/scheduled_tasks.json`), NOT
   `~/.claude/scheduled_tasks.json` — the first gardener run misread the home
   copy as evidence the schedule was missing.
 

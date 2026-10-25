@@ -37,6 +37,7 @@ HOME = os.path.expanduser("~")
 K = os.path.join(HOME, ".claude", "knowledge")
 QUEUE = os.environ.get("TRIAGE_QUEUE", os.path.join(K, "triage", "queue.jsonl"))
 OUTCOMES = os.environ.get("TRIAGE_OUTCOMES", os.path.join(K, "garden-reports", "triage-outcomes.jsonl"))
+VERDICT_REASONS = os.path.join(K, "triage", "verdict-reasons.jsonl")
 MC_LOG = os.path.join(K, "mission-control", "events.jsonl")
 MC_SCRIPT = os.path.join(K, "scripts", "mission-control.py")
 
@@ -230,6 +231,25 @@ def main():
         open_rows = [r for r in rows if r.get("status") == "open"]
         if not open_rows:
             print("triage queue: nothing open.")
+        # 2026-10-23 (jev-replica): every open card carries its assembled
+        # STATE block (lane semantics, prior decisions, sibling verdicts,
+        # ticket coverage, age) — triage-state.py, as_of=now. Failure here
+        # must never wedge the queue: degrade to a one-line note.
+        TS = None
+        if os.environ.get("TRIAGE_STATE", "on") != "off":
+            try:
+                import importlib.util
+                _spec = importlib.util.spec_from_file_location(
+                    "triage_state",
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "triage-state.py"))
+                TS = importlib.util.module_from_spec(_spec)
+                _spec.loader.exec_module(TS)
+                ts_idx = TS.build_index(rows)
+                ts_now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            except Exception as e:
+                TS = None
+                print(f"NOTE: state assembly unavailable ({e})", file=sys.stderr)
         for r in open_rows:
             age = ((dt.date.today() - dt.date.fromisoformat(r["ts"][:10])).days
                    if r.get("ts") else 0)
@@ -238,15 +258,34 @@ def main():
             print(f"[{r.get('kind','?')}{'/' + urg if urg else ''}] {r['slug']} "
                   f"(age {age}d, {r.get('points','?')}pts, source {r.get('source','?')}{jira}): "
                   f"{r.get('title','')} | {r.get('work','')}")
+            if TS:
+                try:
+                    st = TS.state_block(r["slug"], r, ts_idx, as_of=ts_now)
+                    for ln in TS.render_compact(st).splitlines():
+                        print(f"    {ln}")
+                except Exception as e:
+                    print(f"    STATE: unavailable ({str(e)[:100]})")
         print(f"queue: {len(open_rows)} open / {len(rows)} total at {QUEUE}")
         return
-    # flags: --jira KEY may appear anywhere after the action
+    # flags: --jira KEY / --reason CODE may appear anywhere after the action
     jira = ""
     if "--jira" in args:
         i = args.index("--jira")
         if i + 1 >= len(args):
             sys.exit("--jira needs a value")
         jira = args[i + 1]
+        args = args[:i] + args[i + 2:]
+    # 2026-10-24 (jev-replica lever 3): reason codes turn verdicts into
+    # explanations. The recording agent infers the code from Josh's note when
+    # he doesn't state one — zero extra taps for him, structured corpus for
+    # the judge. Canonical codes below; unknown codes pass through tagged.
+    reason = ""
+    if "--reason" in args:
+        i = args.index("--reason")
+        if i + 1 >= len(args):
+            sys.exit("--reason needs a value (stale|covered|not-mine|done|"
+                     "not-valuable|valuable|cheap-win|blocks-other|other)")
+        reason = args[i + 1]
         args = args[:i] + args[i + 2:]
     if len(args) < 2 or args[1] not in FM:
         sys.exit(__doc__)
@@ -291,6 +330,15 @@ def main():
         row["note"] = note
     save(rows)
     log_outcome(row, FM[action], note, jira)
+    if reason:
+        REASONS = {"stale", "covered", "not-mine", "done", "not-valuable",
+                   "valuable", "cheap-win", "blocks-other", "other"}
+        atomic_append(VERDICT_REASONS,
+                      {"ts": now, "slug": row["slug"], "action": FM[action],
+                       "reason": reason, "note": note or "",
+                       "reason_source": "explicit" if reason in REASONS
+                       else "freeform",
+                       "by": "josh (triage-decide)"})
     if row["slug"].startswith("mc-"):
         mc_write_back(row["slug"][3:], action, note)
     line = f"logged: {row['slug']} -> {FM[action]}"

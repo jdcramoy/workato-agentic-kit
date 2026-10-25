@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""DEPRECATED FOR CREATION (Josh, 2026-10-24): API-built manifests produce
+dependency rows the RLM editor resolves as "Not found" (stamped
+state:"deleted" at save) and package exports that hang in "working"
+forever - re-proven six times in the BSYS-29719/29908 rounds. CREATE
+MANIFESTS IN THE UI ONLY: RLM > New manifest, anchored at the system
+folder (or project), whole tree included, ONLY session-edited assets
+selected. This script remains for its read-only helpers (asset-listing
+shape, mirror writer) until retired.
+"""
+
 """create_manifest.py — Workato export-manifest creation done RIGHT (Josh's algorithm).
 
 Standing-order doctrine (2026-10-15, after three manifest-path failures):

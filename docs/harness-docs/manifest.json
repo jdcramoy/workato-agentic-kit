@@ -2,7 +2,7 @@
   "space_key": "BTI",
   "space_name": "[External] BT-Business Technology",
   "parent_page_id": "2938830860",
-  "last_synced_commit": "63a5365",
+  "last_synced_commit": "38c3087",
   "sync_schedule": "nightly session-cron, daily 06:57, self-rearming (was weekly Tuesday; Josh 2026-10-15: nightly to document new functionality as it lands)",
   "policy": {
     "updates_to_existing_pages": "autonomous (sanitized content only, read-back required)",
@@ -29,7 +29,7 @@
       "file": "03-mods.md",
       "page_id": "2939060252",
       "title": "Enforcement mods: rules as code",
-      "version": 5
+      "version": 6
     },
     {
       "file": "04-knowledge.md",
@@ -72,8 +72,9 @@
     {
       "file": "11-capabilities.md",
       "page_id": "2956034461",
-      "title": "The capability catalog: agents, skills, commands, and servers"
+      "title": "The capability catalog: agents, skills, commands, and servers",
+      "version": 5
     }
   ],
-  "last_synced_date": "2026-10-22"
+  "last_synced_date": "2026-10-24"
 }
