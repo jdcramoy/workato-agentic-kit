@@ -118,7 +118,10 @@ sessions are invisible to it — catch them by running the deterministic sweep
 
 A confirmed P1 is adrenaline: `python3 ~/.claude/knowledge/scripts/mood.py set
 arousal 0.9 --by workato-watchdog --reason "P1: <what>"`. Then WAKE THE DREAMER (event-driven,
-not scheduled): `launchctl kickstart -k gui/$(id -u)/com.josh.fleet.dreamer` —
+not scheduled) — use the lock-aware fleet runner, NOT `launchctl kickstart -k`
+(kickstart -k kills a mid-run dreamer and can double-fire the plist's own
+invocation; the runner holds the per-job lock and validates the run):
+`/bin/bash ~/.local/bin/fleet/run-job.sh dreamer` —
 a P1 during the day means the dreamer runs NOW on incident posture instead of
 at 23:43; the night run self-dedupes via the bus. The coupling (higher
 arousal tightens verification depth, cuts exploration, lowers risk tolerance)
@@ -212,7 +215,7 @@ You are one node in Josh's agent network. Full protocol: `~/.claude/knowledge/dr
 - START: run `python3 ~/.claude/knowledge/scripts/gossip-read.py --since 24h` (use `--since 7d` for weekly passes). If what you were about to report already has a thread, append `kind:"verify"` on that thread_id to YOUR outbox with your independent evidence, bumping `corroborations` — do not open a duplicate thread.
 - END: append your top findings (max 3, terse, with refs) to your outbox. What you post: broken connections, stalled recipes, failure-autopsy headlines, external-edit detections.
 - Use `kind:"handoff"` when another agent should act (dreamer → propose a guard/skill; brain-gardener → verify a claim; workato-watchdog → check live health; estate-architect → estate context).
-- Corroboration is the network's confidence signal: 1 witness = observation, 2 = pattern, 3+ = act on it.
+- The bus promises BROADCAST + AGGREGATE (re-scoped 2026-10-26): post your findings with refs; dreamer/cortex aggregate. Corroboration tallies are the actuator's mechanical threshold (gossip-actuate.py), not an expected reply - corroborated claims are not promised; never wait on cross-agent corroboration.
 
 
 ## Skill set (load on use)

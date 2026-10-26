@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.josh.fleet.stop-guard-82872520</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/joshcramoy/.local/bin/fleet/run-job.sh</string>
+    <string>stop-guard-82872520</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Minute</key><integer>52</integer></dict>
+  <key>StandardOutputPath</key><string>/Users/joshcramoy/.local/state/fleet/stop-guard-82872520.launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/joshcramoy/.local/state/fleet/stop-guard-82872520.launchd.log</string>
+</dict></plist>

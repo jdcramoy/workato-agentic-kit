@@ -1,0 +1,80 @@
+#!/bin/bash
+# stop-guard-82872520 — watcher-lane auto-restart for prod recipe 82872520
+# (https://app.workato.com/recipes/82872520 — "GSlidesMCP | Append Guidance").
+#
+# WHY: the recipe stopped 8 times in 14 days (triage mc-escalation-82872520,
+# 2026-10-26, Josh-approved); manual restarts were not holding. An MCP server
+# serves a tool ONLY while its backing recipe is RUNNING, so every silent stop
+# takes the GSlides guidance tools down with it. This guard is HARNESS-SIDE
+# ONLY — it never edits the prod recipe; it detects the stopped state and
+# restarts it, then logs what it did.
+#
+# Pattern: zero-LLM fleet script job (CLAUDE_JOB=no), like backup.script /
+# canary.script. Read state via `wt recipes get` (read-only); on stopped ->
+# `wt recipes start` (the one authorized prod write), verify, log. Every
+# action appends one row to the ledger below. Fails OPEN: a wt error is
+# logged as check-failed and never crashes the job (exit 0) so the runner
+# keeps heartbeating and a transient API blip cannot page anyone.
+#
+# Cap: at most CAP restarts per UTC day. Past the cap the guard logs
+# action=capped and stops restarting — a recipe that will not stay up has a
+# deeper failure that needs a human, not a restart loop.
+set -u
+
+RID=82872520
+PROFILE=josh-prod
+CAP=5
+LEDGER="$HOME/.claude/knowledge/workato-health/stop-guard-82872520.jsonl"
+ATOMIC="$HOME/.claude/knowledge/scripts/atomic_io.py"
+TS="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+TODAY="$(date -u '+%Y-%m-%d')"
+
+log_row() { # $1 = JSON object without ts/job (added here)
+  mkdir -p "$(dirname "$LEDGER")"
+  printf '{"ts":"%s","job":"stop-guard-82872520",%s}\n' "$TS" "$1" \
+    | python3 "$ATOMIC" "$LEDGER"
+  # stdout evidence line: run-job.sh validated() needs non-empty OUT — a
+  # silent script is retried and escalated as a "stub" even when it worked
+  # (proven live 2026-10-26, first run)
+  echo "stop-guard-82872520: $1"
+}
+
+state="$(wt recipes get "$RID" --profile "$PROFILE" 2>/dev/null \
+  | python3 -c 'import json,sys
+try: print(str(json.load(sys.stdin).get("running")).lower())
+except Exception: print("unknown")' 2>/dev/null)"
+
+case "$state" in
+  true)
+    log_row '"action":"ok-running"'
+    exit 0
+    ;;
+  false)
+    ;; # stopped — proceed to restart below
+  *)
+    log_row "\"action\":\"check-failed\",\"state\":\"$state\""
+    exit 0
+    ;;
+esac
+
+# count today's restarted rows (ts field matches the UTC date prefix)
+n_restarts="$(grep "\"action\":\"restarted\"" "$LEDGER" 2>/dev/null | grep -c "\"$TODAY" || true)"
+if [ "${n_restarts:-0}" -ge "$CAP" ]; then
+  log_row "\"action\":\"capped\",\"restarts_today\":$n_restarts,\"cap\":$CAP"
+  exit 0
+fi
+
+wt recipes start "$RID" --profile "$PROFILE" >/dev/null 2>&1
+rc=$?
+sleep 5
+state2="$(wt recipes get "$RID" --profile "$PROFILE" 2>/dev/null \
+  | python3 -c 'import json,sys
+try: print(str(json.load(sys.stdin).get("running")).lower())
+except Exception: print("unknown")' 2>/dev/null)"
+
+if [ "$state2" = "true" ]; then
+  log_row "\"action\":\"restarted\",\"wt_rc\":$rc,\"running_after\":true,\"restarts_today\":$((n_restarts + 1))"
+else
+  log_row "\"action\":\"restart-failed\",\"wt_rc\":$rc,\"running_after\":\"$state2\""
+fi
+exit 0
