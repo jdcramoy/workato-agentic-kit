@@ -13,7 +13,14 @@ for f in $(git diff --cached --name-only); do
   esac
 done
 # personal account identifiers in added lines (same self-exclusion)
-if git diff --cached -U0 -- . ':(exclude).githooks' | grep -E '^\+' | grep -qiE 'joshcramoy|jdcramoy'; then
+# Real-path exemption (2026-10-26, approved needs-josh verdict): absolute home
+# paths in fleet jobfiles/plists are load-bearing — plists and envs execute
+# them verbatim — so the identifier is stripped ONLY where it appears as a
+# path component (/Users/joshcramoy/... or ~/...) before the scan. A bare
+# identifier in prose, an email, or an account string still blocks.
+if git diff --cached -U0 -- . ':(exclude).githooks' | grep -E '^\+' \
+   | sed -E 's#(/Users/)?joshcramoy/[^[:space:]"<>()]*#HP#g; s#~/[^[:space:]"<>()]*#HP#g' \
+   | grep -qiE 'joshcramoy|jdcramoy'; then
   fails="$fails personal-identifier"
 fi
 if [ -n "$fails" ]; then

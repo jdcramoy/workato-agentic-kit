@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.josh.fleet.evidence</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/joshcramoy/.local/bin/fleet/run-job.sh</string>
+    <string>evidence</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>0</integer><key>Minute</key><integer>53</integer></dict>
+  <key>StandardOutPath</key><string>/Users/joshcramoy/.local/state/fleet/evidence.launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/joshcramoy/.local/state/fleet/evidence.launchd.log</string>
+</dict></plist>

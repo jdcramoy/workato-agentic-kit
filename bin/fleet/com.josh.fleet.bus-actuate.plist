@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.josh.fleet.bus-actuate</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>/Users/joshcramoy/.local/bin/fleet/run-job.sh</string>
+		<string>bus-actuate</string>
+	</array>
+	<key>StandardErrorPath</key>
+	<string>/Users/joshcramoy/.local/state/fleet/bus-actuate.launchd.log</string>
+	<key>StandardOutPath</key>
+	<string>/Users/joshcramoy/.local/state/fleet/bus-actuate.launchd.log</string>
+	<key>StartCalendarInterval</key>
+	<dict>
+		<key>Minute</key>
+		<integer>41</integer>
+	</dict>
+</dict>
+</plist>

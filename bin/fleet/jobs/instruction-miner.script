@@ -1,4 +1,4 @@
 #!/bin/bash
 # instruction-miner: nightly correction-mining for the instruction-patch loop
 python3 "$HOME/.claude/knowledge/scripts/instruction-miner.py"
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"instruction-miner\"}" | python3 ~/.claude/knowledge/scripts/atomic_io.py ~/.claude/knowledge/garden-reports/heartbeat.jsonl
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"instruction-miner\"}" | python3 /Users/joshcramoy/.claude/knowledge/scripts/atomic_io.py /Users/joshcramoy/.claude/knowledge/garden-reports/heartbeat.jsonl

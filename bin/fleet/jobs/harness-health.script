@@ -7,4 +7,4 @@ python3 "$HOME/.claude/knowledge/scripts/harness-health.py"
 # re-anchor mood.json's set_at on the current decayed posture every night —
 # without this the register froze (167h stale when caught).
 python3 "$HOME/.claude/knowledge/scripts/mood-refresh.py" >> "$HOME/.claude/knowledge/garden-reports/mood-refresh.log" 2>&1
-echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"harness-health\"}" | python3 ~/.claude/knowledge/scripts/atomic_io.py ~/.claude/knowledge/garden-reports/heartbeat.jsonl
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"harness-health\"}" | python3 /Users/joshcramoy/.claude/knowledge/scripts/atomic_io.py /Users/joshcramoy/.claude/knowledge/garden-reports/heartbeat.jsonl

@@ -61,7 +61,7 @@ FINALLY, RE-ARM: recurring scheduled tasks expire after 7 days. Before
 ending, re-create this task one week out with this same prompt
 (durable, recurring), so the job never dies silently.
 
-Hard rules: never publish un-sanitized content; never create or delete
+HARD RULE (fleet files, 2026-10-23 recurrence): NEVER copy, redact, or redeploy anything under config/fleet/ (run-job.sh, jobs/*) as part of this sync. Repo-side redaction of scripts must stay in knowledge/scripts/ doc copies only. Fleet jobfiles are executed locally and their absolute /Users/joshcramoy paths are LOAD-BEARING - a tilde-redacted copy deployed back breaks `cd "$JOB_CWD"` (unexpanded tilde in quotes) and every heartbeat write. The ONLY fleet deploy path is ~/.claude/knowledge/scripts/fleet-deploy.sh sourcing the KNOWLEDGE tree. If you notice deployed fleet files diverging from the knowledge tree, run fleet-deploy.sh --all and report it - never hand-copy from the repo. Hard rules: never publish un-sanitized content; never create or delete
 pages without Josh; never edit pages outside the manifest's page IDs;
 cite evidence (file path, git sha, page ID) for every claimed drift;
 if nothing drifted, say so, heartbeat, and stop - no churn for its own
