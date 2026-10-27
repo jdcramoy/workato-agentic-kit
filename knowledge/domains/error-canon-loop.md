@@ -1,6 +1,6 @@
 # Error canon loop — deterministic error → memory → canon reinforcement
 
-Born 2026-10-26. the operator: the error→memory→canon mechanism "still needs reinforcement" — the
+Born 2026-10-26. Josh: the error→memory→canon mechanism "still needs reinforcement" — the
 error-ledger standing order was 100% voluntary (model discipline), and the only deterministic
 layer (airo-error-guide.py) had a frozen, hand-curated signature list that never learned.
 
@@ -45,7 +45,7 @@ layer (airo-error-guide.py) had a frozen, hand-curated signature list that never
 ## Design notes
 
 - Injection-only auto-promotion is deliberate: canon guidance is advice context, never a gate,
-  so no the operator sign-off needed for the automatic tier. Lessons that imply behavior beyond retry
+  so no Josh sign-off needed for the automatic tier. Lessons that imply behavior beyond retry
   discipline belong in the knowledge tree (the dreamer/gardener promote from there).
 - Signature hygiene tradeoff: coarse (40-char) sigs merge same-class errors; the fuzzy matcher
   (0.7 overlap) patches residual token drift. Worst case of a false match is advice text.

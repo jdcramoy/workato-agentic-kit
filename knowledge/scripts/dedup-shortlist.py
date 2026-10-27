@@ -15,7 +15,7 @@ import re
 import sys
 
 KROOT = os.path.expanduser('~/.claude/knowledge')
-MEMROOT = os.path.expanduser('~/.claude/projects/-Users-<user>-Documents-workbench/memory')
+MEMROOT = os.path.expanduser('~/.claude/projects/-Users-YOUR-USER-Documents-workbench/memory')
 
 STOP = set('the a an and or of to in for on with by at from as is are was were be been it its this that these those not no'.split())
 
@@ -36,7 +36,23 @@ def harvest(root):
         if any(part in dirpath.split(os.sep) for part in (
                 'garden-reports', 'claims', 'scripts', 'workato-health',
                 'sweeps', 'skills-telemetry', 'ops-visibility',
-                'instruction-patches')):
+                'instruction-patches',
+                # Artifact-exclusion list approved 2026-10-26 (corpus-2026-10-23
+                # proposal 3 + 2026-10-22 full-garden-pass Phase G): generated
+                # artifact families that drown the dedup signal (5,259 pairs ->
+                # 1 actionable = 99.98% noise). Covers daily snapshots
+                # (calibration-report-*), append-ledgers (roi/, api-index.jsonl
+                # .prev twins), estate-snapshot dirs, predictions, regression
+                # canon snapshots.
+                'roi', 'predictions', 'workato-api', 'state-snapshots',
+                'app-snapshots', 'regression-canon', 'reports',
+                'integrity', 'chaos', 'twin', 'workato-terms')):
+            continue
+        # skip hidden/generated dirs below the tree root (.stash git-stash
+        # copies etc.) — check relpath only: absolute paths contain ~/.claude
+        rel = os.path.relpath(dirpath, root)
+        if any(part.startswith('.') for part in rel.split(os.sep)):
+            continue
             continue
         for f in files:
             if f.endswith('.md') or f.endswith('.jsonl'):

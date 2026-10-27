@@ -228,29 +228,51 @@ def replay_pass(findings):
     recipe_ids = sorted(recipe_ids)
 
     # 1. asset liveness — the ledger spans BOTH workspaces: prod recipes
-    # (readable only via --profile josh-prod) read as 404 on dev.
+    # (readable only via --profile team-prod) read as 404 on dev.
+    # Run-level abort gate (2026-10-26, sweep rec #1 after the THIRD identical
+    # all-false batch): if the FIRST 3 recipe reads all end fully-unreadable
+    # (wt rc=1 both profiles + direct API read fails), this is a machine-level
+    # transport failure — a network-down window or locked keychain in the
+    # headless launchd context fails every path at once. 100%-miss = machine
+    # failure, never N simultaneous recipe defects. Abort the run, write NO
+    # canon rows. Secondary gate: per-probe wall-clock ~= the 60s timeout is
+    # transport-shaped and is never canonized either.
+    reads = 0
+    initial_fails = 0
+    transport_invalidated = False
     for rid in recipe_ids:
+        reads += 1
+        t0 = time.monotonic()
         rc, out = wt(["recipes", "get", str(rid), "--raw"])
         profile = "dev"
         if rc != 0:
-            rc, out = wt(["recipes", "get", str(rid), "--raw", "--profile", "josh-prod"])
-            profile = "josh-prod"
+            rc, out = wt(["recipes", "get", str(rid), "--raw", "--profile", "team-prod"])
+            profile = "team-prod"
         if rc != 0:
             if "404" in out or "Not found" in out:
                 findings.append(f"info: recipe {rid} deleted since yesterday (404 both profiles)")
+                initial_fails = 0  # a clean 404 proves the transport is UP
             else:
                 # Two-tool bar: a non-404 wt failure is transport-shaped until a
                 # second read path answers — canonize only if the direct API
                 # read also fails (None), not on a lone wt rc=1 blip.
                 direct = direct_recipe_get(rid, "josh-us")
                 if direct is None:
-                    direct = direct_recipe_get(rid, "josh-prod")
+                    direct = direct_recipe_get(rid, "team-prod")
                 if direct is None:
-                    findings.append(f"asset-liveness: recipe {rid} unreadable on BOTH profiles (rc={rc}) — auth/schema problem?")
-                    canon_add(f"gym-recipe-unreadable-{rid}", rid, "harness-regression",
-                              f"replay gym: recipe {rid} unreadable on dev AND prod (non-404)")
+                    elapsed = time.monotonic() - t0
+                    if reads <= 3:
+                        initial_fails += 1
+                        if initial_fails >= 3:
+                            transport_invalidated = True
+                            findings.append(
+                                "gym invalidated: transport failure — first 3 recipe reads "
+                                f"all fully-unreadable (~{elapsed:.0f}s last probe). No canon rows written.")
+                            break
+                    findings.append(f"asset-liveness: recipe {rid} unreadable on BOTH profiles (rc={rc}, {elapsed:.0f}s) — NOT canonized (transport-shaped)")
                 else:
                     findings.append(f"info: recipe {rid} wt-unreadable (rc={rc}) but direct API read returned HTTP {direct} — transport blip, not canonized")
+                    initial_fails = 0  # transport demonstrably up
         else:
             try:
                 running = json.loads(out).get("running")
@@ -273,7 +295,8 @@ def replay_pass(findings):
     else:
         findings.append("canary-stale: command loop canary has never run")
 
-    return {"ledger_rows": len(rows), "recipe_ids": recipe_ids}
+    return {"ledger_rows": len(rows), "recipe_ids": recipe_ids,
+            "transport_invalidated": transport_invalidated}
 
 
 def main():
@@ -295,7 +318,12 @@ def main():
         f"- ledger rows in window: {stats['ledger_rows']}; recipes checked: {len(stats['recipe_ids'])}\n"
         f"- misses: {len(misses)}\n\n"
         + "\n".join(f"- {f}" for f in findings) + "\n")
-    heartbeat("replay-gym", {"misses": len(misses), "firedrill": args.firedrill})
+    heartbeat("replay-gym", {"misses": len(misses), "firedrill": args.firedrill,
+                             "transport_invalidated": stats.get("transport_invalidated", False)})
+    if stats.get("transport_invalidated"):
+        # Abort gate fired: the run is machine-invalidated. Canonize NOTHING.
+        print("gym INVALIDATED: transport failure — run aborted, no canon rows written")
+        return
     for f in misses:
         if "replay-miss" in f or "invariant-miss" in f or "canary-fail" in f:
             canon_add("gym-" + re.sub(r"[^a-z0-9]+", "-", f.lower())[:50], None,

@@ -308,6 +308,31 @@ def main() -> None:
         else:
             art = Path(job["artifact"].format(run_date=rd))
         ok, why = CHECKS[job["check"]](art, run_date)
+        if not ok:
+            # Fleet-receipt fallback (2026-10-27, after the gardener 10-24
+            # dark run escalated twice with nothing to show): run-job.sh now
+            # ALWAYS leaves garden-reports/<run-date>-fleet-receipt-<job>.md,
+            # runner-written and mechanical (same trust tier as the success
+            # heartbeat, never model self-reported). status ok -> the run
+            # validated but named its output outside the expected family
+            # (the 10-24 name-drift class): GREEN, no false escalation.
+            # Any other status -> stays RED and escalates, but the detail
+            # and bus claim carry the receipt, so the gate never again
+            # reports a silent dark run.
+            rcpt = GARDEN / f"{rd}-fleet-receipt-{job['job']}.md"
+            if rcpt.is_file():
+                rstat = ""
+                for ln in rcpt.read_text(errors="replace").splitlines():
+                    if ln.startswith("- ts:"):
+                        rstat = ln.strip()
+                        break
+                if "status: ok" in rstat:
+                    ok = True
+                    why = (f"output missing from expected family, but runner "
+                           f"receipt says ok ({rcpt.name})")
+                else:
+                    why = (f"{why}; dark run WITH dated runner receipt "
+                           f"({rcpt.name}: {rstat or 'unreadable'})")
         verdict = {
             "job": job["job"], "run_date": rd, "fire": f"{job['fire'][0]:02d}:{job['fire'][1]:02d}",
             "artifact": str(art), "fresh": ok, "detail": why,

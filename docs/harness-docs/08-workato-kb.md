@@ -12,7 +12,7 @@ The knowledge base architecture (below): the sources, the RAG++ retrieval stack,
 
 | Source | What it holds | Sync |
 | --- | --- | --- |
-| docs | All Workato product docs as raw Markdown (the site ships a first-party llms.txt with a Markdown twin per page: no scraping) | ETag conditional, nightly |
+| docs | All Workato product docs as raw Markdown (the site ships a first-party llms.txt with a Markdown twin per page: no scraping). Mirror-withdrawn guard (added 2026-10-26, after that day's docs drop): a URL gone from the TOC is a true deletion only when both the Markdown mirror and the plain HTML page are gone; a live HTML page is fetched and converted to Markdown in place, and a mirror that starts serving again is detected and revived — docs keep refreshing instead of freezing at their last mirror copy | ETag conditional, nightly |
 | changelog | Product changelog posts (WordPress underneath; the archive HTML renders client-side, so counts come from its API category) | RSS incremental |
 | blog | The Workato blog and The Connector (they share one WordPress install; both front doors serve the same collection) | API pagination |
 | inspiration | Real-world automation pattern posts | API pagination |

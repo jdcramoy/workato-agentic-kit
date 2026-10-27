@@ -32,7 +32,7 @@ pattern that made 6 agents not collide: shared schema file + hard path blocks).
   decisions → regret ledger; 21 yes / 0 no / 19 stale on first run)
 
 ## Nightly driver
-com.<user>.fleet.frontier-nightly.plist (04:43): twin → brier → radar → skill
+com.josh.fleet.frontier-nightly.plist (04:43): twin → brier → radar → skill
 fitness. Zero-LLM (no claude spawn). Canonical script in
 knowledge/config/fleet/jobs/frontier-nightly.sh; log
 ~/.local/state/fleet/frontier-nightly.log.
@@ -61,3 +61,10 @@ time and verify its hashes. Schedulers live only in schedulers.jsonl (764 ids
 not in recipes.jsonl) — stall detection must use the scheduler roster.
 Next step: wire canary signals into the real watchdog sweep for end-to-end
 latency measurement.
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Frontier stack](domains/frontier-stack.md) — the 10-idea fusion build LIVE 2026-10-11 (panel: kimi-k3+glm-5.3): Estate Twin (twin-snapshot/query.py, 6,333-recipe offline twin, staleness+prod gates), Integrity Mesh (claim-submit receipts + reconcile.py orphan/ghost diff — first run: 15/16 legacy claims orphaned), Denominator Oracle (coverage.py; build-ledger coverage 0.90), Calibration Ledger (predictions.jsonl + brier-resolve.py, 20 real predictions backfilled, first table: watchdog n=3 Brier 0.127), Precursor Radar (z>2 gates on health sweeps, honest INSUFFICIENT until 14 days), Saga Protocol (saga.py hash-chained resumable missions, tamper-proven), Standing Orders (standing-orders.py policy matcher + 3 draft policies AWAITING JOSH), Skill League (skill-fitness.py, quarantine logic fixed to failing-only), Chaos Canary (twin-local fault injection), Shadow Estate regret ledger (40 deferrals: 21 yes / 19 stale). Schemas+ownership: scripts/frontier/CONTRACTS.md. Nightly driver: com.josh.fleet.frontier-nightly.plist (04:43, zero-LLM, log at ~/.local/state/fleet/frontier-nightly.log)

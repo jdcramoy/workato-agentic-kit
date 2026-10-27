@@ -300,7 +300,7 @@ def cmd_comment(a, auth):
     if dupes:
         # self-heal: Atlassian's 2026-10-23 regression reprocesses every comment POST
         # ~3x server-side. Delete the clone rows (keep the first-created), then re-verify.
-        keep = min([str(cid)] + [str(d) for d in dupes], key=int)
+        keep = str(cid)  # keep the id OUR POST returned; delete every other row
         removed = []
         for d in dupes:
             code3, _ = http("DELETE", f"/rest/api/3/issue/{a.key}/comment/{d}", auth=auth,
@@ -313,7 +313,7 @@ def cmd_comment(a, auth):
         left = [str(c.get("id")) for c in rows4 if _body(c) == t_mine] \
             if mine is not None else []
         print(f"DUPLICATE COMMENT ROWS on {a.key} (Atlassian-side duplication from one "
-              f"POST): kept {keep}, deleted {[d for d, _ in removed]} -> "
+              f"POST): kept {keep} (returned id), deleted {[d for d, _ in removed]} -> "
               f"{'deduped to 1 row' if left == [keep] else 'RECHECK: rows with this body now ' + str(left)}")
         dupes = []  # warning handled; evidence below carries the sweep result
         evidence("dedupe", code4, key=a.key, kept=keep, deleted=removed,
@@ -457,6 +457,29 @@ def cmd_create(a, auth):
             evidence("create", code, assignee=a.assignee)
             return 1
         fields["assignee"] = {"id": ids[0]}
+    # Dedupe pre-check (born from the 2026-10-26 triplicate filing: five
+    # same-day clusters filed 2-3x byte-identical). Block on a same-project
+    # near-identical open summary unless --force-dedupe-ok.
+    if not a.force_dedupe_ok:
+        norm = lambda s: " ".join(s.lower().split())
+        want = norm(a.summary)
+        import difflib
+        jql = f'project = {a.project} AND created >= -7d AND resolution = Unresolved'
+        code, res = http("POST", "/rest/api/3/search/jql", auth=auth, payload={
+            "jql": jql, "maxResults": 100, "fields": ["summary"]})
+        if code in (200, 201):
+            for issue in (res.get("issues") or []):
+                s = norm(issue.get("fields", {}).get("summary", ""))
+                if not s:
+                    continue
+                ratio = difflib.SequenceMatcher(None, want, s).ratio()
+                if s == want or ratio >= 0.9:
+                    k = issue.get("key")
+                    print(f"DEDUPE BLOCK: {k} has a near-identical open summary "
+                          f"(similarity {ratio:.2f}): {issue.get('fields', {}).get('summary')!r}")
+                    print(f"  Link it instead, or re-run with --force-dedupe-ok to create anyway.")
+                    evidence("create-dedupe-block", code, candidate=k, similarity=round(ratio, 2))
+                    return 1
     code, res = http("POST", "/rest/api/3/issue", auth=auth, payload={"fields": fields})
     if code not in (200, 201):
         print(f"FAIL: create HTTP {code}: {json.dumps(res)[:500]}")
@@ -576,6 +599,8 @@ def main():
     s.add_argument("--points", type=int, help="story points (customfield_10057)")
     s.add_argument("--priority")
     s.add_argument("--assignee", help="email or name fragment; resolved to account id")
+    s.add_argument("--force-dedupe-ok", action="store_true",
+                   help="skip the near-identical-summary dedupe pre-check")
     s.set_defaults(fn=cmd_create)
 
     s = sub.add_parser("link", help="link two issues, e.g. Blocks/Relates/Duplicate")

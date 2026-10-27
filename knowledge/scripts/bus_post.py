@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """bus_post.py — typed messages for the gossip bus + mechanical corroboration.
 
+SCOPE NOTE (2026-10-26 re-scope): the bus's contract is broadcast + aggregate.
+Corroboration tallies are a best-effort signal consumed by the actuator's
+threshold, never an expected protocol step between agents.
+
 Prose opinions required the dreamer to READ and infer agreement; typed
 messages make corroboration a COUNT. One schema, five types:
 

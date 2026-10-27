@@ -5,7 +5,7 @@ Status: watch armed 2026-10-16, from dreamer proposal 2026-10-08-managed-agents-
 
 ## The trigger (what fires the migration)
 
-When BOTH are true, the operator ports the prod-write gate first, not the taxonomy:
+When BOTH are true, Josh ports the prod-write gate first, not the taxonomy:
 
 1. Anthropic's Managed Agents permission policies exit beta
    (https://platform.claude.com/docs/en/managed-agents/permission-policies).
@@ -24,7 +24,7 @@ a server policy does not.
 | Our enforcement (client-side, hook-enforced) | Managed Agents policy object | Deprecate at GA? |
 |---|---|---|
 | `never_auto` list in dream-config.json (skills/hooks/mods/settings/crons/mcp/commands) | equivalent: never-grant `always_allow` / disabled tool | NO. Constitutional since 2026-10-07. Re-host the LIST server-side; never delete it. |
-| Hook 13 prod-write confirm gate, fail-closed, prompts the operator (mods/workato-guardrails v1.0.0; ported 2026-10-16 to `~/.claude/hooks/prod-mcp-write-gate.py`) | `always_ask`: session pauses for approval | PORT FIRST (this gate), then deprecate the hook only after the server-side ask is live-probed on a real prod call. |
+| Hook 13 prod-write confirm gate, fail-closed, prompts Josh (mods/workato-guardrails v1.0.0; ported 2026-10-16 to `~/.claude/hooks/prod-mcp-write-gate.py`) | `always_ask`: session pauses for approval | PORT FIRST (this gate), then deprecate the hook only after the server-side ask is live-probed on a real prod call. |
 | `auto_safe_allow` (knowledge-appends, index lines, claim verification) | `always_allow` | YES, once the server list is proven on a week of real sessions. |
 | Dissenter agent + dream_math judgment | `auto`: the server evaluates each call and runs, denies, or pauses it | NO as a replacement (dissenter ruled AI-judge-as-prod-gate FATAL for bypassing constitutional enforcement); maybe YES as a belt-and-suspenders second layer. Trust-model note: `auto` moves the judgment to the vendor's server, a different party than our own dissenter. |
 
@@ -36,7 +36,7 @@ client-side rules to deprecate, in what order, and which never move.
 - The librarian's weekly procurement pass carries this as a standing beat
   (see `~/.claude/agents/librarian.md` Phase 4): fetch the permission-policies
   doc URL, diff against the two trigger conditions above, and if either
-  flipped, file a claim row and route to the operator as a decision (never auto-port).
+  flipped, file a claim row and route to Josh as a decision (never auto-port).
 - Non-librarian sessions that happen to read this doc should treat any
   observed beta-exit or MCP-coverage change as a claim-worthy finding.
 

@@ -5,7 +5,7 @@ The build that answers the dreamer's converged diagnosis (visions
 [10-18 core-of-the-system](../dreams/visions/2026-10-18-the-core-of-the-system.md),
 [10-20 kill-layer](../dreams/visions/2026-10-20-the-kill-layer.md)): the harness's bottleneck
 is the claim lifecycle — born-to-closed latency, unearned static trust, and sessions dying
-without depositing state. the operator's go: "build it all" (2026-10-23). Three zero-LLM components,
+without depositing state. Josh's go: "build it all" (2026-10-23). Three zero-LLM components,
 one squad build under `scripts/lifecycle/CONTRACTS.md` (disjoint ownership, same pattern as
 frontier/CONTRACTS.md).
 
@@ -34,12 +34,12 @@ Trust-from-data: per-(agent|surface, claim-class) evidence from the predictions 
 (per-agent Brier), decisions engine ledgers (per-surface accuracy), and proposal outcomes
 (base rates by kind/risk). Writes `autonomy/evidence.json`, `autonomy/authority.json`
 (56 classes), `autonomy/recommendations-latest.json` (envelope: `candidates[]`, 114 rows).
-Nightly via `com.<user>.fleet.autonomy-nightly.plist` (04:53, loaded 2026-10-23).
+Nightly via `com.josh.fleet.autonomy-nightly.plist` (04:53, loaded 2026-10-23).
 
 **SELF-GATING LAW:** every class is born `mode: "josh-only"`. Evidence can only set
 `eligible_mode: "recommend"` (promotion rule: n>=20 AND accuracy>=0.8 over trailing 30d).
 `auto-close` exists as a mode value but the engine contains NO code path that writes it —
-only the operator hand-editing authority.json flips a class:
+only Josh hand-editing authority.json flips a class:
 `python3 -c "import json;p='~/.claude/knowledge/autonomy/authority.json';d=json.load(open(p));d['classes']['<class>']['mode']='auto-close';json.dump(d,open(p,'w'),indent=2)"`
 The engine never mutates mission-control/proposals/claim stores — reads, scores, recommends.
 
@@ -84,3 +84,10 @@ remember-to-write. Born from 25 dropped sessions in 48h.
 - Kill-layer's smallest experiment (time one verified-kill → canonized-fix loop) remains
   UNBUILT — it was the fourth named item in the visions and is the natural next build once
   a week of latency data exists.
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Claim lifecycle layer](domains/claim-lifecycle.md) — BUILT 2026-10-23 ("build it all" on the dreamer's converged claim-lifecycle diagnosis): claim-latency.py (born-to-closed distributions across mission-control/proposals/predictions, nightly in frontier-nightly; day-1: 356 open claims median age 155h, closed TTC median <1m, bimodality INSUFFICIENT until ~10-30), autonomy.py (earned-trust engine — score/authority/recommend over predictions+decisions+proposal-outcome ledgers; 56 classes all born josh-only, evidence can only make eligible-for-recommend, auto-close is a Josh-only hand-edit; nightly 04:53 com.josh.fleet.autonomy-nightly), session-closeout.py (SessionEnd hook drafts closeouts from transcripts into mission-control/drafts/ — death-side default flipped to correct-the-draft; morning-digest surfaces pending). Contracts: scripts/lifecycle/CONTRACTS.md. Kill-layer kill→fix loop timing remains UNBUILT (next)

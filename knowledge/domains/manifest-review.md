@@ -1,6 +1,6 @@
 # Manifest review — tech-reviewing RLM export manifests (born BSYS-29510, 2026-10-12)
 
-Review procedure for Deployment Request manifests, both the operator's own and external builders'
+Review procedure for Deployment Request manifests, both Josh's own and external builders'
 (the Super Happy Friday review was the first external one). Complements the BUILD-side
 doctrine in the `manifest-hygiene` skill (dry-run before filing) — this file is the
 REVIEW-side: what to check when a manifest lands in the queue for Final Tech Review.
@@ -66,7 +66,7 @@ Learned on BSYS-29510 (24 recipes, 14 agentic skills, 6 connections, 1 MCP serve
   schemes (tl01–tl14 vs function_01/rec_00), root vs nested Functions folders —
   cosmetic, batch into one revision ask.
 
-## Comment format (the operator standard)
+## Comment format (Josh standard)
 
 Itemized comment on the ticket: **Blocking** (numbered, each with the exact asset/
 recipe names and the failure mode if imported) then **Non-blocking** (numbered,
@@ -117,3 +117,10 @@ invoke it when a Deployment Request/manifest lands for review.
 - Recipe code greps that work: `"table_id":"(\d+)"`, `call_recipe..."flow_id"`,
   `genie_handle":"gin-..."`, `webhooks.workato.com` (hard-coded source-WS webhook URLs =
   post-import remap item).
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Manifest review](domains/manifest-review.md) — REVIEW-side RLM manifest audit (complement to the manifest-hygiene build-side dry-run) + skill: born BSYS-29510 (Super Happy Friday, 2026-10-12). Two postures (live-verify vs unverifiable=FAIL); locate-by-manifest-id first (`wt api GET /api/export_manifests/<id>.json` → project_path — projects paginate past 100, absence from a project list ≠ absence from workspace); CHEAP connector-closure via per-recipe `applications` array (no code pulls); JOSH RULING: connection-promotion rules are OURS not global — zero-connection-assets binds OUR manifests only, external reviews check connection CLOSURE both directions (BSYS-29510 shipped 6 connections, missing the Salesforce one 7 recipes call); properties-file travel + suspicious-absence scan (lookup/table names) + webhook remap + story/package-id pairing; comment format Blocking/Non-Blocking

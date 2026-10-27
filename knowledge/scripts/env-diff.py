@@ -511,7 +511,7 @@ def md_report(res, scope, generated_at):
     def sec(title, entries, render):
         L.append("## %s (%d)" % (title, len(entries)))
         if not entries:
-            L.append("_none_", "")
+            L.append("_none_")
             L.append("")
             return
         for e in entries:

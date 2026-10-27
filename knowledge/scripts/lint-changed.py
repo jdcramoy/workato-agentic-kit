@@ -47,6 +47,30 @@ def insertion_clobber(old_string: str, new_string: str):
     )
 
 
+# Edit-anchor readback class (hooks/edit-anchor-readback.py, folded in 2026-10-26
+# per the harness-linting verdict: one lint, not a 14th hook). Warn-only, WARN
+# level like insertion_clobber: an Edit whose old_string STARTS at a definition
+# line but whose new_string no longer contains that definition line is the
+# insertion-clobber signature (instances f38d9d11 / f7acbe35) — a legitimate
+# rewrite keeps the line and stays silent.
+DEF_TOKENS = ("def ", "lambda ", "class ", "function ")
+
+
+def edit_anchor(old_string: str, new_string: str):
+    """WARN if the Edit's first anchor line is a definition line that new_string drops."""
+    first = old_string.strip().splitlines()[0].strip() if old_string.strip() else ""
+    if not first.startswith(DEF_TOKENS):
+        return None
+    if first in new_string:
+        return None  # definition survives: clean insertion or compatible rewrite
+    return (
+        f"EDIT-ANCHOR WARNING: this Edit's old_string starts at a definition line "
+        f"({first[:80]}) but new_string no longer contains it. If this edit was meant "
+        f"as an INSERTION above the definition, it will clobber the def and orphan its "
+        f"body. Check the anchor before running."
+    )
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -59,6 +83,9 @@ def main():
     old, new = tool_input.get("old_string"), tool_input.get("new_string")
     if isinstance(old, str) and isinstance(new, str):
         w = insertion_clobber(old, new)
+        if w:
+            warnings.append(w)
+        w = edit_anchor(old, new)
         if w:
             warnings.append(w)
     if not path or not os.path.isfile(path):

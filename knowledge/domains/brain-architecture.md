@@ -7,7 +7,7 @@ job (health checks, dedup, claims); THIS file governs shape — size,
 modularity, indexes, frontmatter, routing surfaces.
 
 Sources: Anthropic's Claude Code docs (memory/CLAUDE.md conventions,
-skill authoring, agent definitions), the operator's house patterns (INDEX.md
+skill authoring, agent definitions), Josh's house patterns (INDEX.md
 router, thin MEMORY.md, claims ledger). Grounded 2026-10-07.
 
 ## Size budgets (house defaults)
@@ -86,7 +86,7 @@ stay whole is fine. A file 2× over is always a finding.
 ### Agent files (`~/.claude/agents/*.md`)
 
 - Same routing-surface rule for `description`: name the invocation
-  triggers ("use when the operator asks to...", "use PROACTIVELY on a schedule").
+  triggers ("use when Josh asks to...", "use PROACTIVELY on a schedule").
 - The agent file holds role + procedure skeleton; lookup-heavy content
   (checklists, catalogs, glossaries) goes in a knowledge file the agent
   loads on use — the agent file should survive being read fresh every run
@@ -153,7 +153,7 @@ NOT the storage layer. For the projection to be clean, authored memory must:
 
 Cutover rule (if/when fractal.db becomes a write target): full git tag +
 DB backup first, projections verified against sources row-for-row, and the
-cutover is a the operator decision, not a gardener or dreamer decision.
+cutover is a Josh decision, not a gardener or dreamer decision.
 
 ## Related (KB bridges)
 

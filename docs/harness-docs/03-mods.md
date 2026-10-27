@@ -22,7 +22,7 @@ automated tests cover the guardrails pair.
 | Standards injection | prompts that create Jira work | Adds the team's story standards as hidden context, read live at session start. |
 | Datapill warning | recipe pulls | Warns at the moment of exposure that DSL exports can show mapped datapills as literal sample values. |
 | Writeback nudge | every Jira or Confluence write | Reminds to re-read the artifact and confirm rendering before calling it done. |
-| Build ledger (platform) | every successful platform mutation | One JSON line per mutation: tool, server, session, recipe, folder, ticket. |
+| Build ledger (platform) | every successful platform mutation | One JSON line per mutation: tool, server, session, recipe, folder, ticket. All-9s placeholder ids are build-time artifacts, never real recipes, and are recorded as null with a pending_id marker for a later resolver to backfill (added 2026-10-27). |
 | Build ledger (CLI and browser) | CLI and browser mutations | Ledgers the paths that bypass the platform tools; a CLI start triggers a read-back that verifies the start actually took. |
 | Slash commands | user | `/guardrails` status, `/builds` ledger summary, `/promotion-ready`, `/promoted`, `/cockpit`, `/snapdiff` (recipe snapshot history). |
 | Snapshot history and cockpit | every push; on demand | After each push, pulls the fresh definition from the matching server and commits it to a local git repo, so "what changed in this recipe" is a diff. |
@@ -97,7 +97,8 @@ standing orders and the session lifecycle:
   normalized-signature event to a JSONL ledger. Repeats across sessions get
   the recorded canon lesson injected back into the session (knowledge page
   for the full loop). Known defect (logged 2026-10-26): it phantom-fires on
-  successful Agent launches; events land in the ledger pending a fix.
+  successful Agent launches; the predicate fix with regression fixtures
+  landed 2026-10-27 (fixtures: test_error_sensor_fixtures.py).
 - **the MCP health check** dropped from a multi-line report at session start
   to a single line, with the detail cached for anyone who asks. Even the
   watchdogs pay rent per token.

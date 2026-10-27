@@ -1,6 +1,6 @@
 # Orchestration Router — teams vs fanout decision engine (2026-10-15)
 
-Answers "who does this work?" without the operator deciding: **solo / fanout / pipeline / team**.
+Answers "who does this work?" without Josh deciding: **solo / fanout / pipeline / team**.
 
 Script: `~/.claude/knowledge/scripts/orchestration-router.py`
 
@@ -33,7 +33,7 @@ Script: `~/.claude/knowledge/scripts/orchestration-router.py`
 - **team** — the *process* is the product: roles, handoffs, adversarial checks, multi-turn
   grinding, shared state needing ownership.
 
-## Why not teams everywhere (the operator Q 2026-10-15)
+## Why not teams everywhere (Josh Q 2026-10-15)
 
 Direct channels bypass the verification point (corroboration ≠ truth — that's the evidence
 agent's whole job); persistent agents create persistent state that rots (stale claims);
@@ -58,3 +58,10 @@ Calibrated cases (E2E battery, 8/8 pass 2026-10-15): trivial lookup → solo (ha
 `sequential`); squad-build → team by score (margin 2.05); build+review → team (adversarial
 hard rule); prod hotfix → orchestrator-gated (hard rule); shared-table edits → team
 (collision hard rule); JSON mode + range validation verified.
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Orchestration router](domains/orchestration-router.md) — decision engine for solo/fanout/pipeline/team (script scripts/orchestration-router.py, built 2026-10-15): hard rules first (prod write = orchestrator-gated, adversarial = team, high-collision = team-with-ownership) then 6-feature weighted score (independence/statefulness/coordination/context-volume/collision-risk/latency); teams-vs-fanout doctrine in file (corroboration ≠ truth, persistent state rots, permission laundering, auditability); 3 calibrated cases verified

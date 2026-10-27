@@ -31,7 +31,7 @@ match by full name `mcp__<server>__<tool>`; MCP args arrive SPREAD onto `e`
 
 ## Dev loop (the one that works)
 
-1. Scaffold under a plain folder (the operator: `~/mods/<name>/`).
+1. Scaffold under a plain folder (Josh: `~/mods/<name>/`).
 2. First load with `claude -p "hi" --plugin-dir ~/mods/<name>` — this generates
    `.claude-plugin/types/claude-code/index.d.ts` (~15K lines: every event, API
    method, result shape). **Trust the generated .d.ts over web docs.**
@@ -55,7 +55,7 @@ match by full name `mcp__<server>__<tool>`; MCP args arrive SPREAD onto `e`
   process.
 - Matcher `{ tool: /^mcp__server__/ }` cleanly scopes a hook to one MCP server.
 
-## the operator's plugin: workato-guardrails (~/mods/workato-guardrails, marketplace ~/mods = "agentic-kit (mods marketplace)")
+## Josh's plugin: workato-guardrails (~/mods/workato-guardrails, marketplace ~/mods = "josh-mods")
 
 Installed user-scope 2026-10-05. **v0.8.0 2026-10-07** (37/37 tests pass) — adds
 hook 13, the prod-write confirm gate for every non-AIRO surface. Hooks in one register.js:
@@ -86,7 +86,7 @@ hook 13, the prod-write confirm gate for every non-AIRO surface. Hooks in one re
 13. **Prod-write confirm gate (2026-10-07)** — every surface, not just AIRO MCP.
    Detects prod-targeting Bash commands and holds WRITES for a confirm dialog,
    fail-closed on dismissal: `workato-prod`, `wt-prod`, `WORKATO_PROFILE=
-   josh-prod`, `--profile josh-prod`, raw http carrying the prod credential
+   team-prod`, `--profile team-prod`, raw http carrying the prod credential
    (matched by a stable identifier from the prod JWT, not the secret), and Orca
    interactions on prod urls. Reads pass through untouched. Classifiers
    `prodSurface` / `wtIsWrite` / `workatoIsWrite` parse the group+op token;
@@ -104,11 +104,11 @@ update <mod>@<marketplace>` re-records the version number after a bump.
 
 ## Rollback / removal
 
-- Disable for all sessions: `claude plugin uninstall workato-guardrails@agentic-kit (mods marketplace)`
+- Disable for all sessions: `claude plugin uninstall workato-guardrails@josh-mods`
 - Disable one session: `/plugin` → Installed → disable, or start `claude --safe-mode`
-- Full removal: uninstall + `claude plugin marketplace remove agentic-kit (mods marketplace)` +
+- Full removal: uninstall + `claude plugin marketplace remove josh-mods` +
   delete `~/mods/` (plugin, marketplace, tests all live there; installed cache
-  at ~/.claude/plugins/cache/agentic-kit (mods marketplace)/ disappears with uninstall)
+  at ~/.claude/plugins/cache/josh-mods/ disappears with uninstall)
 - Nuke switch: `"disableAllHooks": true` in ~/.claude/settings.json stops all
   mods + settings hooks (plugin's skills/commands still load)
 
@@ -119,7 +119,7 @@ update <mod>@<marketplace>` re-records the version number after a bump.
   CLAUDE_CODE_BG_CLASSIFIER_MODEL, ANTHROPIC_CUSTOM_MODEL_OPTION. Gateway:
   `https://ai.preview.workato.com/anthropic`; valid model IDs in the same
   file's `availableModels` array.
-- Slot semantics (the operator, 2026-10-05): glm-5.3-flash IS the main model — keep it
+- Slot semantics (Josh, 2026-10-05): glm-5.3-flash IS the main model — keep it
   in ANTHROPIC_MODEL / SONNET / HAIKU / SUBAGENT / BG_CLASSIFIER; kimi-k3 stays
   on OPUS/FABLE. ANTHROPIC_CUSTOM_MODEL_OPTION is the slot for trying an
   ALTERNATE model without displacing the main one. Current alternate (since
@@ -149,7 +149,7 @@ update <mod>@<marketplace>` re-records the version number after a bump.
   vertex_global/ (Gemini). It is a STATIC list — it includes models that are not
   deployed (e.g. fireworks/deepseek-v4-pro), so catalog presence is NOT proof of
   serving. Always ping /anthropic/v1/messages before trusting an ID.
-- Full sweep of the operator's availableModels (2026-10-05): WORKS = baseten/kimi-k3,
+- Full sweep of Josh's availableModels (2026-10-05): WORKS = baseten/kimi-k3,
   nebius/kimi-k3, fireworks/kimi-k3, baseten/deepseek-v4-pro,
   baseten/deepseek-v4-flash, baseten/glm-5.2, baseten/glm-5.2-fast,
   nebius/deepseek-v4-pro, nebius/glm-5.2, nebius/minimax-m3,
@@ -159,7 +159,7 @@ update <mod>@<marketplace>` re-records the version number after a bump.
   fireworks/deepseek-v4-flash, fireworks/glm-5.2. NOT IN CATALOG AT ALL =
   baseten/inkling, baseten/inkling-small (stale entries in settings).
 - Provider matters: deepseek-v4-pro serves via baseten/ and nebius/ but NOT
-  via fireworks/. If the operator wants pro-tier DeepSeek, use baseten/deepseek-v4-pro.
+  via fireworks/. If Josh wants pro-tier DeepSeek, use baseten/deepseek-v4-pro.
 - `ANTHROPIC_CUSTOM_MODEL_OPTION` alone does NOT put a model in the /model
   picker — the ID must also be in the `availableModels` array (that array is
   what the picker renders).
@@ -214,7 +214,7 @@ wt in ~/.local/bin with a PATH check.
   clobbers an env-provided KIT_HOME when install.sh sources it — a "sandbox"
   KIT_HOME env var silently loses and the install renders into the LIVE
   harness. Fix: config files use `: "${KIT_HOME:=${HOME}}"` (env wins).
-- RULE (the operator, after the incident): before any install-like test, PRINT the
+- RULE (Josh, after the incident): before any install-like test, PRINT the
   destination paths and verify them against the live harness BEFORE writing;
   a sandbox is verified-isolated, never assumed-isolated.
 - Second trap in the same event: a "restore" of a config file from a tmp
@@ -224,14 +224,14 @@ wt in ~/.local/bin with a PATH check.
   so BACKUP_REPO_URL is always present; verified bare run pushes.
 - onboard.sh: interactive questionnaire (validating answers, EOF-safe,
   3-strike cap, env-respecting KIT_HOME); install.sh runs it when config.sh
-  is missing and stdin is a TTY; example config no longer ships the operator's real
+  is missing and stdin is a TTY; example config no longer ships Josh's real
   workspace IDs.
 
 ## Kit CX round (2026-10-07 night)
 
 - verify.sh: 32-check doctor (prereqs, config, bins, LIVE dev+prod identity
   vs config, mods, knowledge+git, dreamer mode, bus outboxes, agents,
-  skills, MCP health, crons, backup) — 32/32 pass on the operator's machine. Two
+  skills, MCP health, crons, backup) — 32/32 pass on Josh's machine. Two
   gotchas baked in as fixes: `claude mcp list` is CWD-SENSITIVE
   (project-scoped servers only visible from the project dir — verify.sh cd's
   to PROJECT_PATH) and nested health checks are flaky (one retry).
@@ -275,10 +275,10 @@ pushd, precmd_functions, unsetopt AUTO_PUSHD).
   clear (goal/scope/done-criteria, no open directional choice) = bypass and
   proceed; anything directionally unclear = grill. Grill = self-answer every
   repo/docs/ticket/tool-answerable question first (cite sources), then ask
-  the operator only true judgment calls in ONE batched round, each with a recommended
+  Josh only true judgment calls in ONE batched round, each with a recommended
   answer. No drip-feeding, no silent directional defaults.
 - Why this shape: the two roundups' baseline failure mode is "agent charges
-  ahead on wrong assumptions OR asks open-ended questions that force the operator to
+  ahead on wrong assumptions OR asks open-ended questions that force Josh to
   write paragraphs." The recommended-answer contract makes the reply one word.
 - Tested per writing-skills TDD: 2 baseline vs 2 with-skill arms on the same
   vague scenario ("make the nightly report faster"). Baselines mined first
@@ -293,9 +293,9 @@ pushd, precmd_functions, unsetopt AUTO_PUSHD).
 ## Insights report analysis (2026-10-08, /insights over 107 sessions/3 months)
 
 Friction data: buggy generated code 78x (dominant), wrong approach 39x,
-premature claims recurring — yet 90%+ outcomes. the operator's challenger behavior
+premature claims recurring — yet 90%+ outcomes. Josh's challenger behavior
 is the conversion mechanism; the goal is moving that verification cost from
-the operator into the harness.
+Josh into the harness.
 
 Already institutionalized (report's suggestions, don't rebuild): Verification
 Rules in CLAUDE.md, Orca-not-Playwright rule, headless fleet (launchd, not
@@ -321,7 +321,7 @@ ACCEPTED proposal) covers the report's "test-gated recipe rewrites" +
 golden-fixture ideas; loadout job already fixes the "abrupt session starts"
 half-landed-work friction.
 
-the operator habit notes (keep): challenger stance is the highest-leverage habit in
+Josh habit notes (keep): challenger stance is the highest-leverage habit in
 the dataset; multi-part directives are fine (outcomes 90%+); mid-flight
 course-corrections (Playwright→Orca) should keep happening; abandoned
 low-stakes threads are healthy priority gating, not a defect.
@@ -339,7 +339,7 @@ low-stakes threads are healthy priority gating, not a defect.
 - **/cockpit full dashboard verified by real render** (headless Chrome
   screenshot): the 03:22 styling pass produced a clean, fully-styled page —
   the twice-flagged "looks terrible / see no html" complaint predates it
-  and was never verified back to the operator; the full-page dashboard is GOOD as
+  and was never verified back to Josh; the full-page dashboard is GOOD as
   of 2026-10-08. Bare /cockpit pane is text-by-design with a tested
   fallback (headless/VS Code).
 - Real render defect found+fixed in brain-dashboard.py: Fleet table's
@@ -442,7 +442,7 @@ check_a6 (line 162) → nightly gym run NameErrors; untouched.
   status=open re-files; closure rows pass through. Lesson: when tightening a
   recorder's dedupe, enumerate EVERY row-shape the append path is load-bearing
   for before gating it.
-- **Plist without a job def = silent nightly exit 1**: com.<user>.fleet.evidence
+- **Plist without a job def = silent nightly exit 1**: com.josh.fleet.evidence
   was installed (daily 00:53) before jobs/evidence.env+prompt existed; runner
   died at `source "$JOB.env"` then `JOB_CWD: unbound variable` (set -u) AFTER
   echoing "start", so logs look alive while claude never launches. Def authored
@@ -465,25 +465,25 @@ Born from the cost analysis (reviews/harness-cost-benefit-2026-10-11.md): 26 of 
 - **Exemptions**: fleet jobs (CLAUDE_JOB=yes), non-interactive surfaces, `/budget` command to inspect state.
 - **Env knobs** (literal names, engine requirement): SESSION_BUDGET_WARN_USD (25), HARD_USD (60), WARN_CTX_PCT (60), HARD_CTX_PCT (85), CLOSEOUT_LEDGER, SESSION_BUDGET_FORCE=warn|hard|off (simulation + kill switch).
 - Engine constraints learned: `$.env.get` takes LITERAL names only (no computed vars); `$`-taking helpers must be top-level `function` declarations; `$.state` needs the typed atom contract (types/index.d.ts); the TEST ENGINE implements no `$.fs` noun — closeout-pass branch untestable there, pinned as fail-closed test instead. Test kit signature is `test(name, async ($, on) => …)`, and raising a classic event needs a bottom `on('classic.Stop', () => ({}))`.
-- Installed in ~/mods/session-budget + marketplace agentic-kit (mods marketplace); dev copy in .claude/dev-mods/<session>/session-budget for hot-reload. 6/6 tests, tsc clean (borrowed ManaMargin's tsc; no system tsc).
+- Installed in ~/mods/session-budget + marketplace josh-mods; dev copy in .claude/dev-mods/<session>/session-budget for hot-reload. 6/6 tests, tsc clean (borrowed ManaMargin's tsc; no system tsc).
 
 ### brain-guard node:fs load failure — FIXED 2026-10-11
 Symptom: "hooks module did not load: cannot import node:fs". Hooks modules may import ONLY relative files + 'claude-code'. Fix: voices.json + INDEX.md reads moved to `$.fs.read` (lazy, cache-once, fail-silent), writer id moved from `process.env` to `$.env.get`. Engine sandbox lessons: **`$` does not exist at register time** (no warm-up calls in register body — lazy-load in hooks); **no `process` noun in the test engine** (use `$.env.get`, the mockable noun); **no optional chaining on `$`** (validator refuses `$?.fs` — try/catch instead, it's also fail-correct: missing noun = rule stays silent). Verified: validate ✔, plugin tests 7/7, node --test 7/7, cache 0.4.1 synced.
 
 ### manifest-guard false-positive fix (2026-10-12, night)
-First-night bug: the guard regexed EVERY transcript text block, so tool RESULTS / relayed reports merely NAMING `data_table_create` counted as mutations — it blocked a fully read-only analysis session (the cost/analysis one) on the BSYS-29503 session's work. Fix: detection runs on `tool_use` records only — MCP tool NAME matched against the full AIRO-mutation list, Bash `command` against a CLI-mutation regex (`wt/workato … recipes push/import, dt create/update/delete/truncate/add-row/upsert, packages import, api PUT/POST/DELETE`); text blobs count only for the LENIENT side (manifest_seen remediation credit). 5-case proof: real MCP mutation blocks, Bash write blocks, text-mention passes, remediated passes, live session passes. Underlying gap NOT fixed: build-ledger.jsonl rows carry hand-named `session` labels, no per-Claude-session id — cross-session attribution stays impossible until the ledger writer records session_id (same class as the 2026-10-10 attribution fix; fleet-build Stop-guard applicability also unverified — `claude -p` Stop blocks make the run continue, which may be desired, the operator to rule).
+First-night bug: the guard regexed EVERY transcript text block, so tool RESULTS / relayed reports merely NAMING `data_table_create` counted as mutations — it blocked a fully read-only analysis session (the cost/analysis one) on the BSYS-29503 session's work. Fix: detection runs on `tool_use` records only — MCP tool NAME matched against the full AIRO-mutation list, Bash `command` against a CLI-mutation regex (`wt/workato … recipes push/import, dt create/update/delete/truncate/add-row/upsert, packages import, api PUT/POST/DELETE`); text blobs count only for the LENIENT side (manifest_seen remediation credit). 5-case proof: real MCP mutation blocks, Bash write blocks, text-mention passes, remediated passes, live session passes. Underlying gap NOT fixed: build-ledger.jsonl rows carry hand-named `session` labels, no per-Claude-session id — cross-session attribution stays impossible until the ledger writer records session_id (same class as the 2026-10-10 attribution fix; fleet-build Stop-guard applicability also unverified — `claude -p` Stop blocks make the run continue, which may be desired, Josh to rule).
 
 ### session-budget cost-source fix (2026-10-12, night — the $85-vs-$3.39 bug)
-First live session caught it: the band showed $85.03 where the operator's status line showed $3.39. Two wrongs in `$.session.usage().cost.usd`: (1) it prices every call against ANTHROPIC's list — on the Fireworks gateway that's a number nobody is ever billed (the fireconnect statusline's own header documents this); (2) for a resumed session it sums the whole lineage since first launch. Fix: the mod spawns the statusline's own exported helper — `node -e "import('.../fireconnect/.../statusline.mjs').then(m => m.claudeStatusLineUsage(argv))"` via `$.process.run` (array-form args, no shell quoting; dynamic import is legal in a SPAWNED child, only banned in module source) — Fireworks list rates per actual model, cache-adjusted, parent+subagents, keyed on transcript_path (captured at classic.SessionStart/Stop; band caches 30s). Thresholds realigned to the statusline's: warn $25 / hard $50. Live probe: `{"cost":3.53,"cachePct":"89%"}` on this session. Fail-soft: helper failure = cost n/a, ctx-% gating still works. LAW: on a third-party gateway, NEVER trust the engine's cost ledger for budget logic — recompute from the transcript with the gateway's rates, from one shared helper, never a mod-local pricing table.
+First live session caught it: the band showed $85.03 where Josh's status line showed $3.39. Two wrongs in `$.session.usage().cost.usd`: (1) it prices every call against ANTHROPIC's list — on the Fireworks gateway that's a number nobody is ever billed (the fireconnect statusline's own header documents this); (2) for a resumed session it sums the whole lineage since first launch. Fix: the mod spawns the statusline's own exported helper — `node -e "import('.../fireconnect/.../statusline.mjs').then(m => m.claudeStatusLineUsage(argv))"` via `$.process.run` (array-form args, no shell quoting; dynamic import is legal in a SPAWNED child, only banned in module source) — Fireworks list rates per actual model, cache-adjusted, parent+subagents, keyed on transcript_path (captured at classic.SessionStart/Stop; band caches 30s). Thresholds realigned to the statusline's: warn $25 / hard $50. Live probe: `{"cost":3.53,"cachePct":"89%"}` on this session. Fail-soft: helper failure = cost n/a, ctx-% gating still works. LAW: on a third-party gateway, NEVER trust the engine's cost ledger for budget logic — recompute from the transcript with the gateway's rates, from one shared helper, never a mod-local pricing table.
 
 ### redteam-guard false-positive fix (2026-10-12, night — round 2)
 The guard already scanned tool_use-only, but a Bash command can CONTAIN prose: a knowledge-deposit heredoc documenting the mutation patterns matched `\bworkato\b[^\n]*packages? import` mid-line and blocked a write-free session. Fix in BOTH guards (redteam + manifest): segment the command on newlines/&&/;/|, strip sudo/env prefixes, and require the prod/dev binary to be the segment's actual first WORD before checking mutation verbs — prose mentions can't match. Proof: heredoc-documents-patterns passes both guards; `wt-prod recipes push` blocks redteam; `wt manifests import` blocks redteam (division of labor: manifest-guard = dev hygiene, redteam-guard = prod-bound); both pass this session's live transcript.
 
 ### session-budget $n/a fix + statusline alert-source fix (2026-10-12, night — round 3)
-Second live-session failure: band showed `session $n/a` because the mod loaded MID-session — classic.SessionStart had fired long before, lastTranscript was empty until a Stop fired, so fireworksCost returned null. Fix: the spawned node helper now DERIVES the transcript itself when the path is empty (newest .jsonl by mtime in ~/.claude/projects/<cwd-slug>/ — the live session's file is appended every turn); live probe: derived this session's transcript, cost $3.96 (statusline showed $3.9070). LAW: any session-scoped mod must not depend on SessionStart having fired before it loaded — mid-load is the normal case for hot-reload. Same night, the operator's statusline had the inverse bug: its `cost ALERT: $98 >= $50` segment keyed on cost.total_cost_usd (Anthropic-list + lineage-summed) while the rendered figure was Fireworks-accurate — fireCostAlerts now takes the computed claudeStatusLineUsage cost and NEVER falls back to total_cost_usd (no accurate figure = no alert). Live probe with poisoned payload (total_cost_usd: 98): renders $4.0042, no false ALERT.
+Second live-session failure: band showed `session $n/a` because the mod loaded MID-session — classic.SessionStart had fired long before, lastTranscript was empty until a Stop fired, so fireworksCost returned null. Fix: the spawned node helper now DERIVES the transcript itself when the path is empty (newest .jsonl by mtime in ~/.claude/projects/<cwd-slug>/ — the live session's file is appended every turn); live probe: derived this session's transcript, cost $3.96 (statusline showed $3.9070). LAW: any session-scoped mod must not depend on SessionStart having fired before it loaded — mid-load is the normal case for hot-reload. Same night, Josh's statusline had the inverse bug: its `cost ALERT: $98 >= $50` segment keyed on cost.total_cost_usd (Anthropic-list + lineage-summed) while the rendered figure was Fireworks-accurate — fireCostAlerts now takes the computed claudeStatusLineUsage cost and NEVER falls back to total_cost_usd (no accurate figure = no alert). Live probe with poisoned payload (total_cost_usd: 98): renders $4.0042, no false ALERT.
 
 ### /reload-session slash command (2026-10-14)
-Personal slash command at `~/.claude/commands/reload-session.md` (global — works in every project; no hooks, no settings.json changes). What it does: mid-session state re-absorb WITHOUT losing conversation history — one parallel batch re-reads josh-now.md (other live session), newest files in knowledge/handoffs/, MEMORY.md index, INDEX.md, `claude mcp list`, claims-sweep-latest.json; then a verdict-first DELTA report ("what changed since this session started, what to do differently"), including an honest "not refreshable" list (CLAUDE.md content, MCP tool schemas, skill list, settings hooks are baked at startup — restart or `claude --resume` to pick those up). Born: the operator lost track of a session mid-flight and wanted one command to refresh.
+Personal slash command at `~/.claude/commands/reload-session.md` (global — works in every project; no hooks, no settings.json changes). What it does: mid-session state re-absorb WITHOUT losing conversation history — one parallel batch re-reads josh-now.md (other live session), newest files in knowledge/handoffs/, MEMORY.md index, INDEX.md, `claude mcp list`, claims-sweep-latest.json; then a verdict-first DELTA report ("what changed since this session started, what to do differently"), including an honest "not refreshable" list (CLAUDE.md content, MCP tool schemas, skill list, settings hooks are baked at startup — restart or `claude --resume` to pick those up). Born: Josh lost track of a session mid-flight and wanted one command to refresh.
 
 Gotchas learned:
 - Slash commands load at session start — the session that CREATES the command can't use it until next session. The verification probe: `claude -p "/reload-session"` (headless fresh session) — proves the command file loads, parses, and executes end-to-end for ~one small session's cost. Reusable as the live-verification loop for any command file (the output follows the command's structure exactly — verdict-first sections — which is what distinguishes a loaded command from the raw string being treated as prose).
@@ -506,13 +506,13 @@ Gotchas learned:
   sweep-blocked in every export.
 - **docs:** 11-capabilities.md + 10-knowledge-getting-started.md published to
   BTI Confluence (2956034461, 2956034485); docs-sync is NIGHTLY 06:52 now
-  (cron d4b9fad7, was weekly Tue). New pages need the operator go; updates autonomous.
+  (cron d4b9fad7, was weekly Tue). New pages need Josh go; updates autonomous.
 - **publish trap:** the main session's Atlassian MCP exposes Jira tools only;
   Confluence read/publish works in HEADLESS sessions (claude -p with
   --allowedTools). Fleet-style dispatch is the publish path.
-- **history rewrite (2026-10-15, the operator-approved):** people/, voice content,
-  slack-posts.jsonl purged from all knowledge-tree history via git-filter-repo
-  (backup: /tmp/knowledge-tree-backup.bundle); knowledge-corpus reset to a
+- **history rewrite (2026-10-15, Josh-approved):** people/, voice content,
+  slack-posts.jsonl purged from all josh-knowledge history via git-filter-repo
+  (backup: /tmp/josh-knowledge-backup.bundle); knowledge-corpus reset to a
   single clean commit (leaked extract files purged; backup bundle in /tmp).
   Teammates with old clones must re-clone.
 
@@ -577,3 +577,33 @@ Gotchas learned:
   inject, once-per-session sentinel, empty-output no-op, throw = fail-open).
 - Once-per-session state needs NO /tmp sentinel: `register()` runs per
   session, so a register-scoped `let briefed = false` IS the sentinel.
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Claude Code mods](domains/claude-code-mods.md) — building/installing/rolling back Claude Code mods (v2.1.287+); Josh's workato-guardrails **v1.0.0** plugin — 15 hooks (**hook 15 push identity guard 2026-10-20: warn-only same-name live-recipe warning on recipe_builder_push, folder-scoped one-call recipe_list cached 5 min, never blocks; test engine has no $.mcp noun — warn path proven via node driver on real payloads**) (redaction, prod-write audit, story-points gate, URL linker, standards injection, status band, datapill warning, writeback nudge, push risk scorer, build ledger, recipe snapshots, **prod-write confirm gate for CLI/WT/curl/Orca**) in ~/mods via local marketplace josh-mods; 42/42 tests; JSON-escape regex trap; local marketplaces load in place; + **session-budget v0.1.0 (2026-10-11): cold-start guardrail — $/context band, warn toast, hard Stop block that forces the handoff skill + closeout row in knowledge/handoffs/session-closeouts.jsonl (env knobs + SESSION_BUDGET_FORCE kill switch; 6/6 tests; engine gotchas: literal env names, top-level function helpers, typed atoms, test engine has no $.fs)**; + **brain-guard node:fs fix (2026-10-11): hooks modules may import ONLY relative files + 'claude-code' — voices/INDEX reads via $.fs.read lazy, writer via $.env.get; $ doesn't exist at register time; no process noun in test engine**; + grill-gate skill 2026-10-07 (planning-phase grill w/ self-answer + recommended-answer contract, global CLAUDE.md rule); + insights-report analysis 2026-10-08 (4 triage findings: preflight-prod checklist, lint hook, unverified-items line, prior-art rule — verdict via /triage — ALL 4 BUILT 2026-10-08: hook13 pre-flight prompt, lint-changed.py PostToolUse hook, unverified-items rule in CLAUDE.md, prior-art sweep in grill-gate+playbook; + replay gym BUILT (gym.py, 5 nightly harness assertions, fleet job com.josh.fleet.gym 00:15); plist-shell-write-mangle investigation CLOSED 2026-10-08 (suspects cleared: brain-guard annotate-only, lint-changed read-only; canaries clean — in file); + **2026-10-10 build-ledger attribution fix: destructive AIRO mutations (data_table_delete/truncate, kb_delete, etc.) now extract asset id from tool_input pre-dispatch (extractAsset) + session env fallback → ledger rows carry asset_id/asset_field/asset_kind/tool_use_id; cache-vs-~/mods divergence caught (cache had lost the counter fix) — rule: patch ~/mods, cp to cache, `claude plugin test`, diff after plugin updates (42/42 green, in file)**; + **/reload-session global slash command (2026-10-14): one-command mid-session state re-absorb WITHOUT losing conversation history — parallel re-read of josh-now / newest handoffs / MEMORY index / INDEX.md / MCP health / claims-sweep, verdict-first delta report, honestly lists non-refreshables (CLAUDE.md, MCP tool schemas, skill list, hooks = restart-only); lives at ~/.claude/commands/reload-session.md (personal slash command, no hooks/settings changes); verified E2E via headless `claude -p "/reload-session"` probe — that probe pattern doubles as the cheap live-verification loop for any slash command**
+
+## THE `process` GLOBAL DOES NOT EXIST in the hook runtime (live-proven 2026-10-26)
+
+- Hook 16 (user-model briefing) shipped 2026-10-23 with `process.env.HOME` in
+  the prompt path. It silently never fired for 3 days — fail-open catch made a
+  dead hook indistinguishable from a quiet one. Diag instrumentation caught
+  `process is not defined` in ONE headless probe (`claude -p` fires the real
+  engine + real plugin cache — fastest live hook test there is).
+- **Fix: `await $.env.get('HOME')`** — and the mod validator forbids reading
+  `$.env` as a VALUE (no `$.env && $.env.get` guard); call it bare inside a
+  try/catch and let a missing noun fail open.
+- **Latent class swept same day:** five other `process.env.HOME` sites
+  (ledgerChurn, /builds, /cockpit full, ui.render ledger tab,
+  /promotion-ready) had been silently degrading inside their try/catches —
+  /builds would have claimed "ledger is empty" forever. All switched to
+  $.env.get, 48/48 green.
+- **Design lesson for fail-open hooks: ship a one-line diag file on first
+  activation** (stage markers + sanitized exception to /tmp), verify the first
+  live fire, then remove the diag. Fail-open without a diag channel is a
+  silent-death machine.
+- Sandbox note: the plugin test engine HAS `process` (Node) and LACKS `$.env`;
+  real engine is the reverse. Tests for env-dependent hooks must live in a
+  driver that mocks `$.env`.

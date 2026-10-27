@@ -1,6 +1,6 @@
 # Architecture maps — per-project diagram lifecycle (arch-diagram)
 
-Built 2026-10-08 (the operator's "full documentation lifecycle" idea, grill-gated:
+Built 2026-10-08 (Josh's "full documentation lifecycle" idea, grill-gated:
 4 recommendations accepted — extend project-dreamer not a 4th agent; skill
 auto-invoked by handoff; knowledge tree + Confluence home; two levels).
 
@@ -68,3 +68,10 @@ mechanically from the OMITTED header.
 - [The Workato KB: RAG++ over all documentation, and the dreaming team](../../kb-corpus/confluence/extbt/2938929237-the-workato-kb-rag-over-all-documentation-and-the-dreaming-team.md)
 - [The agents: a nervous system of specialists](../../kb-corpus/confluence/extbt/2938961981-the-agents-a-nervous-system-of-specialists.md)
 <!-- kb-bridges:end -->
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Architecture maps](domains/architecture-maps.md) — **arch-diagram skill (2026-10-08): per-project two-level mermaid architecture maps at knowledge/projects/<slug>/architecture/ (system-map + asset-graph, rendered SVGs), auto-invoked by handoff, QA'd nightly by project-dreamer §5b (drift vs dependency tracker + kb best practices); TDD-proven on HR-Genie incl. a live docs-rot catch; mermaid syntax rules (declaration line 1, tracker=nodes-not-edges) in the file**

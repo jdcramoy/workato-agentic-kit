@@ -697,12 +697,17 @@ export function register(on) {
     const result = await next(e)
     if (!result || result.deny || result.isError) return result
     const sid = String(e.session_id ?? '')
+    // All-9s ids are build-time placeholders, never real recipes: write null
+    // with a pending_id marker so a later resolver can backfill.
+    const rawRid = e.recipe_id ?? (sid ? sessionRecipes.get(sid) : null) ?? null
+    const isPlaceholder = rawRid != null && /^9{7,9}$/.test(String(rawRid))
     const entry = {
       kind: 'airo-mutation',
       tool: e.tool.replace(/^mcp__workato-airo-mcp-(server|prod)__/, ''),
       server: e.tool.indexOf('mcp-prod') !== -1 ? 'prod' : 'dev',
       session: sid || null,
-      recipe_id: e.recipe_id ?? (sid ? sessionRecipes.get(sid) : null) ?? null,
+      recipe_id: isPlaceholder ? null : rawRid,
+      ...(isPlaceholder ? { pending_id: true } : {}),
       asset_name: e.name ?? null,
       folder_id: e.folder_id ?? null,
       ticket: currentTicket,

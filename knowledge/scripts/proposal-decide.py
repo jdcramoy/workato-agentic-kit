@@ -50,9 +50,14 @@ PROPOSAL_OUTCOME_SCHEMA = {
 }
 
 
-def log_outcome(title, action, note):
+def log_outcome(title, action, note, kind=None):
+    # kind (2026-10-25, proposal-outcome-kind-field): outcome rows used to
+    # carry no kind, so by-kind acceptance rates were uncomputable. Optional —
+    # defaults to the proposal's frontmatter kind when present; no backfill.
     row = {"date": dt.date.today().isoformat(), "proposal": title,
            "action": action, "notes": note or "", "by": "josh (proposal-decide)"}
+    if kind:
+        row["kind"] = kind
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", row["date"]):
         raise ValueError(f"refused: bad date format {row['date']!r}")
     atomic_append_validated(OUTCOMES, row, PROPOSAL_OUTCOME_SCHEMA)
@@ -64,18 +69,32 @@ def main():
     if not args or args[0] in ("-h", "--help", "list"):
         os.system(f"python3 {os.path.join(HOME, '.claude', 'knowledge', 'scripts', 'proposal-pipeline.py')}")
         return
+    # optional --kind flag (2026-10-25, proposal-outcome-kind-field): explicit
+    # flag wins; otherwise the proposal's frontmatter kind is used
+    kind = None
+    if "--kind" in args:
+        i = args.index("--kind")
+        if i + 1 >= len(args):
+            sys.exit("--kind requires a value")
+        kind = args[i + 1]
+        args = args[:i] + args[i + 2:]
     if len(args) < 2 or args[1] not in ("accept", "reject", "build"):
         sys.exit(__doc__)
     slug, action = args[0], args[1]
     note = args[2] if len(args) > 2 else ""
     p = find(slug)
     title = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", os.path.basename(p)[:-3]).replace("-", " ")
+    if not kind:  # frontmatter fallback
+        m = re.search(r"^kind:\s*(.+?)\s*$", open(p, errors="replace").read(),
+                      flags=re.MULTILINE)
+        kind = m.group(1).strip("'\"") if m else None
     fm_status = "built" if action == "build" else action + ("d" if action != "reject" else "ed")
     fm_status = {"accept": "accepted", "reject": "rejected", "build": "built"}[action]
     set_status(p, fm_status)
     # outcomes schema has no bare 'rejected' enum — rejections log as rejected-false-alarm
-    log_outcome(title, "rejected-false-alarm" if action == "reject" else fm_status, note)
-    print(f"logged: {title} -> {fm_status}" + (f' ({note})' if note else ''))
+    log_outcome(title, "rejected-false-alarm" if action == "reject" else fm_status, note, kind)
+    print(f"logged: {title} -> {fm_status}" + (f' ({note})' if note else '')
+          + (f" [kind: {kind}]" if kind else " [kind: none]"))
     print("next: python3 ~/.claude/knowledge/scripts/proposal-pipeline.py")
 
 

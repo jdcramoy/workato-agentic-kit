@@ -1,6 +1,6 @@
 # Red-team gate (redteam-gate)
 
-Standing order the operator 2026-10-12: every asset promoted to production carries a
+Standing order Josh 2026-10-12: every asset promoted to production carries a
 red-team security verdict on record BEFORE the push. Hotfixes still get a
 tier-appropriate review — urgency changes the tier, never the requirement.
 
@@ -32,17 +32,17 @@ tier-appropriate review — urgency changes the tier, never the requirement.
 
 - promotion-readiness scorecard row 8 **Security-reviewed**.
 - promotion-orchestrator: refuses batches containing a FAIL-verdict asset
-  unless the operator overrides by name (override recorded in verdict file + story).
+  unless Josh overrides by name (override recorded in verdict file + story).
 - workato-development-playbook SKILL.md: standing-order section before the
   masking release gate (lifecycle phase 5).
 - `~/.claude/CLAUDE.md`: standing-order block (2026-10-12).
 
-## Design decisions (the operator, batched grill-gate round 2026-10-12)
+## Design decisions (Josh, batched grill-gate round 2026-10-12)
 
 1. Enforcement = skill + Stop-hook guard (not prompt-only).
 2. Reviewer = independent agent (builder never grades its own work).
 3. Depth = risk-tiered, not uniform.
-4. Fatal findings = block unless the operator overrides by name.
+4. Fatal findings = block unless Josh overrides by name.
 
 ## Bounds
 

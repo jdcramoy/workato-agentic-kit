@@ -135,13 +135,13 @@ for f in "${DENY_DOMAIN_FILES[@]}"; do rm -rf "$DST/domains/$f"; done
 # /Users/YOUR-USER/... -> ~/... (teammates' HOME differs; strips the personal
 # path identifier without touching knowledge). Also neutralizes the raw
 # account string when it appears standalone.
-grep -rl --exclude-dir=.git -e '/Users/YOUR-USER' -e '<user>' -e '<user>' "$DST" 2>/dev/null | while read -r f; do
+grep -rl --exclude-dir=.git -e '/Users/YOUR-USER' -e 'YOUR-USER' -e '<user>' "$DST" 2>/dev/null | while read -r f; do
   python3 -c "
 import sys
 p = sys.argv[1]
 t = open(p).read()
 t = t.replace('/Users/YOUR-USER', '~')   # slash paths
-t = t.replace('<user>', '<user>')     # slugs: -Users-<user>-Documents-...
+t = t.replace('YOUR-USER', '<user>')     # slugs: -Users-YOUR-USER-Documents-...
 t = t.replace('<user>', '<user>')       # github account name
 open(p, 'w').write(t)
 " "$f"
@@ -277,7 +277,7 @@ PYREDACT
 
 # live-prod sensitive-data-access observation (audit finding 9) and the
 # compliance-key keychain pointer (finding 10) are redacted, not shipped.
-RED_NOTES=$(find "$DST" -name 'hr-genie.md' -o -name 'anthropic-compliance-api.md')
+RED_NOTES=$(find "$DST" -name 'hr-genie.md' -o -name 'anthropic-compliance-api.md' -o -name 'BTSUP-78827-claude-projects-extract.md')
 for f in $RED_NOTES; do
   python3 -c "
 import sys, re
@@ -288,6 +288,9 @@ t = re.sub(r'Phase-0 probe note[^\n]*', '[redacted: live-prod sensitive-data acc
 t = re.sub(r'sees typed overview answers[^\n]*', '', t)
 # compliance-key keychain item/account pointers
 t = re.sub(r'[Kk]eychain item name[^\n]*', '[redacted: keychain pointer]', t)
+# audit finding 10 follow-up (2026-10-27): the pointer can phrase as
+# 'stashed in the macOS keychain (`<service>` / acct `<name>`' - catch that shape too
+t = re.sub(r'stashed in the macOS keychain[^\n]*(\n\s*\([^)]*keychain[^)]*\))?', '[redacted: keychain pointer]', t)
 open(p, 'w').write(t)
 " "$f"
 done
@@ -308,7 +311,7 @@ if [ -n "$PII_HITS" ]; then
 fi
 
 # --- sweep 3: personal identifiers -------------------------------------------
-IDENT_HITS=$(grep -IrlniE --exclude-dir=.git '<user>|<user>' "$DST" 2>/dev/null || true)
+IDENT_HITS=$(grep -IrlniE --exclude-dir=.git 'YOUR-USER|<user>' "$DST" 2>/dev/null || true)
 if [ -n "$IDENT_HITS" ]; then
   echo "EXPORT FAILED: personal account identifiers found:"; echo "$IDENT_HITS"; exit 1
 fi
@@ -316,10 +319,16 @@ fi
 # --- sweep 4: email PII --------------------------------------------------------
 # Real-person emails outside the org domain fail the export. (Org-domain mail
 # is fine: the audience IS the team.)
+# ALLOWLIST: sara@acme.com — doc-example (the Workato docs' placeholder
+# address) quoted verbatim inside the models-evals eval-answer corpus
+# (answers/run-baseten_kimi-k3.md). Allowlisted 2026-10-26 per the approved
+# needs-josh verdict rather than redacting the eval source — eval answers are
+# graded verbatim, so the quoted example text must stay byte-identical.
 EMAIL_HITS=$(grep -IrhoE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' "$DST" 2>/dev/null \
   | grep -viE '@(workato\.com|example\.com|example\.org|yourcompany\.com|<domain>|users\.noreply\.github\.com)$' \
   | grep -viE '^(noreply|no-reply|donotreply|git|canary|test|tests|user|username|name|foo|bar|someone|you|your\.name|email)@' \
   | grep -viE '@[A-Za-z0-9_-]{20,}\.(md|txt|json)($|:)' \
+  | grep -viE '^sara@acme\.com$' \
   | sort -u || true)
 if [ -n "$EMAIL_HITS" ]; then
   echo "EXPORT FAILED: non-org email addresses found (PII):"; echo "$EMAIL_HITS"; exit 1

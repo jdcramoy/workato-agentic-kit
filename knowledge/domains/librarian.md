@@ -1,11 +1,11 @@
 # Librarian — domain knowledge
 
-The librarian is the operator's technical-writer/content-producer agent — the
+The librarian is Josh's technical-writer/content-producer agent — the
 first PRODUCER in the fleet (everyone else audits, mines, or watches).
 Designed and approved 2026-10-11 (brainstorming + grill-gate, all four
-directional calls settled by the operator).
+directional calls settled by Josh).
 
-## The four design rulings (the operator, 2026-10-11)
+## The four design rulings (Josh, 2026-10-11)
 
 1. **Standalone agent**, not a gardener extension. Boundary: gardener
    audits shape/truth, librarian produces content; the gardener audits
@@ -14,7 +14,7 @@ directional calls settled by the operator).
    (library docs, novel docs, position pieces) go straight to main with
    their INDEX line in the same commit. Consolidations/rewrites of
    existing files, and position pieces, go to a `librarian/YYYY-MM-DD`
-   branch for the operator to merge. Never delete or rewrite existing content
+   branch for Josh to merge. Never delete or rewrite existing content
    on main. Full git-safety procedure (stash-never-force, the
    2026-10-11 dirty-checkout incident) is mandatory before any checkout.
 3. **Procurement: consume + targeted beats.** The four existing weekly
@@ -35,8 +35,8 @@ directional calls settled by the operator).
 |---|---|---|
 | Procured external synthesis | `knowledge/library/<topic>.md` | additive → main |
 | Novel internal docs (primers, how-it-works, integration guides) | `domains/` or `projects/` per scope test | additive → main |
-| Position pieces (dissenter-collab) | `knowledge/positions/` | branch until the operator approves; file with dissent log |
-| Consolidations of existing files | rewrite on `librarian/*` branch | branch → the operator merges |
+| Position pieces (dissenter-collab) | `knowledge/positions/` | branch until Josh approves; file with dissent log |
+| Consolidations of existing files | rewrite on `librarian/*` branch | branch → Josh merges |
 
 Position-piece procedure is constitutional: draft → mandatory dissenter
 attack → revise → file WITH a "Dissent log" section carrying the
@@ -75,4 +75,11 @@ says so; that is a valid outcome.
 - Agent file: `~/.claude/agents/librarian.md` (role + procedure skeleton)
 - `domains/brain-architecture.md` — the structural rulebook every doc obeys
 - `domains/dream-loop.md` — gossip bus protocol + trust-ladder precedent
-- `domains/harness-docs.md` — external publishing stays the operator-gated
+- `domains/harness-docs.md` — external publishing stays Josh-gated
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Librarian](domains/librarian.md) — 8th agent, LIVE 2026-10-11: first PRODUCER in the fleet — technical writer + content procurement; organizes the corpus, writes novel docs (consolidations on librarian/* branches, architecture-based primers additive to main), dissenter-collab position pieces with mandatory dissent log, procures external beats (AI/business-systems/software-dev/integration) by consuming the weekly news outputs + targeted searches; write authority additive=direct/edits=branch; weekly Sun 21:37 + on-demand

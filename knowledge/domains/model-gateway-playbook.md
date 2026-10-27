@@ -2,7 +2,7 @@
 
 Source: #ai-pe-coding-agentic-models (C0BJFG4Q0QK, 144 members, Alexey's team) full-history
 sweep 2026-10-10 + live `/v1/models` pull + the pinned PoC guide + the P&E eval sheet.
-This file is the operating playbook for routing the operator's agent fleet across gateway models.
+This file is the operating playbook for routing Josh's agent fleet across gateway models.
 
 ## The gateway
 
@@ -40,17 +40,17 @@ This file is the operating playbook for routing the operator's agent fleet acros
   gateway** — poor scores, rate-limit-prone.
 - Provider ranking (guide): Fireworks primary, Baseten second, Nebius last.
 
-## the operator's rulings
+## Josh's rulings
 
-- **Sonnet slot STAYS glm-5.3-flash** (the operator, 2026-10-10): deepseek-v4-pro has no image vision
+- **Sonnet slot STAYS glm-5.3-flash** (Josh, 2026-10-10): deepseek-v4-pro has no image vision
   (gateway 400 "does not support image inputs") — dealbreaker for his workflow. Do not re-propose
-  deepseek-v4-pro for any slot the operator needs vision in.
+  deepseek-v4-pro for any slot Josh needs vision in.
 
 ## Harness configuration (proven env block, from gateway ops)
 
 ```
 ANTHROPIC_BASE_URL: https://ai.preview.workato.com/anthropic
-ANTHROPIC_AUTH_TOKEN: (the operator's key, already set)
+ANTHROPIC_AUTH_TOKEN: (Josh's key, already set)
 ANTHROPIC_DEFAULT_OPUS_MODEL:    <strong model>   # currently fireworks/kimi-k3
 ANTHROPIC_DEFAULT_SONNET_MODEL:  <worker model>   # currently fireworks/glm-5.3-flash
 ANTHROPIC_DEFAULT_HAIKU_MODEL:   <cheap model>    # currently glm-5.3-flash; evidence says deepseek-v4.1-flash
@@ -109,7 +109,7 @@ Post-fix smoke: deepseek-v4.1-flash and kimi-k3 both pass 3/3 checks.
 correctly); kimi-k3 (fireworks + baseten) = accepts image input; **deepseek-v4-pro = NO**
 (HTTP 400 "does not support multimodal" on baseten, "model mapping not found" on fireworks —
 the fireworks/ listing is stale for it; only baseten/deepseek-v4-pro routes). Only v4-pro is
-vision-less; haiku/classifier slots could move to deepseek-v4.1-flash for cost if the operator wants.
+vision-less; haiku/classifier slots could move to deepseek-v4.1-flash for cost if Josh wants.
 
 ## Phase 3 DONE (2026-10-10): role-routed agent fleet
 
@@ -130,7 +130,7 @@ Phase 4 advisory coupling achieved structurally: the dissenter now runs a DIFFER
 (kimi via baseten) than the work it reviews (main = glm-5.3-flash). Fusion-style cross-checks
 available on demand: spawn the same task to agents pinned on different models and diff.
 
-## Phase 4 invocation policy (the operator ruling 2026-10-10: SURGICAL, never default)
+## Phase 4 invocation policy (Josh ruling 2026-10-10: SURGICAL, never default)
 
 Phase 4 costs nothing at rest — the pinned agents only run when their normal triggers fire,
 and Fusion is spawn-on-demand with nothing automatic behind it. Still, the decision framework:
@@ -144,7 +144,7 @@ and Fusion is spawn-on-demand with nothing automatic behind it. Still, the decis
   hard-to-reverse or prod-facing, (2) a wrong answer costs more than ~$5 of tokens (fusion
   costs N×), (3) the failure mode is subtle — plausible-but-wrong output, not an error.
   Typical: prod hotfix plans, recipe logic with financial side effects, security-sensitive
-  changes, Jira plans the operator will approve a build from.
+  changes, Jira plans Josh will approve a build from.
 - **Never fusion for:** investigations, searches, drafts, routine dev, anything cheap to redo.
 
 **Fusion tooling (BUILT + live-smoked 2026-10-10):** skill `~/.claude/skills/fusion/SKILL.md`
@@ -189,11 +189,11 @@ Key resources: guide doc https://docs.google.com/document/d/1epMKXigphAM4XdeNBqP
   ~/.claude/cost-alerts.log + per-session state ~/.claude/cost-alerts/<sid>.json
   (fired-thresholds array; no spam). Fast/local, never blocks the render.
 - LIVE-PROVEN on first render: the real statusline payload reported THIS
-  session at $959.08 (the $68 the operator saw was a different counter) — both
+  session at $959.08 (the $68 Josh saw was a different counter) — both
   thresholds fired. Statusline cost = total_cost_usd from CC's statusline
   stdin JSON (authoritative per-session).
 
-## OFFICIAL RATE CARD (the operator 2026-10-13 — use these, not estimates)
+## OFFICIAL RATE CARD (Josh 2026-10-13 — use these, not estimates)
 
 Sources: app.fireworks.ai/models + baseten.co/library/<slug>/ (fetched live 2026-10-13; USD per 1M tokens, in / cache-hit / out):
 
@@ -212,3 +212,10 @@ Sources: app.fireworks.ai/models + baseten.co/library/<slug>/ (fetched live 2026
 - The fireconnect statusline's FIREWORKS_MODEL_SPECS table VERIFIED against the live models page — zero drift (it also auto-refreshes from the serverless catalog hourly).
 - Baseten refs now price from an official BASETEN_PRICING table in usage/pricing.mjs (basetenPriceFor checked before fireworks fallback) — the deltas that made it matter: deepseek cache-hit 0.132 vs 0.044 (3x), glm-5.3 cache-hit 0.14 vs 0.26. Live-probed 4 paths.
 - Recalibration note: kimi-k3's real blended cost at 93% cache hit ≈ 0.07×3.00 + 0.93×0.30 = $0.49/M prompt tokens + output at $15/M — the old "~$1/M" estimate was output-heavy; kimi OUTPUT is 5x glm's — batch/governance output economy matters more than prompt economy on kimi.
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Model gateway playbook](domains/model-gateway-playbook.md) — multi-model harness on Workato AI gateway (mined from #ai-pe-coding-agentic-models 2026-10-10): full model roster (326 IDs → real families kimi-k3/deepseek-v4/glm-5.3/minimax/qwen on fireworks+baseten+nebius + frontier internals), evidence-based verdicts (kimi-k3 best OSS flagship, deepseek-v4-pro best cost-eff, qwen3.8 avoid, reasoning effort > model size), proven CC env block, rr/ instability + ~30-40 per-key concurrency gotcha, Fusion/advisory coupling patterns, benchmark methodology + eval repos; **model-bench.py bench script BUILT + live-smoked (bench.jsonl ledger, --vision-probe: only deepseek-v4-pro is vision-less; --probes fixtures = canon fixtures as eval tasks w/ Ruby judge); **PHASE 3 DONE 2026-10-10: agent frontmatter model pins CONFIRMED working — evidence→v4.1-flash, watchdog→baseten/v4-pro, dissenter→baseten/kimi-k3, spec-distiller→fireworks/kimi-k3 (advisory coupling live; pins apply next session)**; **PHASE 4 TOOLING DONE: fusion skill (surgical P0 gate: prod-facing AND >$5 AND subtle-failure, never default) + fusion-run.py (N models same prompt, fusion.jsonl ledger, Agent-relay Mode B for tool tasks); live demo: both panelists caught a NaN fail-open billing bug independently**; Josh ruling: sonnet STAYS glm-5.3-flash**

@@ -18,7 +18,7 @@ connection. Detection by eye or by job success is impossible: nothing errors.
 Known instances, all dated:
 - 2026-09-11: first canonization in the airo-mcp-playbook trap table.
 - 2026-10-01 (two regressions): BSYS-26815 benefits skill; recipe 82759555.
-- 2026-10-06: the operator ruling "VERIFY, DON'T ASSUME" recorded in ~/Documents/CLAUDE.md.
+- 2026-10-06: Josh ruling "VERIFY, DON'T ASSUME" recorded in ~/Documents/CLAUDE.md.
 
 A second, related silent-revert class on the same push path: push can persist
 an empty trigger or drop steps entirely (correlator build, recorded in
@@ -44,7 +44,7 @@ recipe 82759555 (2026-10-01).
 
 ## Standing law
 
-the operator ruling 2026-10-06: the old "fixed 2026-08-20" declaration is NOT trust.
+Josh ruling 2026-10-06: the old "fixed 2026-08-20" declaration is NOT trust.
 The revert has recurred after being declared fixed. Current law: after any
 push touching an identity-sensitive skill, verify the connection mode by
 read-back; re-select only on observed drift; never skip the verify.
@@ -57,5 +57,5 @@ last verified 2026-10-09 (live probe, confirmed).
 - claims/claims.jsonl clm-001, evidence chain and verification result.
 - projects/hr-genie.md lines ~580: repair sequence + empty-trigger class.
 - airo-mcp-playbook SKILL.md trap table (2026-09-11 first canonization).
-- ~/Documents/CLAUDE.md VUA verify bullet (the operator ruling 2026-10-06).
+- ~/Documents/CLAUDE.md VUA verify bullet (Josh ruling 2026-10-06).
 - Memory: bsys-26815-benefits-skill-state.md (regression history + fix sequence).

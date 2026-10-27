@@ -25,7 +25,7 @@ from atomic_io import atomic_write_json  # noqa: E402  (json-guard shared helper
 TWIN_DIR = os.path.expanduser("~/.claude/knowledge/twin/v1")
 WT = os.path.expanduser("~/.local/bin/wt")
 PER_PAGE = 100
-PROFILES = {"dev": "josh-us", "prod": "josh-prod"}
+PROFILES = {"dev": "josh-us", "prod": "team-prod"}
 
 
 def wt_api(method, path, env):
@@ -92,7 +92,7 @@ def main():
         print("""
 ********************************************************************************
 WARNING: --env prod snapshots the LIVE PRODUCTION Workato workspace
-(profile josh-prod, workspace 3535598). This is NOT dev.
+(profile team-prod, workspace 3535598). This is NOT dev.
 Re-run with:  twin-snapshot.py --env prod --confirm
 ********************************************************************************""")
         sys.exit(1)

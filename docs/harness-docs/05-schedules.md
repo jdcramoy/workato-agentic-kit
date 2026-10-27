@@ -66,6 +66,23 @@ job without raw-log archaeology. Success writes the heartbeat mechanically,
 so the dashboard's heartbeat-first evidence ladder is enforced by the
 runner, not by the model's good manners.
 
+Three runner upgrades landed 2026-10-27 (born from the gardener's 10-24
+dark run, which executed a day late on wake and escalated twice with
+nothing on disk). First, a run-date convention: the runner derives
+`FLEET_RUN_DATE` from the plist fire time exactly like the receipts gate
+(now before the fire time means yesterday) and exports it to the spawned
+agent, so report artifacts are named by run-date instead of wall clock —
+a late-executing job no longer looks like a missing run. Second, a
+runner-written receipt: every attempt, including prelaunch death, leaves
+a dated `garden-reports/<run-date>-fleet-receipt-<job>.md` (even a
+one-line failure receipt), so the nightly receipts gate never again sees
+a silent dark run; the receipt is mechanical, same trust tier as the
+heartbeat, never model self-reported. Third, the stub retry backs off
+once before retrying (default 120 seconds, `FLEET_RETRY_BACKOFF`
+overridable; 0 restores immediate retry) with a cheap DNS probe so the
+retry outcome is attributable — the old immediate retry let one outage
+window stub three agents on two separate nights.
+
 ## The heartbeat contract
 
 Every fleet job must check in to a shared heartbeat ledger with a timestamp

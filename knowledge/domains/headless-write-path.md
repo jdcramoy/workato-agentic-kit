@@ -43,9 +43,9 @@ Consequences on record:
    ad hoc). Now written into knowledge/dreams/GOSSIP.md so it stops depending
    on whoever remembers. When a dispatch template exists in the launchers, it
    should carry the same line.
-3. the operator-side settings.json permissions.allow entry for Write/Edit scoped to
+3. Josh-side settings.json permissions.allow entry for Write/Edit scoped to
    ~/.claude/knowledge/** IF the built-in protection honors allow rules for
-   these paths on his interactive sessions. OWNER: the operator only (never_auto).
+   these paths on his interactive sessions. OWNER: Josh only (never_auto).
    Not applied.
 
 ## The rescue convention (the part that works today)

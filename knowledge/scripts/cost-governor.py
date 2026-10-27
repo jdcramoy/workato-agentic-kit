@@ -58,10 +58,20 @@ JOB_TO_CLASS = {
     "harness-backup": "backup", "backup": "backup",
 }
 DISPATCH_CLASSES = ["sweep", "lookup", "autopsy-investigation"]  # dispatchable_by_cortex
+STATE_DIR = HOME / ".local" / "state" / "cortex"  # where dispatch agents drop their logs
 
-GATE_MARKERS = [  # log-tail evidence the dispatch did NOT produce its finding
-    "was blocked", "blocked by the sensitive-file gate", "permission denied",
-    "saying the word", "not persisted", "i'll persist it",
+# log-tail evidence the dispatch did NOT produce its finding. Compiled regexes,
+# first-person-pending where the phrase is prose: a NARRATIVE mention of a gate
+# ("the 16:14 BLOCKED bus finding was superseded", "I was blocked, then worked
+# around it and persisted") is not an actual block
+# (lookup-class-failure-composition, 2026-10-26).
+GATE_MARKERS = [
+    re.compile(r"\bi (?:was|am|'m|got) blocked\b"),
+    re.compile(r"\bblocked by the sensitive-file gate\b"),
+    re.compile(r"\bpermission denied\b"),
+    re.compile(r"\bsaying the word\b"),
+    re.compile(r"\bnot (?:been )?persisted\b"),
+    re.compile(r"\bi'?ll (?:persist|save) it\b"),
 ]
 
 WINDOW_DAYS = 7  # daily governor looks at the trailing week
@@ -102,6 +112,48 @@ def find_flywheel_outcomes():
     # exclude our own known outcome ledgers (they are consumed directly below)
     named = {"triage-outcomes.jsonl", "proposal-outcomes.jsonl", "fleet-validation.jsonl"}
     return [h for h in hits if h.name not in named]
+
+
+def resolve_dispatch_log(raw):
+    """Expand a dispatch log path. Relative names resolve against the cortex
+    state dir, not the governor's CWD: dispatch agents record bare filenames
+    (e.g. `dispatch-20261020T000840Z.log`) and stat()-ing them here used to
+    miss and score size-0 = FAIL (lookup-class-failure-composition,
+    2026-10-26)."""
+    if not raw:
+        return None
+    p = Path(os.path.expanduser(raw))
+    if p.exists() or p.is_absolute():
+        return p
+    return STATE_DIR / p.name
+
+
+def investigation_persisted(task, ts):
+    """A substantive investigation file in knowledge/cortex/investigations/
+    whose name shares the task's slug (either direction, token-wise) and is
+    dated within 3 days of the dispatch means the finding was persisted even
+    when the log copy is missing (lookup-class-failure-composition,
+    2026-10-26). Returns the matching filename or None."""
+    slug_tokens = set(t for t in re.split(r"[^a-z0-9]+", str(task or "").lower()) if t)
+    if not slug_tokens:
+        return None
+    t = None
+    try:
+        t = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    except Exception:
+        pass
+    for f in (K / "cortex" / "investigations").glob("*.md"):
+        if f.stat().st_size <= 500:
+            continue
+        file_tokens = set(tok for tok in re.split(r"[^a-z0-9]+", f.stem.lower()) if tok)
+        if not (file_tokens <= slug_tokens or slug_tokens <= file_tokens):
+            continue
+        if t is not None:
+            mtime = datetime.fromtimestamp(f.stat().st_mtime, timezone.utc)
+            if abs((mtime - t).days) > 3:
+                continue
+        return f.name
+    return None
 
 
 def load_routing():
@@ -175,7 +227,7 @@ def main():
     disp_stats = {}  # class -> {n, bytes, pass, fail}
     for r in dispatches:
         cls = r.get("class", "unmapped")
-        log = Path(os.path.expanduser(r.get("log", ""))) if r.get("log") else None
+        log = resolve_dispatch_log(r.get("log", ""))
         size = log.stat().st_size if log and log.exists() else 0
         tail = ""
         if log and log.exists():
@@ -186,26 +238,31 @@ def main():
         st = disp_stats.setdefault(cls, {"n": 0, "bytes": 0, "pass": 0, "fail": 0, "gated": 0})
         st["n"] += 1
         st["bytes"] += size
-        if size == 0:
-            st["fail"] += 1  # log vanished or never written
-        elif any(m in tail for m in GATE_MARKERS):
+        if size > 0 and any(m.search(tail) for m in GATE_MARKERS):
             # The harness write gate blocked persisting the finding — the
             # investigation itself was substantive (lookup-cost-spike
             # attribution, 2026-10-12). Not a model-quality fail; excluded
             # from the pass rate until the gate gets a sanctioned channel.
-            # Sanctioned channel (2026-10-12): a bus post from cortex with the
-            # dispatch's task in the subject counts as persisted.
+            # Sanctioned channels: a bus post from cortex with the dispatch's
+            # task in the subject (2026-10-12), or a matching investigation
+            # file in knowledge/cortex/investigations/ (2026-10-26).
             task = str(r.get("task", ""))[:40].lower()
             bus_persisted = bool(task) and any(
                 task[:20] in str(b.get("subject", "")).lower()
                 for b in read_jsonl(K / "dreams" / "bus" / "cortex.jsonl")
                 if str(b.get("type", "")) == "investigation")
-            if bus_persisted:
+            if bus_persisted or investigation_persisted(r.get("task", ""), r.get("ts", "")):
                 st["pass"] += 1
             else:
                 st["gated"] += 1
-        else:
+        elif size > 0:
             st["pass"] += 1
+        elif investigation_persisted(r.get("task", ""), r.get("ts", "")):
+            # log copy vanished or was never written, but the dispatch's
+            # finding persisted as a named investigation file: delivered
+            st["pass"] += 1
+        else:
+            st["fail"] += 1  # log vanished or never written, no persisted finding
 
     # ---- outcome ledgers (consumed-findings pass signal, by keyword) --------
     triage_rows = [r for r in read_jsonl(GARDEN / "triage-outcomes.jsonl")

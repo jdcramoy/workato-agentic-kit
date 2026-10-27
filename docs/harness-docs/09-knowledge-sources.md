@@ -6,7 +6,8 @@ Everything the harness knows lives in two connected layers: a large
 retrieval corpus (everything worth looking up, indexed and searchable) and
 a small curated knowledge tree (everything worth remembering, hand-shaped
 and versioned). This page inventories both, with the live counts, and
-explains what the combination buys. Numbers are as of 2026-10-15 and are
+explains what the combination buys. Numbers are as of 2026-10-28 (knowledge-tree
+counts re-run live; corpus counts as of 2026-10-15) and are
 re-derivable from the index in one query; the nightly sync keeps them
 moving.
 
@@ -133,20 +134,21 @@ routed by a one-line-per-file index that every session reads first.
 
 | Directory | Files | What lives there |
 |---|---|---|
-| domains/ | 34 | cross-project platform knowledge |
-| projects/ | 111 | per-project state for the next session on that project |
-| scripts/ | 128 | the stdlib-only tooling fleet |
-| cortex/ | 105 | the cortex's investigations and dispatch log |
-| dreams/ | 137 | dream reports, proposal queue, trust-ladder config |
-| garden-reports/ | 114 | every agent run's report |
-| people/ | 56 | people files feeding the writing voice |
-| skills-telemetry/ | 14 | per-skill usage and fitness |
-| config/ | 14 | fleet job definitions and the model routing table |
-| instruction-patches/ | 10 | self-learning corrections to instruction files |
-| library/ | 3 | the librarian's positions and consolidations |
+| domains/ | 47 | cross-project platform knowledge |
+| projects/ | 200 | per-project state for the next session on that project |
+| scripts/ | 271 | the stdlib-only tooling fleet |
+| cortex/ | 217 | the cortex's investigations and dispatch log |
+| dreams/ | 353 | dream reports, proposal queue, trust-ladder config |
+| garden-reports/ | 365 | every agent run's report |
+| people/ | 62 | people files feeding the writing voice |
+| skills-telemetry/ | 25 | per-skill usage and fitness |
+| config/ | 150 | fleet job definitions and the model routing table |
+| instruction-patches/ | 23 | self-learning corrections to instruction files |
+| library/ | 5 | the librarian's positions and consolidations |
 | claims/, integrity/, predictions/, coverage/, sagas/, policies/, twin/, now/ | small | the integrity and governance ledgers |
 
-The 34 domain files are the tree's top layer, and they read like a map of
+(Table re-counted 2026-10-28, recursive file counts per directory.) The 47
+domain files are the tree's top layer, and they read like a map of
 what the fleet has paid to learn: the Workato and Workday platform
 behavior files, the AIRO MCP trap-adjacent operations files, the harness's
 own benchmarking, docs, dream-loop, and science-stack files, the model

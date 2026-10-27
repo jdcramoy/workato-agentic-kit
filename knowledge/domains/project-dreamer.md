@@ -1,6 +1,6 @@
 # Project Dreamer — domain knowledge
 
-The project dreamer is the 7th agent in the operator's network: the harness-dreamer's
+The project dreamer is the 7th agent in Josh's network: the harness-dreamer's
 sibling for PROJECT content. Where the harness dreamer mines sessions to
 improve the harness itself, the project dreamer mines a project's session
 history, durable memory (`knowledge/projects/<name>.md`), repo architecture
@@ -25,7 +25,7 @@ improvements, new features, better architectural solutions.
   pragmatic mine (architecture debt, repeated friction) → Mandate B
   architect's dream (features, better solutions, visions) → dissenter gate
   → report → mode-gated proposal filing with FILE-GATE).
-- **Schedule**: launchd `com.<user>.fleet.project-dreamer` → fleet
+- **Schedule**: launchd `com.josh.fleet.project-dreamer` → fleet
   `run-job.sh project-dreamer`, NIGHTLY 00:37 (after the harness dreamer's
   23:43 slot so it reads the full night's bus). Sunday runs are the deep
   pass (up to three projects, cross-project view). Job dir:
@@ -40,12 +40,12 @@ improvements, new features, better architectural solutions.
 ## Selection rule (nightly)
 
 One project per night: the most REAL recent activity (projects/*.md recency
-+ transcript activity + git recency). the operator naming a project in the prompt
++ transcript activity + git recency). Josh naming a project in the prompt
 overrides. Zero activity anywhere = two-line quiet report, no filler.
 
 ## First run
 
-2026-10-07 (the operator-built on request: "a co-pilot or dreamer agent for project
+2026-10-07 (Josh-built on request: "a co-pilot or dreamer agent for project
 content ... what this agent dreams about is actually IMPROVING ARCHITECTURE
 and suggesting new features and better architectural solutions"). Run
 on-demand before the first scheduled fire to prove the loop; first scheduled
@@ -59,3 +59,10 @@ fire is 2026-10-08 00:37.
 - [The agents: a nervous system of specialists](../../kb-corpus/confluence/extbt/2938961981-the-agents-a-nervous-system-of-specialists.md)
 - [The Workato KB: RAG++ over all documentation, and the dreaming team](../../kb-corpus/confluence/extbt/2938929237-the-workato-kb-rag-over-all-documentation-and-the-dreaming-team.md)
 <!-- kb-bridges:end -->
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [Project Dreamer](domains/project-dreamer.md) — 7th agent, LIVE 2026-10-07: nightly 00:37 architecture dreamer for PROJECTS (sibling of harness-dreamer) — mines project session history + knowledge/projects memory + repo docs + git, dreams architecture improvements / new features / better solutions; advisory-only constitutional (never edits repos), dissenter-gated proposals to the shared queue (kind: architecture|feature|vision, cap 3/night); launchd com.josh.fleet.project-dreamer, Sunday deep pass; drift-gate LIVE (scripts/drift-gate.py, kb venv: claims vs ground-truth corpus alignment, trend in garden-reports/drift-gate.jsonl — gardener Phase 2.5); **gym+canary LIVE 2026-10-09: replay-gym.py nightly 01:07 (ledger replay + invariants, fire drill Sundays via drill-row flip in 82934150 — REST code PUTs are a dead end: silent rejection/stale runtime/data stripping), command-canary.py daily 06:05 (row->watcher->bot-ack E2E proof, 31s)**

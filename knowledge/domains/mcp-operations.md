@@ -122,3 +122,10 @@ OPEN — 10 unresolved diagnostic questions, no recorded resolution).
 - [Clearing Up the Confusion: MCP ≠ Claude Code](../../kb-corpus/confluence/intbt/1805025304-clearing-up-the-confusion-mcp-claude-code.md)
 - [Remote MCP servers](../../kb-corpus/docs/en/mcp/remote-mcp-servers.md)
 <!-- kb-bridges:end -->
+
+
+<!-- demoted from INDEX.md 2026-10-25, librarian pass, branch librarian/2026-10-25. Content preserved verbatim; the INDEX line is now a routing hook. -->
+
+## INDEX line history (demoted 2026-10-25)
+
+- - [MCP operations](domains/mcp-operations.md) — MCP server/reconnect/reauth operations knowledge across clients; **claude.ai enterprise connector controls + token costs (2026-10-07): tool-search deferral, deniedMcpServers per-connector syntax, admin propagation gaps**; **claude.ai Research mode hijacks Workato MCP connector calls (2026-10-04 incident, mined 2026-10-10): Research delegation beats direct connector calls when enabled, remote-vs-local MCP decides Research invokability, read-only reproduction SOP in file; Concord 26-account investigation left OPEN**

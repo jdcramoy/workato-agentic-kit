@@ -5,7 +5,8 @@ Parent page: The Agentic Workato Harness
 Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
-against the directories it describes. Counts current as of 2026-10-18.
+against the directories it describes. Counts current as of 2026-10-28
+(2026-10-28 sync: skills 58, fleet 45, MCP servers 19 — re-counted live).
 
 ## The agents: 12
 
@@ -27,16 +28,18 @@ Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 | cortex | Hourly pulse | Attention (a ranked queue capped at 7), coherence (contradiction hunting across all surfaces), curiosity. Reads everything, mutates nothing. |
 | red-team | On demand, at promotion prep | Independent security review of assets heading to production. A FAIL blocks promotion unless the human overrides by name. |
 
-## The skills: 57
+## The skills: 58
 
 Each skill is a `SKILL.md` in `~/.claude/skills/`, a loaded-on-trigger SOP.
-54 are cataloged below in five groups; 3 are private or intentionally
+55 are cataloged below in five groups; 3 are private or intentionally
 unpublished and deliberately omitted (noted at the end).
 (2026-10-17 sync: 54 skills live, up from 52 — additions: failure-close-gate,
 wt-cookbook. 2026-10-18 re-verify: still 54 live, no additions; the catalog
 arithmetic was corrected to 51 cataloged + 3 omitted. 2026-10-24 sync: 57
 live, up from 54 — additions: workato-brand-2026, workato-custom-action-schema,
-extend-not-replace; catalog now 54 + 3 omitted, re-counted live.)
+extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
+2026-10-28 sync: 58 live, up from 57 — addition: needs-josh; catalog now
+55 + 3 omitted, re-counted live against ~/.claude/skills/.)
 
 ### Playbooks: how to drive the platform (24)
 
@@ -96,16 +99,17 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.)
 | workato-autopsy | Root-cause a failed job to the ORIGIN step, classify the failure, produce a fix-ready report. |
 | tdd-fix-loop | Failing-test-first fix loop for recipe bugs, with a 5-iteration stop rule. |
 | testcase-authoring | Author a test case that reproduces a failure class and proves the fix. |
-| jira-autotriage | The autonomous Jira identify-triage-investigate-plan loop; development stays human-gated. |
+| jira-autotriage | The autonomous Jira identify-triage-investigate-plan loop; development stays human-gated. Opens with a workspace-access precheck (`workspace_access_check.py`, added 2026-10-27) so a dead token or workspace is diagnosed before triage runs. |
 | failure-close-gate | A run may mark a finding resolved only if it updates the durable record (canon row, triage card, ledger) in the same run. |
 
-### Human interface (6)
+### Human interface (7)
 
 | Skill | Purpose |
 |---|---|
 | today | Chief of staff: the ranked daily agenda with work pre-staged. |
 | triage | Interactive approval queue for fleet-discovered findings; files and dispatches approved work. |
 | proposals | Interactive approval queue for dreamer proposals, rendered as decision cards. |
+| needs-josh | Interactive queue for open operator-decision rows (added 2026-10-26): stale-checks each ask against live evidence before asking, renders survivors as decision cards. |
 | handoff | Write a resumable handoff: state, verified vs claimed, blockers, exact next command. |
 | jira-slack-formatting | Formatting standard for every outbound tracker comment and message: verdict first, strong whitespace. |
 | jira-story-standards | Required sections and conventions for epics and stories. |
@@ -159,7 +163,7 @@ prod-write confirm gate. For deliberate batches of production work,
 hours): the flag expires by itself, shows in the status band while active,
 and every write in the window stays audit-logged as bypassed.
 
-## The fleet: 42 launchd jobs
+## The fleet: 45 launchd jobs
 
 Schedules live in launchd plists; job definitions in
 `~/.claude/knowledge/config/fleet/jobs/`. Full mechanics in
@@ -210,16 +214,21 @@ spawn no model.
 | health | Hourly | Estate health probe (workato-health.py). |
 | jira-triage | Every 2 hours | The Jira triage loop pass. |
 | ops-visibility | Manual | Local ops visibility server. |
+| autonomy-nightly | Daily (zero-LLM) | Scores evidence, derives authority, emits earned-autonomy recommendations from the ledgers only; never mutates mission control, proposals, or claim stores (added 2026-10-23). |
+| stop-guard | Fleet watcher lane | Harness-side auto-restart for a production MCP-serving recipe that kept silently stopping; detects the stopped state and restarts it, never edits the recipe (added 2026-10-26, operator-approved). |
+| watchdog-liveness | Daily | Visible alarm when the fleet watchdog itself goes dark: a silent watchdog now pages on two channels instead of passing unnoticed (added 2026-10-22). |
 
 Every job checks in to a shared heartbeat ledger, and the fleet runner
 validates each attempt for evidence of work: a silent zero-output exit is a
 stub, retried once, then escalated.
 
-## The MCP servers: 14
+## The MCP servers: 19
 
-`claude mcp list` as of 2026-10-24 (was 12 on 2026-10-17: fireworks-websearch
-was removed 2026-10-18 and slack-native retired; ai-directory-dev,
-workato-airo-mcp-prod, devapi-workato, and company-brain were added):
+`claude mcp list` as of 2026-10-28 (was 14 on 2026-10-24; 12 on 2026-10-17:
+fireworks-websearch was removed 2026-10-18 and slack-native retired;
+ai-directory-dev, workato-airo-mcp-prod, devapi-workato, and company-brain
+were added; 2026-10-28 sync added frontify-mcp-dev, gslides-dev,
+gslides-prod, company-brain-live, and devapi-proxy):
 
 | Server | Provides |
 |---|---|
@@ -237,6 +246,11 @@ workato-airo-mcp-prod, devapi-workato, and company-brain were added):
 | brain | The harness's own gossip bus, claim ledger, dream reports, and knowledge-tree read APIs. |
 | seismic-dev | Seismic MCP (installed; requires OAuth). |
 | company-brain | Internal company-knowledge MCP (installed; requires OAuth). |
+| frontify-mcp-dev | Read-only access to the internal Frontify tenant: brands, guidelines, guidelines content search, assets, libraries, creative templates (21 tools). |
+| gslides-dev | Google Slides authoring, dev-scoped server (62 tools); pairs with the google-slides server. |
+| gslides-prod | The production-scoped twin of the Google Slides authoring server. |
+| company-brain-live | The authenticated variant of the company-brain server. |
+| devapi-proxy | Workato-hosted devapi endpoint proxy (installed; purpose not yet documented). |
 
 Platform note for in-platform MCP servers: a served tool exists only while
 its backing recipe is running — stopping a recipe silently removes its tool
