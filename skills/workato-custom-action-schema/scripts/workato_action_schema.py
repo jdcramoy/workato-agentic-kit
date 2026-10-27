@@ -86,7 +86,8 @@ def get_token(args: argparse.Namespace) -> str:
     # Token retrieval via CLI is only a convenience; prefer explicit token.
     raise SystemExit(
         "error: no API token available. Pass --token or set WORKATO_TOKEN "
-        "(keychain: security find-generic-password -s workato-platform-cli -a dev -w)."
+        "(keychain: security find-generic-password -s workato-platform-cli "
+        "-a <your-cli-profile> -w)."
     )
 
 
