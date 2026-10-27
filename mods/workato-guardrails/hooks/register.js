@@ -309,7 +309,7 @@ function rowNameIs(body, name) {
 // Count this week's ledgered mutations of a recipe + distinct sessions.
 async function ledgerChurn($, recipeId) {
   try {
-    const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
+    const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', await $.env.get('HOME') || ''))
     const text = file.text ?? file
     const cutoff = Date.now() - 7 * 86400000
     let count = 0
@@ -662,13 +662,21 @@ export function register(on) {
     if (!briefed) {
       briefed = true
       try {
-        const res = await $.process.run([SYSPY,
-          JM_SCRIPT.replace('$HOME', process.env.HOME), 'brief',
-          '--task', String(e.text ?? '').slice(0, 2000),
-          '--cwd', String(e.cwd ?? e.workingDir ?? ''),
-          '--session-id', String(e.session_id ?? '')])
-        const out = String((res && (res.stdout ?? res.result ?? res)) || '').trim()
-        if (out) e = { ...e, context: [...(e.context ?? []), out] }
+        // ENGINE TRAP (live-proven 2026-10-26): the Node `process` global does
+        // NOT exist in the hook runtime — `process.env.HOME` throws
+        // "process is not defined". $.env.get is the sanctioned path and the
+        // validator forbids reading $.env as a value, so call it bare inside
+        // the try; a missing noun throws and fails open like everything else.
+        const home = String(await $.env.get('HOME') || '')
+        if (home) {
+          const res = await $.process.run([SYSPY,
+            JM_SCRIPT.replace('$HOME', home), 'brief',
+            '--task', String(e.text ?? '').slice(0, 2000),
+            '--cwd', String(e.cwd ?? e.workingDir ?? ''),
+            '--session-id', String(e.session_id ?? '')])
+          const out = String((res && (res.stdout ?? res.result ?? res)) || '').trim()
+          if (out) e = { ...e, context: [...(e.context ?? []), out] }
+        }
       } catch {
         // fail open: a broken briefing must be invisible
       }
@@ -1019,7 +1027,7 @@ export function register(on) {
   on('command.run', { command: 'builds' }, async ($, e) => {
     let text = ''
     try {
-      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
+      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', await $.env.get('HOME') || ''))
       text = file.text ?? file
     } catch {
       return { text: 'Build ledger is empty — nothing recorded yet.' }
@@ -1062,10 +1070,11 @@ export function register(on) {
     // open it in the browser. Bare /cockpit keeps the terminal pane.
     const wantsFull = /\b(full|dash|page)\b/i.test(String(e?.args ?? ''))
     if (wantsFull) {
+      const home = await $.env.get('HOME') || ''
       const out = await $.process.run(
-        ['python3', process.env.HOME + '/.claude/knowledge/scripts/brain-dashboard.py'])
+        ['python3', home + '/.claude/knowledge/scripts/brain-dashboard.py'])
       const page = String((out && (out.stdout ?? out.result ?? out)) || '').trim()
-      await $.process.run(['open', page || process.env.HOME + '/.claude/knowledge/dashboard.html'])
+      await $.process.run(['open', page || home + '/.claude/knowledge/dashboard.html'])
       return { text: 'Dashboard: ' + page }
     }
     try {
@@ -1113,7 +1122,7 @@ export function register(on) {
     } else {
       let tail = '(ledger empty)'
       try {
-        const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
+        const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', await $.env.get('HOME') || ''))
         const lines = String(file.text ?? file).split('\n').filter((l) => l.trim())
         tail = lines.slice(-8).map((l) => {
           try {
@@ -1199,7 +1208,7 @@ export function register(on) {
   on('command.run', { command: 'promotion-ready' }, async ($) => {
     let text = ''
     try {
-      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', process.env.HOME))
+      const file = await $.fs.read(BUILD_LEDGER.replace('$HOME', await $.env.get('HOME') || ''))
       text = file.text ?? file
     } catch {
       return { text: 'Build ledger is empty — nothing recorded yet.' }

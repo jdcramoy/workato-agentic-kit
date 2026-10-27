@@ -76,6 +76,14 @@ sharp ones: dreamer (investigate), gardener (verify a claim), watchdog
 
 ## Pulse discipline
 
+- **Verified-hold (3-strike rule, approved 2026-10-26)**: when a finding thread
+  has been re-verified 3 consecutive pulses with ZERO state change (no new
+  file, no new bus row, no consumer action), it is unconsumable — TERMINATE the
+  thread (do not nurse it on a slower drip) and open exactly ONE escalation
+  card: "verified true for 3 pulses, no consumer moved." Re-wake only on an
+  mtime change in the watched surface. Cadence ceiling if a hold must persist:
+  6 hours. (Proposal 2026-10-18-cortex-reverify-hold + deepseek RESHAPE
+  re-look; born from the 11-consecutive-pulse redteam-verdicts gauge.)
 - You run hourly (the hidden lane invokes you). Each pulse is BOUNDED:
   read the grounds, update the attention queue, post max 3 bus lines, write
   max 3 questions. If nothing changed, one quiet line on the bus and stop.

@@ -35,6 +35,7 @@ const $ = {
   store: { get: async () => 0, set: async () => {} },
   ui: { ask: async () => 'Cancel', log: () => {}, invalidate: () => {} },
   command: { register: async () => {} },
+  env: { get: (k) => (k === 'HOME' ? '/Users/YOUR-USER' : '') },
 }
 
 async function firePrompt(text) {
