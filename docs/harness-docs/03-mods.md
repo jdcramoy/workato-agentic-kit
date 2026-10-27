@@ -92,6 +92,12 @@ standing orders and the session lifecycle:
   comments before they are sent: a role tag some projects reject, an unset
   parent, the shapes that had been failing a third of the time. The denial
   carries the corrective reason, so the failed roundtrip never happens.
+- **error-sensor** (added 2026-10-26) is the deterministic capture end of the
+  error canon loop: every tool error, Bash stderr or MCP failure, appends one
+  normalized-signature event to a JSONL ledger. Repeats across sessions get
+  the recorded canon lesson injected back into the session (knowledge page
+  for the full loop). Known defect (logged 2026-10-26): it phantom-fires on
+  successful Agent launches; events land in the ledger pending a fix.
 - **the MCP health check** dropped from a multi-line report at session start
   to a single line, with the detail cached for anyone who asks. Even the
   watchdogs pay rent per token.

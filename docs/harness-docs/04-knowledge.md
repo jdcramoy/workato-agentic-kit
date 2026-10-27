@@ -107,6 +107,24 @@ stamps its snapshot age and refuses when older than a day. The twin is
 also the rehearsal surface: fault scenarios are injected into copies of it,
 and detection latency is measured against it (schedules page).
 
+## The error canon loop (added 2026-10-26)
+
+Memory correction used to be voluntary: an agent that hit a tool error could
+note the lesson, but nothing forced it to stick. The error canon loop makes
+capture deterministic. A session-level sensor hook records every tool error
+(Bash stderr, MCP failure markers) as one normalized-signature event in a
+JSONL ledger, with zero model cooperation, never blocking. When the same
+signature appears three or more times across two or more sessions, a promoter
+script graduates it to a canon row; the session-boundary requirement is the
+retry-storm guard, so one bad debugging spiral cannot canonize itself. From
+then on the same sensor recognizes repeats (fuzzy token-overlap match) and
+injects the recorded lesson straight into the session, together with the
+one-line command that permanently records the correction and closes the loop.
+Evidence: knowledge/domains/error-canon-loop.md plus the
+error-sensor hook and error-canon-promoter.py script. Known defect (logged
+2026-10-26): the sensor phantom-fires on successful Agent launches; the
+events land in the error ledger pending a fix.
+
 ## Telemetry: which knowledge is load-bearing
 
 brain-guard logs every skill load, knowledge read, and knowledge write to
