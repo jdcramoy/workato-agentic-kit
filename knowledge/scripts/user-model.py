@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""josh-model.py — Josh Model: structured preference store + context compiler.
+"""user-model.py — User Model: structured preference store + context compiler.
 
-Spec: ~/.claude/knowledge/specs/2026-10-23-josh-model-context-compiler-design.md
-Constitutional boundary: scribe + propose only. Rows with origin "proposed" enter
-as drafts and are never served until Josh confirms them. No LLM anywhere in this
-file; retrieval is deterministic scoring.
+Installs under a personal name (<user>-model.py) during kit onboarding: the
+store directory follows the model name, so each user's rules, precedents,
+drafts, and briefing log are private to them. The Python CLI owns all
+retrieval, scoring, and briefing logging; the harness hook is a thin fail-open
+shim that calls `brief` on the first prompt of a session.
+
+Constitutional boundary: scribe + propose only. Rows with origin "proposed"
+enter as drafts and are never served until the user confirms them. No LLM
+anywhere in this file; retrieval is deterministic scoring.
 
 Stdlib only, system Python (3.9-safe: no datetime.UTC, no match statement).
 """
@@ -17,10 +22,30 @@ import tempfile
 from datetime import date, datetime, timezone
 
 HOME = os.path.expanduser("~")
-# Test override: JOSH_MODEL_DIR points the whole store at a temp dir.
-JM_DIR = os.environ.get(
-    "JOSH_MODEL_DIR", os.path.join(HOME, ".claude", "knowledge", "josh-model")
-)
+KIT_KNOWLEDGE = os.path.join(HOME, ".claude", "knowledge")
+
+
+def _model_name():
+    """Name the model after: USER_MODEL_NAME env -> user-model.conf ->
+    script stem (when installed as <user>-model.py) -> "user"."""
+    n = os.environ.get("USER_MODEL_NAME")
+    if n:
+        return n
+    try:
+        with open(os.path.join(KIT_KNOWLEDGE, "user-model.conf")) as f:
+            n = f.read().strip()
+            if n:
+                return n
+    except OSError:
+        pass
+    stem = os.path.splitext(os.path.basename(os.path.abspath(__file__)))[0]
+    if stem.endswith("-model") and stem != "user-model":
+        return stem[: -len("-model")]
+    return "user"
+
+
+JM_DIR = os.environ.get("USER_MODEL_DIR") or os.path.join(
+    KIT_KNOWLEDGE, _model_name() + "-model")
 PREFS = os.path.join(JM_DIR, "preferences.jsonl")
 PRECS = os.path.join(JM_DIR, "precedents.jsonl")
 DRAFTS = os.path.join(JM_DIR, "drafts.jsonl")
@@ -92,7 +117,7 @@ def load_rows(path):
     except FileNotFoundError:
         pass
     if skipped:
-        print("josh-model: skipped %d malformed row(s) in %s" % (skipped, path),
+        print("user-model: skipped %d malformed row(s) in %s" % (skipped, path),
               file=sys.stderr)
     return rows
 
@@ -257,7 +282,7 @@ def build_briefing(task, project=None, cwd=None, use_demote=True):
             scored.append((s, row))
     scored.sort(key=lambda t: (-t[0], t[1].get("id", "")))
 
-    header = "--- [josh-model] session briefing (task: %s | project: %s) ---" % (
+    header = "--- [user-model] session briefing (task: %s | project: %s) ---" % (
         "+".join(task_types[:2]) if task_types else "untyped",
         project or "unknown")
     lines = [header]
@@ -372,7 +397,7 @@ def cmd_brief(args):
             if not args.no_log:
                 log_briefing(args.session_id, args.task, prefs, precs, body)
     except Exception as e:  # fail open: briefing must never break a prompt
-        print("josh-model brief failed open: %s" % e, file=sys.stderr)
+        print("user-model brief failed open: %s" % e, file=sys.stderr)
         return 0
     return 0
 
@@ -393,7 +418,7 @@ def cmd_add_draft(args):
     row["proposed_by"] = args.proposed_by or "in-session"
     row["proposed_at"] = datetime.now(timezone.utc).isoformat()
     append_row(DRAFTS, row)
-    print("drafted %s (awaits Josh confirmation)" % row["id"])
+    print("drafted %s (awaits user confirmation)" % row["id"])
     return 0
 
 
@@ -474,7 +499,7 @@ def cmd_eval(args):
 
 
 def main():
-    p = argparse.ArgumentParser(prog="josh-model")
+    p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
 
     b = sub.add_parser("brief")

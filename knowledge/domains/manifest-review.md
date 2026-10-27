@@ -1,6 +1,6 @@
 # Manifest review — tech-reviewing RLM export manifests (born BSYS-29510, 2026-10-12)
 
-Review procedure for Deployment Request manifests, both Josh's own and external builders'
+Review procedure for Deployment Request manifests, both the operator's own and external builders'
 (the Super Happy Friday review was the first external one). Complements the BUILD-side
 doctrine in the `manifest-hygiene` skill (dry-run before filing) — this file is the
 REVIEW-side: what to check when a manifest lands in the queue for Final Tech Review.
@@ -66,7 +66,7 @@ Learned on BSYS-29510 (24 recipes, 14 agentic skills, 6 connections, 1 MCP serve
   schemes (tl01–tl14 vs function_01/rec_00), root vs nested Functions folders —
   cosmetic, batch into one revision ask.
 
-## Comment format (Josh standard)
+## Comment format (the operator standard)
 
 Itemized comment on the ticket: **Blocking** (numbered, each with the exact asset/
 recipe names and the failure mode if imported) then **Non-blocking** (numbered,

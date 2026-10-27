@@ -76,6 +76,17 @@ PROJECT_PATH_DEFAULT="${PROJECT_PATH:-${HOME}/Documents/workbench}"
 optional PROJECT_PATH "Project dir where the agents/crons live:" "$PROJECT_PATH_DEFAULT"
 
 echo
+echo "-- User model (the harness learns YOUR rules, not anyone else's) --"
+echo "   Your answers seed a personal preference store: <name>-model.py rules,"
+echo "   precedents, and drafts, served as a per-session briefing. Skip freely —"
+echo "   rules can be added any time later (see docs/harness-docs/12-user-model.md)."
+USER_NAME_DEFAULT="$(id -un | cut -d- -f1 | tr '[:upper:]' '[:lower:]')"
+answer USER_NAME "First name the model is yours by (used as <name>-model):" "$USER_NAME_DEFAULT" '^[a-z][a-z0-9-]*$' "use a lowercase single word, e.g. sam"
+optional USER_MODEL_SEED_1 "One standing rule the harness should always follow (blank to skip):" ""
+optional USER_MODEL_SEED_2 "How do you like updates and summaries written? (blank to skip):" ""
+optional USER_MODEL_SEED_3 "Anything the harness should never do without asking? (blank to skip):" ""
+
+echo
 echo "-- API tokens (stored in the macOS keychain, never written to a file) --"
 echo "   Find them: Workato → Workspace admin → API clients → your client → generate token."
 printf "Dev API token (paste, return to skip if already stored): "
@@ -117,6 +128,11 @@ fi
   echo "export PROFILE_DEV=\"${PROFILE_DEV}\""
   echo "export PROFILE_PROD=\"${PROFILE_PROD}\""
   echo
+  echo "export USER_NAME=\"${USER_NAME}\""
+  echo "export USER_MODEL_SEED_1=\"${USER_MODEL_SEED_1}\""
+  echo "export USER_MODEL_SEED_2=\"${USER_MODEL_SEED_2}\""
+  echo "export USER_MODEL_SEED_3=\"${USER_MODEL_SEED_3}\""
+  echo
   echo "export BACKUP_REPO_LOCAL=\"${BACKUP_REPO_LOCAL}\""
   echo "export BACKUP_REPO_URL=\"${BACKUP_REPO_URL}\""
   echo
@@ -129,6 +145,7 @@ echo "== config.sh written (chmod 600) =="
 echo "  dev ws: ${WORKSPACE_DEV} | prod ws: ${WORKSPACE_PROD:-none}"
 echo "  jira: ${JIRA_PROJECT} @ ${JIRA_CLOUD_ID}"
 echo "  backup: ${BACKUP_REPO_LOCAL:-skipped}"
+echo "  user model: ${USER_NAME}-model (seed rules: $([ -n "${USER_MODEL_SEED_1}" ] && echo -n 1; [ -n "${USER_MODEL_SEED_2}" ] && echo -n 1; [ -n "${USER_MODEL_SEED_3}" ] && echo -n 1; echo))"
 printf "\nRun ./install.sh now? [Y/n]: "
 read -r GO
 [ "${GO:-Y}" = "Y" ] && exec ./install.sh

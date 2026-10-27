@@ -1,6 +1,6 @@
 ---
 name: blast-radius
-description: Compute what breaks if a Workato asset fails or changes — dependents, shared connections, downstream tables, MCP servers serving it. Use before touching a live recipe, when assessing a P1's urgency, or when Josh asks "what depends on this", "what's the blast radius", "what breaks if".
+description: Compute what breaks if a Workato asset fails or changes — dependents, shared connections, downstream tables, MCP servers serving it. Use before touching a live recipe, when assessing a P1's urgency, or when the operator asks "what depends on this", "what's the blast radius", "what breaks if".
 ---
 
 # Blast radius

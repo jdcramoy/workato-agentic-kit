@@ -1,11 +1,11 @@
 ---
 name: proposals
-description: Interactive approval queue for dreamer proposals from BOTH the harness-dreamer and the project-dreamer. Use when Josh says "review proposals", "show the proposal queue", "what needs a decision", "approve or reject proposals", "silver platter", or invokes /proposals. Renders every pending proposal as a decision card, collects verdicts in one batched pass, records them via proposal-decide.py, and dispatches approved work.
+description: Interactive approval queue for dreamer proposals from BOTH the harness-dreamer and the project-dreamer. Use when the operator says "review proposals", "show the proposal queue", "what needs a decision", "approve or reject proposals", "silver platter", or invokes /proposals. Renders every pending proposal as a decision card, collects verdicts in one batched pass, records them via proposal-decide.py, and dispatches approved work.
 ---
 
 # Proposals — the silver platter
 
-One interactive pass over everything the dreamers filed that needs Josh's
+One interactive pass over everything the dreamers filed that needs the operator's
 call. The mechanical recorder already exists (`proposal-decide.py`); this
 skill is the face on it.
 
@@ -40,7 +40,7 @@ skill is the face on it.
    - **Reject** — recorded rejected; the note is the taste signal
    - **Defer** — untouched, re-offered next time
 
-   Josh's "Other" free-text becomes the logged note. Never call
+   the operator's "Other" free-text becomes the logged note. Never call
    AskUserQuestion twice for the same proposal.
 
 4. **Record every verdict mechanically:**
@@ -60,7 +60,7 @@ skill is the face on it.
 5. **Dispatch Build-now, scoped by kind:**
 
    - **Harness items** (skill/hook/mod/agent/settings/cron): build in this
-     session per the proposal's exact-change draft. Josh's Build-now answer
+     session per the proposal's exact-change draft. the operator's Build-now answer
      IS the approval for a never_auto item — state each build as you do it,
      full paths. After building, re-run decide with `build` and the
      evidence ref.
@@ -78,7 +78,7 @@ skill is the face on it.
 
 ## Hard rules
 
-- Never decide for Josh. The queue renders facts and recommendation
+- Never decide for the operator. The queue renders facts and recommendation
   (you may mark a recommended option), the verdict is his.
 - Never edit a proposal file's status by hand — the recorder does it.
 - Rejected stays rejected: re-proposing needs materially new evidence

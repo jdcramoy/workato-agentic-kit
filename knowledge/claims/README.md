@@ -26,7 +26,7 @@ detectable (same `subject`, conflicting `claim`).
   `"status": "superseded"` and the new claim gets a fresh id +
   `"supersedes": "clm-NNN"`.
 - Contradiction = two `active` claims on the same subject with conflicting
-  claims. The gardener flags these; only Josh/main-session resolve them.
+  claims. The gardener flags these; only the operator/main-session resolve them.
 - Re-verification: gardener samples active claims, checks evidence refs
   (file exists, asset still exists) and bumps `last_verified`, or marks
   `disputed` with a note in the garden report.

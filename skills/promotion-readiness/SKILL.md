@@ -1,6 +1,6 @@
 ---
 name: promotion-readiness
-description: Score whether a changed Workato asset is ready for promotion — tested, masked, VUA-verified, documented, snapshot-safe — as a checklist with evidence per row. Use when the estate-architect reviews the estate, when the orchestrator assembles a batch, or when Josh asks "what's ready to promote", "is <recipe> ready".
+description: Score whether a changed Workato asset is ready for promotion — tested, masked, VUA-verified, documented, snapshot-safe — as a checklist with evidence per row. Use when the estate-architect reviews the estate, when the orchestrator assembles a batch, or when the operator asks "what's ready to promote", "is <recipe> ready".
 ---
 
 # Promotion-readiness scoring
@@ -28,7 +28,7 @@ The score is a gate input for the orchestrator, not a suggestion.
 
 Per asset: a one-line verdict (ready / not ready: <first failing row>) plus
 the scorecard rows with evidence. The orchestrator blocks batches containing
-a not-ready asset unless Josh explicitly overrides by name.
+a not-ready asset unless the operator explicitly overrides by name.
 
 ## Rules
 

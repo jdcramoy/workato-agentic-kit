@@ -111,7 +111,7 @@ is a false pass (field-ID scan-parse bug class). Read the actual output step.
 - `recipe_get` "Inconsistencies detected" can be a STALE snapshot from a
   connector-release window — verify against live `get_datapills` first.
 - Editor sessions go obsolete after AIRO pushes — fresh tab + Edit takeover.
-- Never Playwright for UI automation here — Orca browser only (Josh directive
+- Never Playwright for UI automation here — Orca browser only (the operator directive
   2026-10-06); `pkill -f playwright-mcp-profile` kills the MCP server itself.
 
 ## Related (KB bridges)

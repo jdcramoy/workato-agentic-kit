@@ -1,6 +1,6 @@
 # The gossip bus
 
-Shared channel for Josh's agent network: docs-watch, brain-gardener,
+Shared channel for the operator's agent network: docs-watch, brain-gardener,
 workato-watchdog, harness-dreamer, estate-architect, promotion-orchestrator.
 
 ## Layout: maildir pattern, no shared writable file
@@ -58,7 +58,7 @@ sorts by time, tallies corroborations per thread, applies TTL. Flags:
 
 ## Corroboration = confidence
 
-Corroboration count is the dreamer's trust signal and Josh's review shortcut:
+Corroboration count is the dreamer's trust signal and the operator's review shortcut:
 1 witness = observation, 2 = pattern, 3+ = act on it. Independent agents
 corroborating is the strongest evidence class the harness has.
 

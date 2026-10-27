@@ -125,7 +125,7 @@ principle it set: catalogues earn their size, they do not inherit it.
   from every harness surface (proposal queue, triage, machine health, dream
   verdict, calibration, calendar, messages) with work pre-staged: drafts
   written, branches cut, decisions batched.
-- **josh-writing-voice**: anything the human will send (mail, chat, tickets,
+- **writing-voice (the operator's personal voice skill)**: anything the human will send (mail, chat, tickets,
   documents) is drafted in a learned personal writing voice, so agent-drafted
   prose does not need a rewrite pass.
 - **handoff**: writes the resumable state document at the end of any

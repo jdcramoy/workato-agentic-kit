@@ -54,7 +54,7 @@ fi
 PL=$(claude plugin list 2>/dev/null)
 for m in workato-guardrails brain-guard; do
   echo "$PL" | grep -q "$m" && row PASS "mod: $m" "$(echo "$PL" | grep -A1 "$m" | grep -oE 'Version: [0-9.]+' | head -1)" \
-    || row FAIL "mod: $m" "not installed (claude plugin install $m@josh-mods)"
+    || row FAIL "mod: $m" "not installed (claude plugin install $m@agentic-kit)"
 done
 
 # --- 6. knowledge + dreams ----------------------------------------------------

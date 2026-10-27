@@ -364,8 +364,8 @@ if probe_plugins; then
   elif ask "Skip for now? (EOF/left = stays todo)" n; then mark plugins skipped; else mark plugins todo; fi
 else
   echo "  missing mods. Install then reload:"
-  echo "    claude plugin install workato-guardrails@josh-mods"
-  echo "    claude plugin install brain-guard@josh-mods"
+  echo "    claude plugin install workato-guardrails@agentic-kit"
+  echo "    claude plugin install brain-guard@agentic-kit"
   echo "  then in Claude Code: /reload-plugins, and /guardrails to see the hooks."
   settle plugins probe_plugins
 fi

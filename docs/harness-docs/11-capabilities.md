@@ -119,7 +119,7 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.)
 
 ### Deliberately omitted (3)
 
-`claude-ai-web` (no description in frontmatter), `josh-writing-voice` (a
+`claude-ai-web` (no description in frontmatter), `writing-voice (the operator's personal voice skill)` (a
 private prose-voice skill), and `otto-house-style` (house rules for one
 specific internal repo). They load locally; they do not belong in a published
 catalog.

@@ -33,8 +33,8 @@ export PROFILE_PROD="prod"
 
 # Harness backup (harness-backup.sh): local clone of YOUR backup repo + its
 # origin. Leave URL empty to commit locally without pushing.
-export BACKUP_REPO_LOCAL="${HOME}/Documents/josh-orca"
-export BACKUP_REPO_URL="https://github.com/Workato-All/josh-orca.git"
+export BACKUP_REPO_LOCAL="${HOME}/Documents/harness-backup"
+export BACKUP_REPO_URL="https://github.com/Your-Org/harness-backup.git"
 
 # Optional hardening for the guardrails prod-write gate: the stable identifier
 # embedded in YOUR prod JWT (not the secret) — lets the hook recognize your

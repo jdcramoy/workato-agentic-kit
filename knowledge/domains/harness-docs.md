@@ -14,7 +14,7 @@ Confluence tree in the [External] BT-Business Technology space (BTI,
   documented across overview/agents/schedules/trust-ladder pages.
   Full sync 2026-10-11 (all 8 pages republished, read-back verified): model-gateway layer + fusion, librarian/evidence/spec-distiller agents (11 total), integrity mesh + calibration ledger + denominator oracle + estate twin + skill league + standing orders + chaos canary + shadow estate (the frontier economy layer), frontier-nightly zero-LLM job, decision inbox, Jira autonomy grant, KB canon expansion (24.6k docs). Repo committed 5cca882; manifest date bumped.
   Full sync 2026-10-13 (all 9 pages republished incl. 08-workato-kb, read-back verified): red-team gate + agent + guard hook, living-manifest standing order + manifest-guard, authority-non-delegation rule, measurement layer (A/B bench + hallucination discriminator + retrieval map), context economy (server tiering + diet, 128k→58k cold), session-budget mod, session-level guard hooks (manifest/redteam/drop-guard/dead-man/error-guide), turn-audit fleet job, skills parking lot (13 parked, 61 total/48 live), morning-brief dropped-sessions digest. Kit repo committed 76eacf6; manifest bumped to docs-sync-2026-10-13.
-  Check-in 2026-10-14 (4 pages republished, read-back verified): bus actuator (gossip-actuate.py, corroboration tally now files triage cards; live, 2 threads actuated), harness Dashboards MCP outward window (read-only remote MCP → claude.ai Dashboards, Josh-gated remainder), living-manifest test-probe exemption (2026-10-13), jira-slack-formatting skill. Also confirmed the 10-13 second sync (0e3ccf5) pushed the dreamer mood gate + traps-ledger check to 01-agents (v8 repair). Manifest bumped to docs-sync-2026-10-14.
+  Check-in 2026-10-14 (4 pages republished, read-back verified): bus actuator (gossip-actuate.py, corroboration tally now files triage cards; live, 2 threads actuated), harness Dashboards MCP outward window (read-only remote MCP → claude.ai Dashboards, the operator-gated remainder), living-manifest test-probe exemption (2026-10-13), jira-slack-formatting skill. Also confirmed the 10-13 second sync (0e3ccf5) pushed the dreamer mood gate + traps-ledger check to 01-agents (v8 repair). Manifest bumped to docs-sync-2026-10-14.
   The authoritative ID map is the repo manifest:
   ~/Documents/agentic-workato-kit/docs/harness-docs/manifest.json —
   re-read it, never quote IDs from memory.
@@ -25,7 +25,7 @@ Confluence tree in the [External] BT-Business Technology space (BTI,
 - Publish policy: existing-page updates autonomous WITH the sanitizer
   (no workspace IDs, cloudIds, tokens, epic keys, internal identifiers)
   and a getConfluencePage read-back to verify rendering; new pages,
-  reparenting, deletion are Josh-gated. Pass contentFormat "markdown"
+  reparenting, deletion are the operator-gated. Pass contentFormat "markdown"
   EXPLICITLY on every Confluence write (omitting it saves literal
   markdown — trap confirmed twice).
 - When the architecture changes (new agent, renamed command, changed
@@ -39,8 +39,8 @@ Confluence tree in the [External] BT-Business Technology space (BTI,
 Repos with remotes: kit (github.com/Workato-All/workato-agentic-kit) +
 josh-orca (nightly backup). Git repos WITHOUT remote:
 ~/.claude/knowledge (RESOLVED 2026-10-08: origin =
-github.com/Workato-All/josh-knowledge, private, baseline dfc7216
-pushed; repo created by Josh) and ~/.claude/recipe-history (NOW covered
+github.com/Workato-All/knowledge-tree, private, baseline dfc7216
+pushed; repo created by the operator) and ~/.claude/recipe-history (NOW covered
 by harness-backup: 59 snapshots verified in josh-orca 2026-10-08).
 ~/mods = deployed runtime marketplace, untracked; kit mods/ = source;
 deploy direction: bin/mods-deploy (kit -> ~/mods, --check mode,

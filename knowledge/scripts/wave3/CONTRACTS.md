@@ -60,7 +60,7 @@ moves; coarse-graining runs in dry-run report mode only on first build.
 
 ## Integrator (main session, after all agents land)
 
-- Plists: one `com.josh.fleet.wave3-nightly` (+ weekly) job wiring: null-miner
+- Plists: one `com.<user>.fleet.wave3-nightly` (+ weekly) job wiring: null-miner
   (monthly), ratchet-watch, coincidence, pleiotropy (weekly), fdt-gate (hook into
   value-ledger derive), trigger L0.
 - Prompt wiring: dreamer augmentation text, κ>0.5 panel invariant into fusion docs.

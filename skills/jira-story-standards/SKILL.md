@@ -1,13 +1,13 @@
 ---
 name: jira-story-standards
-description: "Josh's Jira standards for Epics and user Stories: required sections (Background, Business Requirements, Technical Requirements, Acceptance Criteria, UAT Evidence), story-point rules, project conventions, and the writing spirit expected"
+description: "the operator's Jira standards for Epics and user Stories: required sections (Background, Business Requirements, Technical Requirements, Acceptance Criteria, UAT Evidence), story-point rules, project conventions, and the writing spirit expected"
 metadata:
   type: user
 ---
 
-# Josh's Jira Story Standards
+# the operator's Jira Story Standards
 
-Apply to EVERY Epic and Story created for Josh. Load before creating or
+Apply to EVERY Epic and Story created for the operator. Load before creating or
 updating Jira work.
 
 ## Every user story MUST contain
@@ -50,7 +50,7 @@ updating Jira work.
 ## Project conventions
 
 - **Deployment requests are NEVER the "Deployment Request" issue type**
-  (Josh, 2026-10-05). Always file deployments as a **Story** (or a **Bug**
+  (the operator, 2026-10-05). Always file deployments as a **Story** (or a **Bug**
   if the deployment fixes a defect), under the governing Epic. Even when
   other tickets in BSYS use the "Deployment Request" type (10189), do not
   follow them — that type carries extra required fields (Reason for
@@ -62,7 +62,7 @@ updating Jira work.
 - Link each Story to its Epic (parent field); attach the milestone comment
   with verified facts only (efficient-airo-delivery's milestone-only rule).
 
-## Status workflow (standing rule, Josh 2026-10-08)
+## Status workflow (standing rule, the operator 2026-10-08)
 
 - The moment a dev build is complete AND unit/regression tested, move the
   ticket to **UAT** — always, without being asked. Do not leave tested work
@@ -71,9 +71,9 @@ updating Jira work.
   **In Progress** first (transition id 71), then **In UAT** (transition id
   301). Verify the final status on read-back.
 - Later statuses (Closed after UAT sign-off, Change Review) stay
-  human-gated with Josh; only the dev-tested → UAT move is autonomous.
+  human-gated with the operator; only the dev-tested → UAT move is autonomous.
 
-## Comment markup (standing rule, Josh 2026-10-09)
+## Comment markup (standing rule, the operator 2026-10-09)
 
 - ALL comments (milestone, plan, evidence, status) post via the Atlassian
   MCP with `contentFormat=markdown`, and the CLOUD renderer is standard

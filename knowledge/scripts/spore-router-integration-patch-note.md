@@ -51,7 +51,7 @@ wires the epsilon assignment.
 In the job dispatcher: with probability `spores.json:epsilon`, select a config
 from `agent_classes[task_class].off_policy` (seeded per session for
 reproducibility) and set `routing: "spore"`. NO prod-facing task class
-participates until Josh signs off. epsilon=0 restores exact current routing.
+participates until the operator signs off. epsilon=0 restores exact current routing.
 
 ## Patch 3 (the objective change the card wanted — LAST, gated)
 
@@ -60,7 +60,7 @@ cost-governor may ADD a section comparing per-class geometric-mean returns
 (spore-router.divergences() output is importable and reusable) and PROPOSE
 dominant-config changes when a sustained `ALARM-spore-outperforming` fires.
 Cost-governor keeps its propose-never-edit contract; promotion of a spore
-config is Josh's call. Divergence alarms also surface to the cortex attention
+config is the operator's call. Divergence alarms also surface to the cortex attention
 queue via the same report path cost-governor already uses.
 
 ## Wiring checklist for the integrator
@@ -68,5 +68,5 @@ queue via the same report path cost-governor already uses.
 - [ ] Patch 1 logging row into the nightly runner (shadow-dominant only)
 - [ ] After ~1 week of rows: run `python3 scripts/spore-router.py --series
       knowledge/models-evals/spore-returns.jsonl` and review the divergence table
-- [ ] Patch 2 epsilon reserve: Josh sign-off required (routing enforcement)
-- [ ] Patch 3 objective section in cost-governor: separate Josh sign-off
+- [ ] Patch 2 epsilon reserve: the operator sign-off required (routing enforcement)
+- [ ] Patch 3 objective section in cost-governor: separate the operator sign-off

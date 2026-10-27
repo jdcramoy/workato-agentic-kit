@@ -1,12 +1,12 @@
 ---
 name: uat-evidence
-description: Assemble the UAT evidence block for a Jira story — run the recipe's test cases, pull the traces, verify masking held, and produce the evidence section in Josh's standards format. Use when preparing a story for review/UAT, when the promotion orchestrator stages a batch, or when Josh says "collect UAT evidence", "prepare evidence for BSYS-...", or "is this UAT-ready".
+description: Assemble the UAT evidence block for a Jira story — run the recipe's test cases, pull the traces, verify masking held, and produce the evidence section in the operator's standards format. Use when preparing a story for review/UAT, when the promotion orchestrator stages a batch, or when the operator says "collect UAT evidence", "prepare evidence for BSYS-...", or "is this UAT-ready".
 ---
 
 # UAT evidence collector
 
 The promotion bottleneck is evidence assembly, not testing. This skill
-produces the evidence section a story needs, in Josh's standards format,
+produces the evidence section a story needs, in the operator's standards format,
 without him assembling it by hand.
 
 ## Procedure
@@ -21,12 +21,12 @@ without him assembling it by hand.
 4. **Masking gate.** Inspect the actual job trace for the recipe: confirm
    every data-bearing step is masked. An unmasked PII line in a trace FAILS
    the evidence, full stop — that goes back as a defect, not a footnote.
-5. **Assemble the block** (Josh's UAT Evidence section):
+5. **Assemble the block** (the operator's UAT Evidence section):
    - test run IDs + pass/fail rows
    - evidence job URLs (each resolving under its owning recipe)
    - masking confirmation with the trace reference
    - what is proven vs structural-only vs not yet tested
-6. **Attach to the story** via comment in Josh's voice (doc register), or
+6. **Attach to the story** via comment in the operator's voice (doc register), or
    return the block for his review before posting (his call per ticket).
 
 ## Rules

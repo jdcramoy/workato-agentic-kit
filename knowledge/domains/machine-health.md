@@ -1,4 +1,4 @@
-# Machine health — memory pressure postmortem (Josh's Mac, 2026-10-16)
+# Machine health — memory pressure postmortem (the operator's Mac, 2026-10-16)
 
 Verdict: the "mystery Python processes" crashing the machine were OURS, with one
 corporate co-conspirator. Three stacked causes, all confirmed live:

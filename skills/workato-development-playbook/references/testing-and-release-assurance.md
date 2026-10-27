@@ -99,7 +99,7 @@ Before an MCP server launch, a teammate tests it from their own MCP client and
 reports the result. The agent can test the available caller and verify VUA
 configuration, but that does not prove another caller's access. Give the
 teammate concrete allowed and denied cases, capture their evidence, and label
-any remaining identity coverage honestly. Do not demand that the agent or Josh
+any remaining identity coverage honestly. Do not demand that the agent or the operator
 obtain or operate a second test identity.
 
 ### Regression

@@ -32,7 +32,7 @@ pattern that made 6 agents not collide: shared schema file + hard path blocks).
   decisions → regret ledger; 21 yes / 0 no / 19 stale on first run)
 
 ## Nightly driver
-com.josh.fleet.frontier-nightly.plist (04:43): twin → brier → radar → skill
+com.<user>.fleet.frontier-nightly.plist (04:43): twin → brier → radar → skill
 fitness. Zero-LLM (no claude spawn). Canonical script in
 knowledge/config/fleet/jobs/frontier-nightly.sh; log
 ~/.local/state/fleet/frontier-nightly.log.

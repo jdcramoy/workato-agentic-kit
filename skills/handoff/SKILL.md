@@ -60,7 +60,7 @@ partially-stale copies.
 5. **Exact next command** — the literal next tool call, recipe ID, or
    question to resume with. Not "continue the investigation" — the actual
    next step, ready to execute cold.
-6. **Mission-control registry row (Josh, 2026-10-11, NEVER skip for build
+6. **Mission-control registry row (the operator, 2026-10-11, NEVER skip for build
    sessions)** — after writing the handoff, record the workstream state:
 
    ```
@@ -69,7 +69,7 @@ partially-stale copies.
      --jira <KEY or ""> --jira-title "<title or "">" \
      --what "<plain English: what was done>" \
      --why "<why it was done>" --end "<to what end>" \
-     --needs "<what Josh must decide/provide, or "">" \
+     --needs "<what the operator must decide/provide, or "">" \
      --state in-flight|needs-josh|blocked|done --by "josh (session)"
    ```
 
@@ -77,7 +77,7 @@ partially-stale copies.
    who knows neither the recipe IDs nor the jargon. A fragment or a jargon
    string is refused by the script. State `needs-josh` REQUIRES a concrete
    `--needs` sentence. This row is what the cortex, the morning brief, and
-   /today read — it is how Josh tracks parallel sessions without reading
+   /today read — it is how the operator tracks parallel sessions without reading
    their transcripts.
 
 ## Format
@@ -120,8 +120,8 @@ partially-stale copies.
   comment/page content in the actual markup (remembering the Atlassian
   markdown `#`-renders-as-H1 gotcha in `CLAUDE.md`) and show it for approval
   before posting — don't file it silently. Draft it through the
-  `josh-writing-voice` skill: it publishes as Josh, so first person end to
-  end, no fleet/process framing (Josh 2026-10-10, BTSUP-78227).
+  `writing-voice (the operator's personal voice skill)` skill: it publishes as the operator, so first person end to
+  end, no fleet/process framing (the operator 2026-10-10, BTSUP-78227).
 - If a Slack handoff message is warranted, draft it with
   `slack_send_message_draft` rather than sending, unless the user has already
   said to send.

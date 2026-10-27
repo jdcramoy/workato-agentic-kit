@@ -80,7 +80,7 @@ failures, the gardener's actionable hygiene items, estate-architect
 recommendations, cortex work-shaped attention items), plus every Jira
 attention item the autotriage loop files each pass: technical plans
 awaiting authorization, hotfix-class bugs, ambiguous tickets, and inbound
-signals (new tickets assigned to Josh, new comments, tickets aging
+signals (new tickets assigned to the operator, new comments, tickets aging
 without movement).
 
 Same pass shape: decision cards ranked by URGENCY
@@ -89,7 +89,7 @@ batched verdicts (file story or bug, build now in dev, queue only,
 reject, defer), one mechanical recorder, one summary table. Filing
 creates the Jira Story or Bug immediately under the governing epic (a
 certain existing epic, or a new one under the FY27 V2MOM work item),
-assigned to Josh, points set at creation, the finding's evidence inline.
+assigned to the operator, points set at creation, the finding's evidence inline.
 Build-now executes dev-estate work only, with the
 snapshot-edit-test-verify-ledger cycle; UAT and production keep their
 standing gates.

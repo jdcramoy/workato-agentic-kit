@@ -90,7 +90,7 @@ Jira** (deployment request born from the Story/Bug — see the Promotion Handoff
 section). If the user explicitly asks you to promote to prod anyway, don't
 silently comply — restate that promotion is governed, and ask them to confirm
 they want you to attempt it outside the normal path. Direct prod edits only on
-an explicit "hotfix to prod" instruction from Josh.
+an explicit "hotfix to prod" instruction from the operator.
 
 ## TWO AIRO MCP servers: dev (default) vs PRODUCTION (danger)
 
@@ -100,7 +100,7 @@ There are two identically-tooled AIRO MCP servers in user config:
   everything in this skill. Any uncategorized build/edit/test/investigate ask
   uses this server, same as always.
 - **`workato-airo-mcp-prod`** — **LIVE PRODUCTION workspace**, for production
-  review and hotfixes only. Never use it unless Josh explicitly names
+  review and hotfixes only. Never use it unless the operator explicitly names
   production ("prod hotfix", "production review", "use the prod AIRO MCP").
   Ambiguity about which workspace was meant always resolves to **dev**.
 
@@ -121,13 +121,13 @@ Rules for the prod server:
 
    > **⚠️ LIVE PRODUCTION EDIT — this action modifies the LIVE PRODUCTION
    > Workato workspace (`workato-airo-mcp-prod`). This is NOT dev. Real users
-   > and real jobs are affected. Josh, confirm you want this production
+   > and real jobs are affected. the operator, confirm you want this production
    > hotfix: [exact action + asset + URL].**
 
-3. Do not execute until Josh explicitly confirms, and re-verify the asset URL
+3. Do not execute until the operator explicitly confirms, and re-verify the asset URL
    resolves in the prod workspace before running the tool.
 
-## Step 0: open the living manifest (house style, Josh 2026-10-10)
+## Step 0: open the living manifest (house style, the operator 2026-10-10)
 
 Before the first step of ANY build, create the living export manifest for the
 story and note its ID in the ticket (full doctrine: workato-development-
@@ -276,8 +276,8 @@ promotions go through the BT managed promotion process via Jira. A
 deployment request starts its life as a **Story or Bug** that already
 contains the information for the thing being conveyed (what changed, why,
 verification evidence) — draft the deployment request from that item and
-get Josh's approval on the artifact before filing. Direct prod edits happen
-ONLY when Josh explicitly says "hotfix to prod" (or similar explicit
+get the operator's approval on the artifact before filing. Direct prod edits happen
+ONLY when the operator explicitly says "hotfix to prod" (or similar explicit
 wording), and the Jira ticket still gets the hotfix record afterward.
 
 ## Cross-cutting conventions

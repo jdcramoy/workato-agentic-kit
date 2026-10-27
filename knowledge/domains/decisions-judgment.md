@@ -12,7 +12,7 @@ explains the arc and the doctrine, it does not restate every number.
 Jev is TypeSafe AI's "System One" model (https://docs.typesafe.ai, evaluated
 2026-10-23): send state plus typed questions, get typed answers with full
 probability distributions (Choice, Score, Noul, Box). No text generation, only
-calibrated judgment. Josh's ruling: costs money, needs a license, probably
+calibrated judgment. the operator's ruling: costs money, needs a license, probably
 cannot be adopted, so the house replicates the functionality.
 
 The decode that made replication plausible: confidence is not model output, it
@@ -25,7 +25,7 @@ trustworthy judgment engine.
 
 ## What the four backtests found
 
-Four backtests against Josh's actual triage verdict corpus settled the design.
+Four backtests against the operator's actual triage verdict corpus settled the design.
 Scripts: `scripts/backtest-jevish.py` (spike 1), `scripts/backtest-jevish3.py`
 and `scripts/triage-state.py` (iteration 3), `scripts/backtest-jevish4.py` and
 `scripts/precedent.py` (iteration 4). Vote ledgers:
@@ -40,7 +40,7 @@ model spend about $1.86.
    Isotonic calibration worked as theory predicts (ECE 0.249 to 0.132) but
    monotone transforms cannot fix ranking. Urgency was inverted.
 2. Iteration 3 (2026-10-23, $0.19): state assembly is the product. Building
-   leak-free state (lane semantics, prior decisions with Josh's notes, sibling
+   leak-free state (lane semantics, prior decisions with the operator's notes, sibling
    verdicts, ticket coverage, lexical flags, age) lifted single-judge accuracy
    0.61 to 0.71, the first judge above the majority baseline, and collapsed the
    unanimous-TRUE-on-rejected failure (mc-fixloop cluster 1.00 to 0.0-0.35).
@@ -61,7 +61,7 @@ model spend about $1.86.
 
 ## What shipped live
 
-All live wiring landed 2026-10-23/24, Josh-approved:
+All live wiring landed 2026-10-23/24, the operator-approved:
 
 - STATE blocks on every open triage card: `triage-decide.py list` renders a
   compact block under each card, assembled by `scripts/triage-state.py`
@@ -73,7 +73,7 @@ All live wiring landed 2026-10-23/24, Josh-approved:
   `knowledge/triage/verdict-reasons.jsonl` (44 backfilled by 2026-10-24; 33 of
   44 stale, confirming the dissenter's original staleness diagnosis).
 - Precedent index: `scripts/precedent.py`, 413-row k-NN over the verdict
-  ledger including Josh's notes. Precedent notes are the taste-transfer
+  ledger including the operator's notes. Precedent notes are the taste-transfer
   channel.
 - Shadow judge: `scripts/shadow-judge.py` runs blind predictions in /triage
   step 1. First live run 2026-10-24: 54 of 66 cards rule-settled with zero
@@ -87,7 +87,7 @@ All live wiring landed 2026-10-23/24, Josh-approved:
 - Final architecture: CONSERVATIVE rules only (source lanes plus same-slug
   prior decisions, settle where near-certain, abstain elsewhere), then a flash
   judge with state plus precedents on the residue, then isotonic calibration,
-  then Josh. Skip ensembles, skip kimi, skip CoT. Note the empirical ordering:
+  then the operator. Skip ensembles, skip kimi, skip CoT. Note the empirical ordering:
   the single best measured arm was a one-line source RULE (0.81), ahead of
   every cascade; context is the strongest model-side lever, rules are the
   strongest lever overall. No arm passed the 0.8 flip gate.
@@ -99,7 +99,7 @@ All live wiring landed 2026-10-23/24, Josh-approved:
   not at all. Never from an LLM rating text.
 - ORDER-NEVER-FILTER stands: no arm cleared the flip gate (0.8 accuracy plus
   non-inverted urgency on 20 or more blind verdicts), so no automated judge
-  filters Josh's queue. The judge informs cards; Josh decides.
+  filters the operator's queue. The judge informs cards; the operator decides.
 
 ## House lessons worth keeping
 
@@ -109,7 +109,7 @@ All live wiring landed 2026-10-23/24, Josh-approved:
    survive voting.
 2. Calibration fixes confidence, not ranking. Fit isotonic on your own verdict
    ledger rather than trusting a vendor's generic distribution.
-3. Verdict-time reason codes are the only way Josh's private state becomes
+3. Verdict-time reason codes are the only way the operator's private state becomes
    training data. Collect them from day one.
 
 ## Related

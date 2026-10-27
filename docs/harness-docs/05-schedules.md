@@ -17,7 +17,7 @@ human the entire night with corroboration counts as the trust signal.
 | 22:31 | Docs crawler summary | folds deltas into the bus and the gardener's report |
 | 22:43 | Brain gardener | curates knowledge, posts stale-claim findings |
 | 23:13 | Workato watchdog | posts connection health, stalls, autopsies; opens with the heartbeat check |
-| 23:33 | Harness backup | snapshots the whole harness, secrets redacted; then auto-pushes the josh-knowledge and kit remotes (token-scan refusal on staged diffs; no-op when up to date) |
+| 23:33 | Harness backup | snapshots the whole harness, secrets redacted; then auto-pushes the knowledge-tree and kit remotes (token-scan refusal on staged diffs; no-op when up to date) |
 | 23:43 | Harness dreamer | reader-in-chief: merges the night, writes the dream report |
 | 00:37 | Project dreamer | architecture dreamer for one project per night (deep pass Sundays): mines the project's sessions, memory, repo, and git; dissenter-gated proposals |
 | hourly | Hidden lane (launchd) | headless mini-mines and the cortex pulse, silent unless there is new signal |
@@ -33,7 +33,7 @@ human the entire night with corroboration counts as the trust signal.
 | 05:xx | Evidence hunt | re-checks the last 24 hours' "done/fixed/verified" claims against live state; FALSE verdicts get a dissenter review |
 | daily 07:07 | Nightly receipts gate | reads each nightly job's OUTPUT artifact (freshness-checked), not self-reported receipts: a job that ran but produced nothing is RED; escalations post to the bus before the morning brief (born from the crash-after-work class the 2026-10-20 build caught live) |
 | every 900s | Knowledge write stash | hardlink-cumulative snapshots of the mutable knowledge ledgers (8-point rotation) with a restore command; born from the silent git-revert class that ate bash appends (2026-10-19/20) |
-| daily 06:57 | Harness-docs sync (nightly, was weekly Tuesday per Josh 2026-10-15) | live-harness-to-repo sync + doc drift check + sanitized Confluence publish, self-rearming durable cron |
+| daily 06:57 | Harness-docs sync (nightly, was weekly Tuesday per the operator 2026-10-15) | live-harness-to-repo sync + doc drift check + sanitized Confluence publish, self-rearming durable cron |
 | 07:13 | Morning brief | one digest: machine heartbeat, bus patterns, dream verdict, watchdog P1s, Jira moves, repo commits, plus the decision inbox: today's ranked decisions with a budget, deferred ones rolling forward, and the day's loadout with work pre-staged |
 
 ## Schedule mechanics

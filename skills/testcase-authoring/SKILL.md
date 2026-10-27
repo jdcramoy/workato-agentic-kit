@@ -1,6 +1,6 @@
 ---
 name: testcase-authoring
-description: Author a Workato test case that actually reproduces a failure class — fixture shape that trips it, assertion that proves the fix. Use when canonizing a bug (the canon's open entries need covering tests), when a fix needs a regression guard, or when Josh asks for test coverage on a recipe.
+description: Author a Workato test case that actually reproduces a failure class — fixture shape that trips it, assertion that proves the fix. Use when canonizing a bug (the canon's open entries need covering tests), when a fix needs a regression guard, or when the operator asks for test coverage on a recipe.
 ---
 
 # Test-case authoring

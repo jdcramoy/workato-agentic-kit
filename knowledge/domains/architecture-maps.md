@@ -1,6 +1,6 @@
 # Architecture maps — per-project diagram lifecycle (arch-diagram)
 
-Built 2026-10-08 (Josh's "full documentation lifecycle" idea, grill-gated:
+Built 2026-10-08 (the operator's "full documentation lifecycle" idea, grill-gated:
 4 recommendations accepted — extend project-dreamer not a 4th agent; skill
 auto-invoked by handoff; knowledge tree + Confluence home; two levels).
 

@@ -1,6 +1,6 @@
 ---
 name: mermaid-drafting
-description: Use whenever drafting, editing, rendering, or debugging any mermaid diagram - flowcharts, architecture maps, sequence diagrams, any .mmd source. Self-training: carries a traps ledger that every render failure or visual defect gets appended to, so drafting improves with every discovery without Josh calling traps out.
+description: Use whenever drafting, editing, rendering, or debugging any mermaid diagram - flowcharts, architecture maps, sequence diagrams, any .mmd source. Self-training: carries a traps ledger that every render failure or visual defect gets appended to, so drafting improves with every discovery without the operator calling traps out.
 ---
 
 # Mermaid Drafting (self-training)

@@ -1,6 +1,6 @@
 # Orchestration Router — teams vs fanout decision engine (2026-10-15)
 
-Answers "who does this work?" without Josh deciding: **solo / fanout / pipeline / team**.
+Answers "who does this work?" without the operator deciding: **solo / fanout / pipeline / team**.
 
 Script: `~/.claude/knowledge/scripts/orchestration-router.py`
 
@@ -33,7 +33,7 @@ Script: `~/.claude/knowledge/scripts/orchestration-router.py`
 - **team** — the *process* is the product: roles, handoffs, adversarial checks, multi-turn
   grinding, shared state needing ownership.
 
-## Why not teams everywhere (Josh Q 2026-10-15)
+## Why not teams everywhere (the operator Q 2026-10-15)
 
 Direct channels bypass the verification point (corroboration ≠ truth — that's the evidence
 agent's whole job); persistent agents create persistent state that rots (stale claims);

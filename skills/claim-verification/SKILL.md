@@ -1,6 +1,6 @@
 ---
 name: claim-verification
-description: Systematic verification procedures for claims in the ledger, per claim type — platform-behavior claims get live probes, process claims get trace checks, tooling claims get reproductions. Use when the gardener or cortex flags a stale or low-confidence claim, when Josh asks "is that still true", or before citing a claim older than a week in a decision.
+description: Systematic verification procedures for claims in the ledger, per claim type — platform-behavior claims get live probes, process claims get trace checks, tooling claims get reproductions. Use when the gardener or cortex flags a stale or low-confidence claim, when the operator asks "is that still true", or before citing a claim older than a week in a decision.
 ---
 
 # Claim verification
@@ -18,7 +18,7 @@ with live evidence, and write the result back as a verification event.
    call fresh. `wt api GET ...` or the MCP tool; record the live response
    class.
 3. **Process/convention** ("deployments are Stories", "dev Tests cleared"):
-   confirm against the governing doc or Josh's latest ruling in memory —
+   confirm against the governing doc or the operator's latest ruling in memory —
    conventions expire by new rulings, not by probes.
 4. **Estate state** ("recipe X is broken", "conn Y is dead"): tracker or
    AIRO read-back of the current state.
@@ -39,7 +39,7 @@ stale fact. Lead the report with refutations.
 
 - Verification = live evidence. Reading the claim's original evidence again
   is not verification.
-- If the claim can't be probed safely in dev, mark it "needs Josh" with the
+- If the claim can't be probed safely in dev, mark it "needs the operator" with the
   exact probe that would settle it.
 - Never silently mark verified. The observation + evidence fields are
   mandatory.

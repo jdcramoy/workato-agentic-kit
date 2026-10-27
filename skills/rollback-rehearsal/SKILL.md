@@ -26,6 +26,6 @@ prove the escape hatch works.
 
 - Dev only. Rehearsals never run against prod recipes.
 - If the revert does not restore cleanly, the fix is NOT done: flag it as
-  "revert failed rehearsal" and escalate to Josh.
+  "revert failed rehearsal" and escalate to the operator.
 - Running recipes: stop → rehearse → start, and prove the running state at
   the end (the silent no-op trap).

@@ -1,4 +1,4 @@
-# Measure → Learn → Apply — the closed loop (Josh: "build it all and weld it shut", 2026-10-09)
+# Measure → Learn → Apply — the closed loop (the operator: "build it all and weld it shut", 2026-10-09)
 
 The harness's self-improvement contract. Every feature built today is one
 vertex of one loop; the weld is that each vertex's output is the next one's
@@ -16,7 +16,7 @@ input, and nothing terminates without landing.
    "done" claims against live state; the cost-governor computes
    per-class posteriors and budget alarms; spec-score grades delivered
    work against its own spec.
-3. **APPLY** — the mechanisms: instruction-patch applies Josh-approved
+3. **APPLY** — the mechanisms: instruction-patch applies the operator-approved
    instruction edits to the skills/playbooks (airo-mcp-playbook,
    workato-development-playbook, workato-skill-builder among them);
    the cortex proposes routing-table changes; canonize-failure turns
@@ -31,9 +31,9 @@ input, and nothing terminates without landing.
   build-ledger line. A fix without rehearsal is not done.
 - Every build starts with a spec (spec-distiller, or grill-gate when the
   ask is already crisp) and ends with a spec-score in the report.
-- Every correction Josh gives a fleet agent lands in the instruction-patch
+- Every correction the operator gives a fleet agent lands in the instruction-patch
   queue; uncovered classes surface weekly via the gardener with a
-  dissenter-reviewed diff, Josh approves, instruction-patch applies.
+  dissenter-reviewed diff, the operator approves, instruction-patch applies.
 - The cost-governor writes proposals to the cortex attention queue; the
   routing table only changes through that gate.
 - The evidence agent's FALSE claims route to the dissenter; repeated
@@ -41,7 +41,7 @@ input, and nothing terminates without landing.
 
 ## What NOT to do
 
-- No agent edits the playbooks without a Josh-approved patch record.
+- No agent edits the playbooks without a the operator-approved patch record.
 - The governor never writes model-routing.json; it proposes.
 - The evidence agent never soft-fails: a claim without a live check is
   UNVERIFIED, never assumed true.
@@ -64,9 +64,9 @@ input, and nothing terminates without landing.
 
 ## Scheduler state (2026-10-09)
 
-- cost-governor: plist INSTALLED + loaded (daily 05:07) — Josh armed it.
+- cost-governor: plist INSTALLED + loaded (daily 05:07) — the operator armed it.
 - instruction-miner: fleet job + plist INSTALLED (nightly 00:47).
-- evidence: fleet job def + plist WRITTEN but NOT loaded — Josh names it
+- evidence: fleet job def + plist WRITTEN but NOT loaded — the operator names it
   ("arm the evidence nightly") to arm; on-demand works via the Agent tool.
 
 ## Value ledger — the missing half of ROI (2026-10-09)
@@ -85,7 +85,7 @@ never say what a capability was WORTH. The value side is now instrumented:
   incident_prevented / decision_unblocked default 0 — never auto-asserted.
 - `scripts/value-report.py` — monthly value-vs-cost roll
   (`garden-reports/value-<YYYY-MM>.md`), imports roi-report's JOB_TO_CAP so the
-  two reports agree. Fleet job `com.josh.fleet.value-ledger` nightly 23:50
+  two reports agree. Fleet job `com.<user>.fleet.value-ledger` nightly 23:50
   (derive), rolls the report on the 1st.
 - Month-to-date at build: 53 rows / 132.0h returned.
 

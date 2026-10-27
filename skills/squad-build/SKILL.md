@@ -1,6 +1,6 @@
 ---
 name: squad-build
-description: Parallel multi-agent construction of a multi-asset Workato project — one session spawns a squad of builder agents over the gossip bus, each owning disjoint assets, coordinated by claim posts, with a single verified integration pass at the end. Use when Josh asks to "squad-build", "build this whole project", "fan out a build", or when a spec spans 3+ recipes/functions/MCP assets and speed matters.
+description: Parallel multi-agent construction of a multi-asset Workato project — one session spawns a squad of builder agents over the gossip bus, each owning disjoint assets, coordinated by claim posts, with a single verified integration pass at the end. Use when the operator asks to "squad-build", "build this whole project", "fan out a build", or when a spec spans 3+ recipes/functions/MCP assets and speed matters.
 ---
 
 # Squad build

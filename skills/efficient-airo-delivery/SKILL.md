@@ -68,9 +68,9 @@ description: Use when planning, investigating, building, testing, or documenting
   implemented-and-validated phase, material blocker, or release handoff.
 - Accumulate evidence in memory/local files and publish one concise comment with
   verified facts, metrics, affected assets, rollback state, and next decision.
-- All comments are Josh's prose: draft through the `josh-writing-voice` skill
+- All comments are the operator's prose: draft through the `writing-voice (the operator's personal voice skill)` skill
   (first person end to end, no fleet/process framing, hypotheses labeled as
-  guesses; Josh correction 2026-10-10, BTSUP-78227).
+  guesses; the operator correction 2026-10-10, BTSUP-78227).
 
 ## Related (KB bridges)
 

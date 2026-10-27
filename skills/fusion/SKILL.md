@@ -1,11 +1,11 @@
 ---
 name: fusion
-description: Surgical multi-model Fusion — N gateway models answer the same task and their answers are cross-checked. Use ONLY when the P0 gate passes (hard-to-reverse or prod-facing AND wrong-answer cost > ~$5 AND subtle failure mode), or when Josh explicitly asks to fuse. Carries Josh's invocation policy from domains/model-gateway-playbook.md. Never use for investigations, searches, drafts, or cheap-to-redo work.
+description: Surgical multi-model Fusion — N gateway models answer the same task and their answers are cross-checked. Use ONLY when the P0 gate passes (hard-to-reverse or prod-facing AND wrong-answer cost > ~$5 AND subtle failure mode), or when the operator explicitly asks to fuse. Carries the operator's invocation policy from domains/model-gateway-playbook.md. Never use for investigations, searches, drafts, or cheap-to-redo work.
 ---
 
 # Fusion — surgical multi-model cross-check
 
-Josh's ruling (2026-10-10): fusion is a surgical tool with a decision framework, NOT a
+the operator's ruling (2026-10-10): fusion is a surgical tool with a decision framework, NOT a
 default. Single-model is the default; role-routed pins (Phase 3) already capture most of
 the benefit at zero marginal cost.
 
@@ -19,7 +19,7 @@ the benefit at zero marginal cost.
 
 If any box is unchecked: do NOT fuse. Run single-model and say so.
 
-Also fuse when Josh says "fuse it" / "cross-check with another model" — his call overrides
+Also fuse when the operator says "fuse it" / "cross-check with another model" — his call overrides
 the gate, but still state the cost shape (N models × max_tokens) before running.
 
 ## Two invocation modes
@@ -53,13 +53,13 @@ yourself. Never let fused agents write to the same files.
 
 - Similarity ratios from the script are a heuristic, never a verdict.
 - Disagreement is the product: identify WHAT differs, decide which model has the evidence
-  advantage, and if you cannot decide, present the diff to Josh in one card per answer —
+  advantage, and if you cannot decide, present the diff to the operator in one card per answer —
   do not average, do not merge.
 - Unanimous + wrong is possible (shared model-family blindness): if the task is also
   kimi-shaped, add a non-kimi family to the panel rather than trusting unanimity.
   LIVE EXAMPLE (2026-10-10): two panelists independently and confidently asserted
   "Workato connections are env-local and cannot be promoted via manifest" — flat wrong;
-  docs (recipe-development-lifecycle/export) + Josh's own promotion history show
+  docs (recipe-development-lifecycle/export) + the operator's own promotion history show
   connections ARE packageable manifest assets, only their credentials don't transfer.
   When a panel's confident claim contradicts the operator's lived experience or a
   checkable doc, the claim loses.
@@ -68,6 +68,6 @@ yourself. Never let fused agents write to the same files.
 ## Cost guardrail
 
 State the shape before running: "Fusing 3 models × ~2k output tokens ≈ N cents-$X." If a
-fusion run would exceed ~$5 of tokens, stop and get Josh's ok first. Concurrency: ≤3
+fusion run would exceed ~$5 of tokens, stop and get the operator's ok first. Concurrency: ≤3
 parallel requests — the gateway per-key cap is ~30-40; a fusion panel plus a running swarm
 can trip it, so stagger if other agents are active.

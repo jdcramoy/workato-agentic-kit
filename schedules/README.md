@@ -1,6 +1,6 @@
 # Schedules
 
-The fleet runs on launchd — one `com.josh.fleet.<job>` plist per job,
+The fleet runs on launchd — one `com.<user>.fleet.<job>` plist per job,
 all executing `~/.local/bin/fleet/run-job.sh` with per-job prompts and env
 from `bin/fleet/jobs/` (mkdir locks, timeouts, per-job logs). Jobs run with
 NO session open. Install:

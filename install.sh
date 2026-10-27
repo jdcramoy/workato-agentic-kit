@@ -262,8 +262,8 @@ repl = {
     '{{WORKSPACE_PROD}}': os.environ.get('WORKSPACE_PROD', ''),
     '{{ENV_DEV_NAME}}': os.environ.get('ENV_DEV_NAME', ''),
     '{{ENV_PROD_NAME}}': os.environ.get('ENV_PROD_NAME', ''),
-    '{{PROFILE_DEV}}': os.environ.get('PROFILE_DEV', 'josh-us'),
-    '{{PROFILE_PROD}}': os.environ.get('PROFILE_PROD', 'josh-prod'),
+    '{{PROFILE_DEV}}': os.environ.get('PROFILE_DEV', 'dev'),
+    '{{PROFILE_PROD}}': os.environ.get('PROFILE_PROD', 'prod'),
     '{{JIRA_CLOUD_ID}}': os.environ.get('JIRA_CLOUD_ID', ''),
     '{{JIRA_PROJECT}}': os.environ.get('JIRA_PROJECT', ''),
     '{{GOVERNING_EPIC}}': os.environ.get('GOVERNING_EPIC', ''),
@@ -313,6 +313,36 @@ if [ -f knowledge/scripts/frontier/CONTRACTS.md ]; then
 fi
 if ! chmod +x "${K}/scripts/"*.py 2>/dev/null; then
   degraded "knowledge scripts not marked executable (permissions?) — fix: chmod +x ${K}/scripts/*.py"
+fi
+# --- user model (preference store + context compiler) --------------------------
+# install.sh renders the generic engine as user-model.py; with a USER_NAME from
+# onboarding it also installs the personal copy <name>-model.py (store dir
+# follows the name), writes user-model.conf so the generic entrypoint serves
+# the personal store, and seeds the store with the get-to-know-you answers.
+UM_SCRIPT="${K}/scripts/user-model.py"
+if [ -f "$UM_SCRIPT" ]; then
+  UM_NAME="${USER_NAME:-}"
+  if [ -n "$UM_NAME" ]; then
+    cp "$UM_SCRIPT" "${K}/scripts/${UM_NAME}-model.py"
+    chmod +x "${K}/scripts/${UM_NAME}-model.py"
+    printf '%s\n' "$UM_NAME" > "${K}/user-model.conf"
+    UM_SEEDS=0
+    for i in 1 2 3; do
+      eval "UM_SEED=\${USER_MODEL_SEED_${i}:-}"
+      [ -z "$UM_SEED" ] && continue
+      if /usr/bin/python3 "$UM_SCRIPT" add --statement "$UM_SEED" --scope global \
+           --tags onboarding >/dev/null 2>&1; then
+        UM_SEEDS=$((UM_SEEDS + 1))
+      else
+        degraded "user-model seed rule ${i} failed to store — add it by hand: python3 ${UM_SCRIPT} add --statement '...' --scope global"
+      fi
+    done
+    echo "user model installed: ${UM_NAME}-model.py (store: ${K}/${UM_NAME}-model, ${UM_SEEDS} seed rule(s))"
+  else
+    echo "user model installed: user-model.py (unnamed — run ./onboard.sh to name it and seed your rules)"
+  fi
+else
+  degraded "user-model.py missing from knowledge/scripts — the session briefing hook will silently do nothing"
 fi
 touch "${K}/claims/claims.jsonl"
 touch "${K}/integrity/claims.jsonl" "${K}/predictions/predictions.jsonl" \
@@ -396,11 +426,11 @@ for m in workato-guardrails brain-guard; do
       degraded "plugin marketplace add failed — mods may not register. Fix: claude plugin marketplace add ${KIT_HOME}/mods"
     fi
     MOD_OUT="$(mktemp -t kitmod)"; TMPFILES+=("$MOD_OUT")
-    if claude plugin install "${m}@josh-mods" >"$MOD_OUT" 2>&1; then
+    if claude plugin install "${m}@agentic-kit" >"$MOD_OUT" 2>&1; then
       echo "mod installed: ${m}"
     else
       cat "$MOD_OUT"
-      degraded "mod ${m} not installed (claude CLI error above) — fix: claude plugin install ${m}@josh-mods, then /reload-plugins"
+      degraded "mod ${m} not installed (claude CLI error above) — fix: claude plugin install ${m}@agentic-kit, then /reload-plugins"
     fi
   fi
 done
@@ -429,7 +459,7 @@ for w in wt-prod workato-prod prod-bypass; do
   render "bin/$w" "${KIT_HOME}/.local/bin/$w"
   chmod +x "${KIT_HOME}/.local/bin/$w"
 done
-echo "prod wrappers installed: wt-prod, workato-prod, prod-bypass (keychain account: ${PROFILE_PROD:-josh-prod})"
+echo "prod wrappers installed: wt-prod, workato-prod, prod-bypass (keychain account: ${PROFILE_PROD:-prod})"
 case ":$PATH:" in
   *":${KIT_HOME}/.local/bin:"*) echo "wt installed: ${KIT_HOME}/.local/bin/wt (on PATH)" ;;
   *) echo "wt installed: ${KIT_HOME}/.local/bin/wt — add ~/.local/bin to your PATH" ;;
@@ -461,13 +491,14 @@ if [ -f bin/fleet/jobs/frontier-nightly.sh ]; then
   mkdir -p "${KIT_HOME}/.local/bin/fleet/jobs" "${KIT_HOME}/.local/state/fleet"
   render "bin/fleet/jobs/frontier-nightly.sh" "${KIT_HOME}/.local/bin/fleet/jobs/frontier-nightly.sh"
   chmod +x "${KIT_HOME}/.local/bin/fleet/jobs/frontier-nightly.sh"
-  PLIST="${KIT_HOME}/Library/LaunchAgents/com.josh.fleet.frontier-nightly.plist"
+  FLEET_LABEL="com.${USER_NAME:-user}.fleet.frontier-nightly"
+  PLIST="${KIT_HOME}/Library/LaunchAgents/${FLEET_LABEL}.plist"
   mkdir -p "${KIT_HOME}/Library/LaunchAgents"
   cat > "$PLIST" << PLISTEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>Label</key><string>com.josh.fleet.frontier-nightly</string>
+  <key>Label</key><string>${FLEET_LABEL}</string>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
@@ -505,7 +536,7 @@ cat << NEXT
 1. Run ./getting-started.sh — the guided walkthrough (connect MCP servers,
    /reload-plugins, fill config.sh if you skipped it, verify, smoke tests).
 2. Prod CLI access: store the prod API token in the keychain
-   (security add-generic-password -s workato-platform-cli -a ${PROFILE_PROD:-josh-prod}
+   (security add-generic-password -s workato-platform-cli -a ${PROFILE_PROD:-prod}
    -w <token> -U), then workato-prod / wt-prod target production; every prod
    write is held for confirmation by guardrails hook 13.
 3. Schedules (docs-watch 22:31 + launchd 22:15, brain gardener 22:43, watchdog

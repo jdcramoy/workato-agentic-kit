@@ -1,4 +1,4 @@
-// workato-guardrails — mechanizes Josh's standing Workato/Jira rules.
+// workato-guardrails — mechanizes the operator's standing Workato/Jira rules.
 // v0.1: prod-write audit, Jira story-points enforcement, Workato URL linker.
 // v0.2: secret redaction on tool results, jira-story-standards prompt
 //       injection, AbovePrompt status band, /guardrails status command.
@@ -25,9 +25,11 @@ const BUILD_LEDGER = BUILD_LEDGER_DIR + '/build-ledger.jsonl'
 const ATOMIC_APPEND_PY = '$HOME/.claude/knowledge/scripts/atomic_io.py'
 const SYSPY = '/usr/bin/python3'
 const RECIPE_HISTORY = '$HOME/.claude/recipe-history'
-// Josh Model context compiler (hook 16): the Python CLI owns all retrieval,
-// scoring, and briefing logging; the hook is a thin fail-open shim.
-const JM_SCRIPT = '$HOME/.claude/knowledge/scripts/josh-model.py'
+// User Model context compiler (hook 16): the Python CLI owns all retrieval,
+// scoring, and briefing logging; the hook is a thin fail-open shim. Installed
+// as user-model.py; onboarding may install a personal <name>-model.py copy —
+// the engine resolves which store to serve (env, conf file, then script name).
+const JM_SCRIPT = '$HOME/.claude/knowledge/scripts/user-model.py'
 
 // AIRO mutation tools (dev + prod). Reads never ledger.
 const AIRO_MUTATION = /^mcp__workato-airo-mcp-(server|prod)__(recipe_builder_(save|push|init|init_skill|add_step|update_step|remove_step|remove_input_field|move_step|move_steps|set_input_field|set_input_field_v4_mode|set_condition|set_foreach_source|set_error_handling_config|set_block_comments|update_asset_metadata|select_connections|convert_to_skill)|blueprint_(apply|init|push|link_asset|reset)|genie_(create|update)|data_table_(create|delete|update|truncate)|knowledge_base_(create|delete|delete_documents|update|upload_file)|mcp_server_create|connector_builder_(apply_connector_code_patch|init_connector|release_connector|save_latest_connector_code))$/
@@ -405,8 +407,8 @@ export function register(on) {
         '14. remote-identity guard (git push to non-org remote held for confirm)\n' +
         '15. push identity guard — same-name live recipe warning on recipe_builder_push (warn-only)\n' +
         '13. prod-write confirm gate — EVERY surface (workato-prod, wt-prod, ' +
-        'WORKATO_PROFILE=josh-prod, raw http w/ prod credential, Orca on prod urls)\n' +
-        '16. josh-model session briefing (first prompt, fail-open)',
+        'WORKATO_PROFILE=*-prod profile, raw http w/ prod credential, Orca on prod urls)\n' +
+        '16. user-model session briefing (first prompt, fail-open)',
     }
   })
 
@@ -433,7 +435,7 @@ export function register(on) {
       const line = stamp + ' PROD-WRITE ' + e.tool + '\n'
       // Append via shell: $.fs.write overwrites, and the audit log must grow.
       await $.process.run(['sh', '-c', 'mkdir -p ' + AUDIT_DIR + ' && cat >> ' + AUDIT_FILE], { stdin: line })
-      // Visible to Josh in the transcript; Claude does not read ui.log lines.
+      // Visible to the operator in the transcript; Claude does not read ui.log lines.
       $.ui.log('PROD WRITE · ' + e.tool)
     }
     return next(e)
@@ -504,7 +506,7 @@ export function register(on) {
             deny:
               'Push cancelled by workato-guardrails risk gate (' + risk.label + '): ' +
               risk.reasons.join('; ') +
-              '. Resolve and retry, or ask Josh to override by telling you to push explicitly.',
+              '. Resolve and retry, or ask the operator to override by telling you to push explicitly.',
           }
         }
       }
@@ -651,9 +653,9 @@ export function register(on) {
     const tk = e.text.match(TICKET_KEY)
     if (tk) currentTicket = tk[1]
 
-    // 16. JOSH-MODEL SESSION BRIEFING — the first prompt of each session gets
-    //     a task-conditioned briefing from the Josh Model store (spec:
-    //     ~/.claude/knowledge/specs/2026-10-23-josh-model-context-compiler-design.md).
+    // 16. USER-MODEL SESSION BRIEFING — the first prompt of each session gets
+    //     a task-conditioned briefing from the user's model store (see
+    //     docs/harness-docs/12-user-model.md in the kit).
     //     SessionStart fires before the task is known; the first prompt IS the
     //     task signal. `briefed` is register-scoped, and register runs per
     //     session — the flag IS the once-per-session sentinel, no /tmp file.
@@ -718,7 +720,7 @@ export function register(on) {
   // 13. PROD-WRITE CONFIRM GATE — EVERY surface, not just AIRO MCP.
   //     The prod AIRO server is already gated (permissions.ask + hook 1).
   //     This closes the other doors into production: the Workato CLI
-  //     (workato-prod), wt (wt-prod / WORKATO_PROFILE=josh-prod), raw HTTP
+  //     (workato-prod), wt (wt-prod / WORKATO_PROFILE=<any *prod* profile>), raw HTTP
   //     carrying the prod credential, and Orca browser actions aimed at prod.
   //     Reads pass through untouched; only mutations hold for confirmation,
   //     and a dismissed dialog fails closed (deny).
@@ -745,8 +747,8 @@ export function register(on) {
   function prodSurface(cmd) {
     if (/\bwt-prod\b/.test(cmd)) return 'wt-prod'
     if (/\bworkato-prod\b/.test(cmd)) return 'workato-prod'
-    if (/WORKATO_PROFILE=["']?josh-prod/.test(cmd)) return 'wt (WORKATO_PROFILE)'
-    if (/\b(wt|workato)\b[^\n]*--profile[= ]+["']?josh-prod/.test(cmd)) return 'cli (--profile josh-prod)'
+    if (/WORKATO_PROFILE=["']?\S*prod\S*/i.test(cmd)) return 'wt (WORKATO_PROFILE)'
+    if (/\b(wt|workato)\b[^\n]*--profile[= ]+["']?\S*prod\S*/i.test(cmd)) return 'cli (--profile *prod*)'
     if (cmd.includes(PROD_TOKEN_MARK)) return 'raw http (prod credential)'
     if (/\borca\b/i.test(cmd) && PROD_URL_RE.test(cmd)) return 'orca browser (prod url)'
     return null
@@ -832,7 +834,7 @@ export function register(on) {
             deny:
               'workato-guardrails prod-write gate: BLOCKED ' + surface +
               ' write to PRODUCTION (workspace ' + PROD_WORKSPACE + '). ' +
-              'Josh must confirm explicitly. Command: ' + cmd.slice(0, 200),
+              'The operator must confirm explicitly. Command: ' + cmd.slice(0, 200),
           }
         }
         prodWrites += 1

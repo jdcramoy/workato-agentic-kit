@@ -1,6 +1,6 @@
 ---
 name: platform-onboarding
-description: Cold-start the harness on a platform it has never seen — read the platform's API reference, self-discover the endpoint surface, map auth, and deliver the first working integration with test cases in one sitting. Use when Josh says "onboard <platform>", "start building against <new system>", or when a build targets an API the harness has no playbook for.
+description: Cold-start the harness on a platform it has never seen — read the platform's API reference, self-discover the endpoint surface, map auth, and deliver the first working integration with test cases in one sitting. Use when the operator says "onboard <platform>", "start building against <new system>", or when a build targets an API the harness has no playbook for.
 ---
 
 # Platform onboarding (cold start)

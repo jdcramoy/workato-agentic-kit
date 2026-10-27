@@ -1,9 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 
-// Hook 16 (josh-model session briefing). The test sandbox has no $.process
+// Hook 16 (user-model session briefing). The test sandbox has no $.process
 // noun (verified constraint), so the briefing subprocess always throws here —
 // which is exactly the fail-open path these tests prove. The positive path
-// (briefing injected as context) is covered by tests/josh-model-driver.mjs
+// (briefing injected as context) is covered by tests/user-model-driver.mjs
 // with a mocked $.process, matching the push-identity-driver pattern.
 
 test('first prompt fails open when the briefing subprocess is unavailable', async ($, on) => {

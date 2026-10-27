@@ -6,7 +6,7 @@ prediction-error protocol, neuromodulation, agent calibration, the dissenter
 triad, and the rehearsal cortex. The agent's daily companion for planning,
 scoping, building, and testing — and the corpus the dreamers dream on.
 
-Built 2026-10-08 for Josh's agentic harness (v0.7.3). Companion skill:
+Built 2026-10-08 for the operator's agentic harness (v0.7.3). Companion skill:
 `workato-kb`; human slash command: `/kb`. Adoption package: the
 `workato-agentic-kit` repo carries this code + the harness scripts + skills +
 authoring rules.
@@ -24,7 +24,7 @@ authoring rules.
 | `claude` | Claude platform docs (llms.txt Markdown twins) | ETag conditional |
 | `confluence` | BT spaces extbt + intbt — **LOCAL-ONLY: never committed, backed up, or transmitted** | v2 API pagination + content-hash compare |
 | `attachments` | text-bearing Confluence attachments (PDF/Office) → markdown | per-page scan |
-| `harness` | Josh's own curation: knowledge domains/projects/claims + every deployed skill, as `harness://` URIs | `kb/harness_source.py` re-mirrors the live trees each sync (people/ never ingested) |
+| `harness` | the operator's own curation: knowledge domains/projects/claims + every deployed skill, as `harness://` URIs | `kb/harness_source.py` re-mirrors the live trees each sync (people/ never ingested) |
 
 Data root: `~/.claude/workato-kb/` (gitignored everywhere) — `corpus/`,
 `manifest/*.jsonl`, `index/kb.db` (FTS5 + sqlite-vec + entropy + coarse layers),
@@ -102,7 +102,7 @@ queryable at any depth instantly, which is where it beats biology.
 - **Rehearsal cortex** (`rehearsal.py`): counterfactual replay — a recipe's
   historical job fixtures, run against a candidate version, diffed against
   history.
-- **Dream math** (`dream_math.py`): Beta posterior P(accept) from Josh's real
+- **Dream math** (`dream_math.py`): Beta posterior P(accept) from the operator's real
   ledger (logistic fit at n≥20), EV with break-even sensitivity, assumption
   registry re-checked nightly.
 - **Lateral engine** (`lateral.py`): concept co-occurrence graph, PMI-

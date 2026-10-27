@@ -24,11 +24,11 @@ test('workato-prod push is blocked', async ($, on) => {
   expect(answer.deny).toBeDefined()
 })
 
-test('wt with WORKATO_PROFILE=josh-prod api POST is blocked', async ($, on) => {
+test('wt with WORKATO_PROFILE=team-prod api POST is blocked', async ($, on) => {
   on('tool.call', () => ({ result: 'ok' }))
   const answer = await $.tool.call({
     tool: 'Bash',
-    command: 'WORKATO_PROFILE=josh-prod wt api POST /api/recipes/1/start',
+    command: 'WORKATO_PROFILE=team-prod wt api POST /api/recipes/1/start',
   })
   expect(answer.deny).toBeDefined()
 })

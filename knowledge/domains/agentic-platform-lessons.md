@@ -3,13 +3,13 @@
 Code-grounded study of `~/orca/projects/otto` (Workato's agentic platform,
 ~34 services + ~70 library packages) mining lessons for Workato
 no-code/low-code development. Every lesson cites real code. Three-way
-attribution matters: some patterns are native Otto, some are Josh's
+attribution matters: some patterns are native Otto, some are the operator's
 inventions flowing INTO otto, some are harness ports of Otto patterns.
 
 **Attribution map:**
 - Native Otto: loop architecture, safety judges, delivery guarantees,
   change sandboxes, tracing idioms.
-- Josh's inventions: the semantic-gateway modality (reviewed capability
+- the operator's inventions: the semantic-gateway modality (reviewed capability
   registry + content-free routing index + typed facts + plan-then-confirm-commit)
   — born Workato-side, `services/gws-semantic-gateway/` is the phase-1
   import into otto; and the harness fleet (canon, evidence, dissenters,
@@ -23,7 +23,7 @@ inventions flowing INTO otto, some are harness ports of Otto patterns.
 1. **Verification throughput caps agent-authored volume.** Otto's
    AGENTIC_VERIFICATION.md: per-change sandbox envs — fork changed services
    + path closure, template-cloned DB (~5s), TTL, additive-only.
-   → Workato: **REJECTED (Josh, 2026-10-09).** We are a fixed AHQ
+   → Workato: **REJECTED (the operator, 2026-10-09).** We are a fixed AHQ
    end-customer workspace — no OEM/managed-users plane, workspace-per-change
    impossible — and the project-level fallback (prefixed tables + namespaced
    fixtures + provisioner/reaper machinery) gives up more than it gains,
@@ -104,7 +104,7 @@ inventions flowing INTO otto, some are harness ports of Otto patterns.
     → Workato: genies/skills/MCP servers are easy; the engineering is what
     happens when everything dies at the wrong moment. Design for that.
 
-## Semantic-gateway status (Josh's build)
+## Semantic-gateway status (the operator's build)
 
 `services/gws-semantic-gateway/` phase-1 prototype: OAuth-chain proof via
 Workato connector bridge (service must 401 on expired Google token, never

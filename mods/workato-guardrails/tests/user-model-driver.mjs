@@ -1,9 +1,9 @@
-// Positive-path driver for hook 16 (josh-model session briefing).
+// Positive-path driver for hook 16 (user-model session briefing).
 // The plugin test sandbox has no $.process noun, so the injection path can't
 // be exercised there. This driver loads the REAL register.js (copied to a
 // temp .mjs for ESM import), fires the REAL prompt.submit hook chain, and
 // mocks $.process.run to return a canned briefing.
-// Run: node tests/josh-model-driver.mjs
+// Run: node tests/user-model-driver.mjs
 // Expect: CASE 1 context injected on first prompt; CASE 2 no re-injection on
 // second prompt; CASE 3 empty briefing output = no context; CASE 4 subprocess
 // throw = prompt passes through (fail open).
@@ -22,7 +22,7 @@ const on = (event, matcherOrHook, maybeHook) => {
   hooks.push({ event, matcher, fn: maybeHook ?? matcherOrHook })
 }
 
-const BRIEFING = '--- [josh-model] session briefing (task: build | project: workbench) ---\n- pref-001 (global): test rule\n---'
+const BRIEFING = '--- [user-model] session briefing (task: build | project: workbench) ---\n- pref-001 (global): test rule\n---'
 
 const processCalls = []
 const $ = {
@@ -49,13 +49,13 @@ register(on)
 
 const c1 = await firePrompt('build a recipe')
 console.log('CASE 1 (first prompt) -> briefing injected:',
-  (c1.context ?? []).some((c) => String(c).includes('[josh-model] session briefing')) ? 'YES' : 'NO')
+  (c1.context ?? []).some((c) => String(c).includes('[user-model] session briefing')) ? 'YES' : 'NO')
 console.log('  subprocess argv sane:', processCalls[0]?.includes('brief') && processCalls[0]?.includes('build a recipe') ? 'YES' : 'NO')
 
 const before = processCalls.length
 const c2 = await firePrompt('a totally different second prompt')
 console.log('CASE 2 (second prompt) -> no re-fire:', processCalls.length === before ? 'YES' : 'NO',
-  '| no injected context:', !(c2.context ?? []).some((c) => String(c).includes('[josh-model]')) ? 'YES' : 'NO')
+  '| no injected context:', !(c2.context ?? []).some((c) => String(c).includes('[user-model]')) ? 'YES' : 'NO')
 
 // Fresh registration (new "session") with empty briefing output.
 hooks.length = 0

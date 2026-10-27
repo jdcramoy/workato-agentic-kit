@@ -77,7 +77,7 @@ dissent-blocked and goes to the human instead.
 **project-dreamer** (nightly 00:37, deep pass Sundays). The harness-dreamer
 dreams about the harness; the project-dreamer dreams about the actual
 PROJECTS. Each night it picks the project with the most real activity
-(Josh can name one instead), grounds itself in four inputs: the project's
+(the operator can name one instead), grounds itself in four inputs: the project's
 session history (mined for the archaeology of decisions, not read whole),
 the durable project memory in the knowledge tree (with a staleness sample
 against the repo), the repo's actual architecture and code shape, and the
@@ -211,11 +211,11 @@ compounds. Their constitution: convene a board of professional lenses
 manager, CTO, rotating, running on three different model lineages with the
 frontier model cost-governed to one seat per night); consume the lateral
 engine's hidden concept pairs as raw material; attach a math block to every
-proposal (Bayesian acceptance probability learned from Josh's real ledger,
+proposal (Bayesian acceptance probability learned from the operator's real ledger,
 expected value, break-even sensitivity); register load-bearing assumptions
 for nightly re-checking; file same-night ideas as incubating: a different
 model re-judges them cold, and only ideas that survive two re-looks or gain
-evidence reach Josh's queue. In the dreamer's autonomous mode it may spend a
+evidence reach the operator's queue. In the dreamer's autonomous mode it may spend a
 small budget testing an idea with a probe recipe: dreams with measurements
 outrank dreams with speculation. Weekly board minutes publish as a reviewable
 draft page in the team space.

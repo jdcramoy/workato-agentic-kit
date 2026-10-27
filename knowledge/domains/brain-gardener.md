@@ -1,17 +1,17 @@
 # Brain Gardener — domain knowledge
 
-The brain gardener is Josh's knowledge-base curator agent: a gardener that
+The brain gardener is the operator's knowledge-base curator agent: a gardener that
 regularly reviews the memory/knowledge architecture and files a report.
 Advisory-only by design — it is NOT in the decision loop; it proposes,
-Josh + the main session apply.
+the operator + the main session apply.
 
-## v2: the nervous system (built 2026-10-06, Josh: "build all 7")
+## v2: the nervous system (built 2026-10-06, the operator: "build all 7")
 
 Seven capabilities, three tiers (prevention → nightly curation → weekly
 architecture):
 
 1. **Write-time linting** — `brain-guard` plugin (`~/mods/brain-guard`,
-   installed via josh-mods marketplace): lints memory/knowledge writes at the
+   installed via agentic-kit (mods marketplace) marketplace): lints memory/knowledge writes at the
    moment of writing (relative dates without absolute anchors, memory files
    missing frontmatter/type, knowledge writes with no INDEX.md touch this
    session). Annotates the tool result + `$.ui.log`, never blocks. 7/7 tests.
@@ -52,9 +52,9 @@ architecture):
   Full SOP inside: 4 phases — inventory, health checks, transcript dreaming,
   garden report. Hard rules: no writes except to garden-reports/; grep-and-
   sample transcripts (never read whole, they're tens of MB); cite evidence;
-  relative dates → absolute; UAT/prod-touching proposals marked "needs Josh".
+  relative dates → absolute; UAT/prod-touching proposals marked "needs the operator".
 - **Report destination**: `~/.claude/knowledge/garden-reports/YYYY-MM-DD-<slug>.md`.
-- **Schedule**: durable cron job id df43b546, NIGHTLY 22:43 (Josh: "with the
+- **Schedule**: durable cron job id df43b546, NIGHTLY 22:43 (the operator: "with the
   amount of work I do, shouldn't it be running nightly?" — weekly was too
   sparse; nightly keeps dream-scrape windows small and drift-catching fast).
   Cadence design: nightly runs review today's transcript(s) + changes since
@@ -79,7 +79,7 @@ architecture):
 
 ## Architecture role (added 2026-10-07)
 
-Josh: "not just the content management system but also the architecture
+the operator: "not just the content management system but also the architecture
 and infrastructure agent."
 
 The gardener is also the brain's ARCHITECT: Phase 2.3 (weekly) audits
@@ -90,7 +90,7 @@ should-be-a-hook. The rulebook it audits against lives in
 agent file lean — the gardener practices its own modularization rule).
 New proposal kinds: modularize / extract-index / split-file, tracked in
 the Phase 0 outcomes log like the rest. Still propose-only: splits land
-as `gardener/*` branch commits for Josh's review.
+as `gardener/*` branch commits for the operator's review.
 
 ## Scheduling caveats (important)
 

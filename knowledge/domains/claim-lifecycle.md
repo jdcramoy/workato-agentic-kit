@@ -5,7 +5,7 @@ The build that answers the dreamer's converged diagnosis (visions
 [10-18 core-of-the-system](../dreams/visions/2026-10-18-the-core-of-the-system.md),
 [10-20 kill-layer](../dreams/visions/2026-10-20-the-kill-layer.md)): the harness's bottleneck
 is the claim lifecycle — born-to-closed latency, unearned static trust, and sessions dying
-without depositing state. Josh's go: "build it all" (2026-10-23). Three zero-LLM components,
+without depositing state. the operator's go: "build it all" (2026-10-23). Three zero-LLM components,
 one squad build under `scripts/lifecycle/CONTRACTS.md` (disjoint ownership, same pattern as
 frontier/CONTRACTS.md).
 
@@ -34,12 +34,12 @@ Trust-from-data: per-(agent|surface, claim-class) evidence from the predictions 
 (per-agent Brier), decisions engine ledgers (per-surface accuracy), and proposal outcomes
 (base rates by kind/risk). Writes `autonomy/evidence.json`, `autonomy/authority.json`
 (56 classes), `autonomy/recommendations-latest.json` (envelope: `candidates[]`, 114 rows).
-Nightly via `com.josh.fleet.autonomy-nightly.plist` (04:53, loaded 2026-10-23).
+Nightly via `com.<user>.fleet.autonomy-nightly.plist` (04:53, loaded 2026-10-23).
 
 **SELF-GATING LAW:** every class is born `mode: "josh-only"`. Evidence can only set
 `eligible_mode: "recommend"` (promotion rule: n>=20 AND accuracy>=0.8 over trailing 30d).
 `auto-close` exists as a mode value but the engine contains NO code path that writes it —
-only Josh hand-editing authority.json flips a class:
+only the operator hand-editing authority.json flips a class:
 `python3 -c "import json;p='~/.claude/knowledge/autonomy/authority.json';d=json.load(open(p));d['classes']['<class>']['mode']='auto-close';json.dump(d,open(p,'w'),indent=2)"`
 The engine never mutates mission-control/proposals/claim stores — reads, scores, recommends.
 

@@ -122,7 +122,7 @@ Every agent is an organ. The roster:
 | motor planning | promotion-orchestrator | batches dev work into governed production releases |
 | imagination | harness-dreamer | dreams (pragmatic + visionary); fixes at auto-dev |
 | immune system | dissenter | adversarial review: attacks every proposal before it reaches a human; "steel manned, could not break it" is the strongest approval signal |
-| project architect | project-dreamer | the nightly dreamer for Josh's PROJECTS (not the harness): mines project sessions, memory, repo docs, and git, then proposes architecture debt, features, and better solutions; advisory-only constitutional |
+| project architect | project-dreamer | the nightly dreamer for the operator's PROJECTS (not the harness): mines project sessions, memory, repo docs, and git, then proposes architecture debt, features, and better solutions; advisory-only constitutional |
 | **the brain** | **cortex** | **attention, coherence, curiosity: reads everything, asks the questions nobody is asking, and directs the whole network's focus** |
 | testimony | evidence | the claim hunter: re-checks the last 24 hours' "done/fixed/verified" statements against live evidence; FALSE verdicts get a dissenter review |
 | spec distiller | spec-distiller | writes the build spec (goal, scope, verifiable acceptance criteria) before any build starts; advisory only |
@@ -166,23 +166,23 @@ graph TB
     end
 
     subgraph MORNING[" morning: the human "]
-        MB["morning brief\n07:13"] --> JOSH["Josh\napproves · upgrades · steers"]
+        MB["morning brief\n07:13"] --> OPERATOR["the operator\napproves · upgrades · steers"]
         REPORTS --> MB
         BUS --> MB
     end
 
     REPO -.->|"git revert = rollback"| DREAMER
-    JOSH -->|"'set-mode propose'"| LADDER
-    JOSH -->|"'run the watchdog'"| WD
+    OPERATOR -->|"'set-mode propose'"| LADDER
+    OPERATOR -->|"'run the watchdog'"| WD
 ```
 
 The dream is a first-class organ: during the day the harness records itself
 (mods ledger every mutation, telemetry logs every call, transcripts capture
 every session); at night the dreamer reads all of that plus what the other
 agents learned over the bus, and writes a report proposing what the harness
-should become; in the morning one brief hands Josh the whole night with
+should become; in the morning one brief hands the operator the whole night with
 corroboration counts as the trust signal. Nothing the dreamer proposes
-applies without Josh, and anything applied is one git revert away.
+applies without the operator, and anything applied is one git revert away.
 
 ## How the layers fit together
 
@@ -255,6 +255,7 @@ what each touches before you load anything.
 | 11 | Slash commands | user | `/guardrails` (hook status), `/builds` (ledger summary for today, week, or all), `/promotion-ready` (dev edits newer than their last promotion mark), `/promoted` (mark recipes shipped), `/snapdiff` (recipe snapshot history; renamed from `/diff` because the engine's built-in diff panel owns that name and a duplicate registration is refused). |
 | 12 | Snapshot history and cockpit | every push; on demand | After each push, pulls the fresh DSL from the matching server and commits it to a local git repo, so "what changed in this recipe" is a diff. `/cockpit` opens a pane with session counters and the ledger tail. |
 | 13 | Prod-write confirm gate | Bash commands that target production via ANY surface: `workato-prod`, `wt-prod`, `WORKATO_PROFILE`/`--profile` set to the prod profile, raw HTTP carrying the prod credential, Orca on prod URLs | Holds WRITES for an explicit confirm dialog, fail-closed on dismissal. Reads pass through. This is the door-closer that makes the prod CLI/wt wrappers safe to hand an agent. |
+| 16 | User-model session briefing | first prompt of each session | Calls `knowledge/scripts/user-model.py brief` and injects a task-conditioned preference briefing as hidden context. Fail-open. See docs/harness-docs/12-user-model.md. |
 
 `brain-guard` registers 5 hooks for the knowledge system itself:
 
@@ -465,7 +466,7 @@ keychain; the wrapper handles that.
 
 All agent schedules are self-rearming: each run re-creates its task before
 the platform's 7-day scheduler expiry lapses. The canonical fleet is the
-launchd set (`com.josh.fleet.*` via `~/.local/bin/fleet/run-job.sh`, 42
+launchd set (`com.<user>.fleet.*` via `~/.local/bin/fleet/run-job.sh`, 42
 jobs as of 2026-10-16 — per-job prompts/env, mkdir locks, timeouts, per-job
 logs). See `schedules/README.md` for the full table and the nightly order.
 
@@ -478,7 +479,7 @@ instruction-miner 00:47 → evidence 00:53.
 |---|---|
 | hourly | Cortex pulse (fleet coordinator, reads everything, routes attention) |
 | hourly | Health probe; bus actuator at :41 (corroboration tally to consequences) |
-| every 2h | Jira triage loop (identify, triage, investigate, plan; Josh gates builds) |
+| every 2h | Jira triage loop (identify, triage, investigate, plan; the operator gates builds) |
 | 22:31 daily (launchd, zero-LLM) | Docs crawler (unattended crawl) + in-session summary |
 | 22:43 daily | Brain gardener (drift, conflict, rot checks; proposal pipeline) |
 | 23:13 daily | Workato watchdog (estate health + heartbeat check) |
@@ -542,7 +543,7 @@ instruction-miner 00:47 → evidence 00:53.
 8. The dreamer starts at trust-ladder mode `report`. Read the dream reports
    for a few nights, then upgrade with
    `python3 ~/.claude/knowledge/scripts/dream-config.py set-mode propose`
-   (and later `auto-safe`). `auto-dev` is the destination rung: agents act on the dev estate overnight and Josh wakes to fixed, verified, revertable work plus a triage queue. `never_auto` is constitutional in every mode.
+   (and later `auto-safe`). `auto-dev` is the destination rung: agents act on the dev estate overnight and the operator wakes to fixed, verified, revertable work plus a triage queue. `never_auto` is constitutional in every mode.
 
 ## Getting started walkthrough
 
@@ -600,7 +601,7 @@ safe to let agents modify the system they run in: any applied change is
 reversible with `git revert` on the backup repo.
 
 After the snapshot, the same job pushes the two repos that carry their own
-remotes (the knowledge tree (`josh-knowledge`) and this kit), committing
+remotes (the knowledge tree (`knowledge-tree`) and this kit), committing
 anything dirty first, with a token-shaped-string scan on the staged diff
 that refuses the push on a hit, and a manifest line recording what went
 out. Up-to-date repos are a silent no-op.
@@ -626,7 +627,7 @@ sequences.
 
 The daily dream report (`knowledge/dreams/<date>.md`) carries two mandates:
 
-- **PRAGMATIC**: evidence-cited findings for four questions: what is Josh
+- **PRAGMATIC**: evidence-cited findings for four questions: what is the operator
   working on, what is he repeating, what are the frequent mistakes or
   misses, what would have made yesterday faster. Every finding cites a
   transcript ref, ledger line, or count.
@@ -635,7 +636,7 @@ The daily dream report (`knowledge/dreams/<date>.md`) carries two mandates:
   of pure speculation in the report; when a vision is substantial the
   dreamer writes it whole to `knowledge/dreams/visions/`: essay, letter
   from the future, manifesto, or song. No evidence requirement; the quality
-  bar is "would this make Josh think differently". Visions mature down the
+  bar is "would this make the operator think differently". Visions mature down the
   pipeline: vision → invention → proposal → skill.
 
 Below the mandates: a proposal queue table. Proposals (when the ladder
@@ -690,13 +691,13 @@ The watchers don't just report, they FILE. Watchdog autopsies, regression
 failures, gardener hygiene items, architect recommendations, work-shaped
 cortex attention items, and every Jira attention item the autotriage loop
 sweeps (plans awaiting authorization, hotfix-class bugs, new tickets
-assigned to Josh, new comments, tickets aging without movement) land as
+assigned to the operator, new comments, tickets aging without movement) land as
 findings in a shared queue (`knowledge/triage/queue.jsonl`, appended by
 the source agent, status changes only via `triage-decide.py`). `/triage`
 renders the open queue as decision cards ranked by urgency first, then
 age, and collects verdicts in one batched pass: **file story/bug** (Jira
 item created immediately under the governing epic (a certain existing
-epic, or a new one under the FY27 V2MOM work item), assigned to Josh,
+epic, or a new one under the FY27 V2MOM work item), assigned to the operator,
 points at creation), **build now** (dev-estate only, snapshot-verify-
 ledger cycle; UAT/prod gates untouched), **queue only**, **reject**, or
 **defer**. Rejection patterns go to a `triage-taste` bus thread so the
@@ -744,7 +745,7 @@ Event schema (one JSON object per line, append-only):
 on that thread instead of duplicating it), post your top findings at end
 (max 3, terse, with refs; nothing on the bus without a reference), and use
 handoffs to route work: watchdog finds it, the dreamer proposes a guard, the
-gardener verifies the claim, Josh approves.
+gardener verifies the claim, the operator approves.
 
 **Corroboration is the confidence unit:** 1 witness = observation, 2
 witnesses = pattern, 3+ = act on it. Independent agents corroborating is the
@@ -789,7 +790,7 @@ source of truth for the published pages (published OUT to Confluence).
   updates to existing pages are autonomous (a sanitizer strips workspace
   IDs, tokens, and internal identifiers before every publish, and every
   publish is read back to verify rendering); creating new pages,
-  reparenting, or deleting needs Josh first.
+  reparenting, or deleting needs the operator first.
 - The job heartbeats and posts a one-line drift report to the bus, so a
   skipped sync shows up in the watchdog and the morning brief like any
   other fleet job.
@@ -921,7 +922,7 @@ seconds), installed by install.sh and driven nightly by one launchd job:
   deferrals still cost something; 19 went stale on their own"). Over- and
   under-caution both become visible.
 
-Driver: `com.josh.fleet.frontier-nightly` launchd plist at 04:43, one
+Driver: `com.<user>.fleet.frontier-nightly` launchd plist at 04:43, one
 bash wrapper, zero model spawns, one log. Schemas and the
 disjoint-ownership map every script obeys:
 `knowledge/scripts/frontier/CONTRACTS.md`.
@@ -976,7 +977,7 @@ docs/harness-docs/    the published harness documentation set + page manifest
 ## Mods: one source of truth
 
 The kit repo's `mods/` is the SOURCE for both plugins; `~/mods/` is the
-deployed runtime the `josh-mods` directory marketplace serves from. Edit
+deployed runtime the `agentic-kit (mods marketplace)` directory marketplace serves from. Edit
 mods in the kit, commit, then `bin/mods-deploy` (rsync to `~/mods`), then
 `/reload-plugins`. Hot-editing `~/mods` directly is how the copies drift;
 if it happens, the weekly harness-docs sync job catches the divergence and
@@ -996,6 +997,6 @@ heartbeat or non-empty output. A silent rc=0 exit is a STUB. The runner
 retries a stub once, then writes it to `garden-reports/fleet-validation.jsonl`
 for the watchdog to escalate. It also repairs the launchd environment
 (PATH + gateway env from `~/.zshenv`, which bash never reads): the root
-cause of the silent stub night of 2026-10-07. Josh's contract: if we
+cause of the silent stub night of 2026-10-07. the operator's contract: if we
 expect jobs to run, validate that they ran, and never let a failure be
 invisible.

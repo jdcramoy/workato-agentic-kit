@@ -1,6 +1,6 @@
 ---
 name: manifest-hygiene
-description: Dry-run a Recipe Lifecycle Management manifest before filing the story — catch missing dependencies, stale references, wrong-folder assets, and unused extras before the import discovers them at 2am. Use whenever assembling or editing a promotion manifest, or when Josh asks "is this manifest clean", "check the manifest".
+description: Dry-run a Recipe Lifecycle Management manifest before filing the story — catch missing dependencies, stale references, wrong-folder assets, and unused extras before the import discovers them at 2am. Use whenever assembling or editing a promotion manifest, or when the operator asks "is this manifest clean", "check the manifest".
 ---
 
 # Manifest hygiene

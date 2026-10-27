@@ -1,6 +1,6 @@
 ---
 name: workato-kb
-description: Deep Workato knowledge base (RAG++) over docs.workato.com, the product changelog, the Workato blog/The Connector, architecture-canon GitHub repos (system-design-primer, awesome-software-architecture, awesome-system-design-resources), and the BT Confluence spaces (extbt + intbt). Use during planning, scoping, design, build, and test phases of ANY Workato work, when a Workato platform question could be answered from documentation, when you need a formula/connector/best-practice detail, when designing system architecture, when citing docs, or when Josh asks to "check the docs", "search the KB", "what does Workato documentation say", or "have we seen this before internally". Daily companion during planning and build.
+description: Deep Workato knowledge base (RAG++) over docs.workato.com, the product changelog, the Workato blog/The Connector, architecture-canon GitHub repos (system-design-primer, awesome-software-architecture, awesome-system-design-resources), and the BT Confluence spaces (extbt + intbt). Use during planning, scoping, design, build, and test phases of ANY Workato work, when a Workato platform question could be answered from documentation, when you need a formula/connector/best-practice detail, when designing system architecture, when citing docs, or when the operator asks to "check the docs", "search the KB", "what does Workato documentation say", or "have we seen this before internally". Daily companion during planning and build.
 ---
 
 # Workato KB (RAG++)

@@ -1,6 +1,6 @@
 ---
 name: triage
-description: Interactive approval queue for development, bugfix, and build triage findings discovered by the fleet (watchdog autopsies, regression failures, gardener actionable items, estate-architect recommendations, cortex work-shaped attention items, jira-autotriage findings including inbound Jira attention items: tickets assigned to Josh, new comments, aging tickets). Cards ranked by urgency then age. Use when Josh says "triage findings", "show the triage queue", "what needs fixing", "what needs my attention", "work the findings", or invokes /triage. Renders every open finding as a decision card, collects verdicts in one batched pass, records them via triage-decide.py, creates the BSYS Story or Bug for approved work, and dispatches approved dev work.
+description: Interactive approval queue for development, bugfix, and build triage findings discovered by the fleet (watchdog autopsies, regression failures, gardener actionable items, estate-architect recommendations, cortex work-shaped attention items, jira-autotriage findings including inbound Jira attention items: tickets assigned to the operator, new comments, aging tickets). Cards ranked by urgency then age. Use when the operator says "triage findings", "show the triage queue", "what needs fixing", "what needs my attention", "work the findings", or invokes /triage. Renders every open finding as a decision card, collects verdicts in one batched pass, records them via triage-decide.py, creates the BSYS Story or Bug for approved work, and dispatches approved dev work.
 ---
 
 # Triage — the silver platter for discovered work
@@ -29,7 +29,7 @@ time, ready to become work).
 
 2. **Build one decision card per open finding.** Compact, scannable —
    but never at the cost of the ticket link or the full finding text
-   (Josh, 2026-10-10: every card MUST carry the Jira URL and the
+   (the operator, 2026-10-10: every card MUST carry the Jira URL and the
    verbatim description; "you had to be there" cards are a defect):
 
    - slug, `kind` (bugfix | playbook | test | hygiene | build), source
@@ -45,7 +45,7 @@ time, ready to become work).
      paraphrase. Verbosity dial: full ISSUE/EVIDENCE/PROPOSED WORK text
      and the Jira URLs go in the CHAT MESSAGE above the question block
      (that's where they're readable); the AskUserQuestion option labels
-     stay one short line each — never wall-of-text options (Josh
+     stay one short line each — never wall-of-text options (the operator
      2026-10-10: linked and informative, not bloated).
    - for anything touching a live Workato asset: run the blast-radius
      skill and put the radius on the card
@@ -71,7 +71,7 @@ time, ready to become work).
    - **Reject** — recorded rejected; the note is the taste signal
    - **Defer** — untouched, re-offered next time
 
-   Josh's "Other" free-text becomes the logged note. Never call
+   the operator's "Other" free-text becomes the logged note. Never call
    AskUserQuestion twice for the same finding.
 
 4. **File story/bug (the Jira procedure).** Issue type: **Bug** when the
@@ -91,7 +91,7 @@ time, ready to become work).
       prove efficiency at scale") — the V2MOM FY27 work item the BT epic
       tree hangs from. Re-verify the key live the first time each session
       uses it; never quote it from memory.
-   c. **The story/bug**: parent = the epic key, assignee = Josh (account
+   c. **The story/bug**: parent = the epic key, assignee = the operator (account
       id `712020:112eb7d5-8a97-41a3-ae23-05513ca0ad72`), points at
       creation via `additional_fields {"customfield_10057": N}` (BSYS
       supports the field; scale: 1 trivial, 2 half day, 3 one day, 5 the
@@ -100,8 +100,8 @@ time, ready to become work).
       Criteria `- [ ]`, UAT Evidence section naming what WILL be
       recorded), labels reusing the epic's set, and the finding's
       evidence refs inline (real asset URLs, job IDs, file paths).
-      Descriptions are Josh's prose: draft through `josh-writing-voice`
-      (first person, no fleet/process framing; Josh 2026-10-10).
+      Descriptions are the operator's prose: draft through `writing-voice (the operator's personal voice skill)`
+      (first person, no fleet/process framing; the operator 2026-10-10).
    d. Batch story creation; don't ask per-story. After creation, record
       `triage-decide.py <slug> filed "story created" --jira KEY` and
       include the key + URL in the summary table.
@@ -126,7 +126,7 @@ time, ready to become work).
 
 ## Hard rules
 
-- Never decide for Josh. The queue renders facts and a recommendation;
+- Never decide for the operator. The queue renders facts and a recommendation;
   the verdict is his.
 - Never hand-edit the queue file — the recorder is the only writer of
   status changes; findings are appended by their source agent.

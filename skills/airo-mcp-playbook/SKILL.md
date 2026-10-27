@@ -123,7 +123,7 @@ Full detail, root causes, and repro context for each: `references/known-bugs.md`
   forcing a data-pipeline pass), do NOT wait for the schedule to fire and do
   NOT poll: **stop the recipe → click Test (recipe page dropdown/caret, or
   row-select a prior job → "Repeat N job") → review the job trace → start
-  the recipe again.** (Josh directive, 2026-10-02.)
+  the recipe again.** (the operator directive, 2026-10-02.)
 - The CLI start/stop silently no-ops on some platform recipes — verify via
   `recipe_get` (Running flag) or the page's Active/Inactive banner, and
   start via the Orca browser "Start recipe" button when the CLI no-ops.

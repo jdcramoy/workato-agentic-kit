@@ -1,6 +1,6 @@
 ---
 name: kb
-description: Query the local Workato RAG++ knowledge base interactively — /kb <query> or /kb --source docs|changelog|blog|inspiration|github|eip|claude|confluence <query>. Returns hybrid-retrieval results (BM25 + vectors + entropy + PMI + rerank) with citations. Use when Josh asks a Workato/platform/architecture question directly and wants KB answers with sources.
+description: Query the local Workato RAG++ knowledge base interactively — /kb <query> or /kb --source docs|changelog|blog|inspiration|github|eip|claude|confluence <query>. Returns hybrid-retrieval results (BM25 + vectors + entropy + PMI + rerank) with citations. Use when the operator asks a Workato/platform/architecture question directly and wants KB answers with sources.
 ---
 
 # /kb — query the Workato RAG++ knowledge base

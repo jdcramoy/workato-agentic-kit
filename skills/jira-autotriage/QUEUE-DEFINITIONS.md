@@ -1,6 +1,6 @@
 # Queue definitions — the per-lane queries (canonical)
 
-## Hard filter (Josh ruling 2026-10-09, BSYS-29438 rejection)
+## Hard filter (the operator ruling 2026-10-09, BSYS-29438 rejection)
 
 EVERY queue query below MUST carry the assignee filter:
 
@@ -11,7 +11,7 @@ assignee = 712020:112eb7d5-8a97-41a3-ae23-05513ca0ad72
 The loop only pulls in work ASSIGNED TO JOSH. Tickets where he is merely
 creator, watcher, mentioned, or reporter are NOT actionable work items — they
 may be read for context but are never queued, planned, or replied to. This
-replaces the earlier "created by Josh, or watched" scope. The explicit
+replaces the earlier "created by the operator, or watched" scope. The explicit
 account id is used instead of `currentUser()` so the filter is deterministic
 regardless of which connection runs the query.
 
@@ -29,7 +29,7 @@ project = BSYS AND issuetype = Story AND resolution = unresolved
 ORDER BY updated DESC
 ```
 
-The loop produces TECHNICAL PLANS posted for Josh's review; it never starts
+The loop produces TECHNICAL PLANS posted for the operator's review; it never starts
 builds. Scope decision for the fleet job: plan only `status = Backlog`
 stories (In Progress/UAT stories belong to their assignees — several are
 other people: Sam Cox, Jorge, Kevin Deng); the assignee filter above makes
@@ -61,11 +61,11 @@ ORDER BY updated DESC
 Verified live 2026-10-07: 8+ open requests WITHOUT the ownership filter —
 and nearly all were other people's in-flight work (terminations,
 provisioning, software concerns owned by Anthony Wong / Ivan Yuri Uy /
-Marc Parilla). Originally the loop touched unassigned OR Josh-assigned
-requests; tightened 2026-10-09 (Josh ruling, BSYS-29438): the loop touches
-ONLY Josh-assigned requests. Unassigned requests are humans' future intake,
+Marc Parilla). Originally the loop touched unassigned OR the operator-assigned
+requests; tightened 2026-10-09 (the operator ruling, BSYS-29438): the loop touches
+ONLY the operator-assigned requests. Unassigned requests are humans' future intake,
 not the loop's — they wait for a human assignee like anything else.
-Replies go to real customers in Josh's voice — confirm-gated, always.
+Replies go to real customers in the operator's voice — confirm-gated, always.
 Unconfirmed (headless pass) = draft waits in the ledger + morning brief,
 never auto-posted.
 
@@ -76,13 +76,13 @@ never auto-posted.
    `statusCategory != done` (BSYS-28081 was the live example).
 2. **The label gate is intake-dependent**: `agent-triage` arrives only if a
    human or an intake recipe applies it. No label = Lane 2 works the ticket
-   only if assigned to Josh AND Josh has authorized label-free remediation;
+   only if assigned to the operator AND the operator has authorized label-free remediation;
    default is triage-and-propose.
 3. **Other people's tickets**: BSYS has many collaborators. The assignee
    filter makes other-assignee tickets unreachable by construction. Being
    creator, watcher, mentioned, or reporter is NOT enough — the ruling of
-   2026-10-09 (BSYS-29438: an AE-change ticket Josh was only watching got
-   queued and planned) makes assignee = Josh a hard gate on every query.
+   2026-10-09 (BSYS-29438: an AE-change ticket the operator was only watching got
+   queued and planned) makes assignee = the operator a hard gate on every query.
 4. A single lane query is NOT "the queue". Run all three lanes every pass;
    a pass that only checks the label lane is a pass that missed the
    backlog.

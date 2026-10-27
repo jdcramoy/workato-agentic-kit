@@ -1,6 +1,6 @@
 ---
 name: arch-diagram
-description: Use when a project session is ending and Workato/repo assets changed, when writing a handoff (handoff skill auto-invokes this), or when Josh asks to "update the architecture diagram", "map the architecture", or "diagram this project". Also the diagram-refresh entry point for project-dreamer's architecture-QA lens. Produces the project's two-level mermaid architecture map and its rendered SVGs.
+description: Use when a project session is ending and Workato/repo assets changed, when writing a handoff (handoff skill auto-invokes this), or when the operator asks to "update the architecture diagram", "map the architecture", or "diagram this project". Also the diagram-refresh entry point for project-dreamer's architecture-QA lens. Produces the project's two-level mermaid architecture map and its rendered SVGs.
 ---
 
 # Arch Diagram

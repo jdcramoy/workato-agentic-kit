@@ -1,8 +1,8 @@
 # Claude Code docs canon — official best practices for knowledge, memory, skills, file trees
 
-The Brain Gardener's rulebook for auditing Josh's instruction files, auto
+The Brain Gardener's rulebook for auditing the operator's instruction files, auto
 memory, skills, and settings layout. Every rule below is from OFFICIAL
-documentation, fetched 2026-10-07 (sources listed at bottom). Where Josh's
+documentation, fetched 2026-10-07 (sources listed at bottom). Where the operator's
 harness deliberately diverges, the divergence is stated — the harness policy
 wins, never the default.
 
@@ -128,7 +128,7 @@ security keys honor the stricter value from any scope.
   permissions sprawl in the wrong file (personal rules in shared files,
   team rules in local files); dead allow/deny patterns; invalid JSON.
 
-## 5. Where Josh's harness deliberately diverges (harness policy wins)
+## 5. Where the operator's harness deliberately diverges (harness policy wins)
 
 - The knowledge TREE (`~/.claude/knowledge/`) is the durable store, not
   bloated CLAUDE.md files — audit the tree with these rules but never

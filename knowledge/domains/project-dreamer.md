@@ -1,6 +1,6 @@
 # Project Dreamer — domain knowledge
 
-The project dreamer is the 7th agent in Josh's network: the harness-dreamer's
+The project dreamer is the 7th agent in the operator's network: the harness-dreamer's
 sibling for PROJECT content. Where the harness dreamer mines sessions to
 improve the harness itself, the project dreamer mines a project's session
 history, durable memory (`knowledge/projects/<name>.md`), repo architecture
@@ -25,7 +25,7 @@ improvements, new features, better architectural solutions.
   pragmatic mine (architecture debt, repeated friction) → Mandate B
   architect's dream (features, better solutions, visions) → dissenter gate
   → report → mode-gated proposal filing with FILE-GATE).
-- **Schedule**: launchd `com.josh.fleet.project-dreamer` → fleet
+- **Schedule**: launchd `com.<user>.fleet.project-dreamer` → fleet
   `run-job.sh project-dreamer`, NIGHTLY 00:37 (after the harness dreamer's
   23:43 slot so it reads the full night's bus). Sunday runs are the deep
   pass (up to three projects, cross-project view). Job dir:
@@ -40,12 +40,12 @@ improvements, new features, better architectural solutions.
 ## Selection rule (nightly)
 
 One project per night: the most REAL recent activity (projects/*.md recency
-+ transcript activity + git recency). Josh naming a project in the prompt
++ transcript activity + git recency). the operator naming a project in the prompt
 overrides. Zero activity anywhere = two-line quiet report, no filler.
 
 ## First run
 
-2026-10-07 (Josh-built on request: "a co-pilot or dreamer agent for project
+2026-10-07 (the operator-built on request: "a co-pilot or dreamer agent for project
 content ... what this agent dreams about is actually IMPROVING ARCHITECTURE
 and suggesting new features and better architectural solutions"). Run
 on-demand before the first scheduled fire to prove the loop; first scheduled

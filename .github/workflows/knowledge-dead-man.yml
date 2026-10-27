@@ -15,7 +15,7 @@
 #      to Workato-All/josh-knowledge (the repo is private; github.token of
 #      THIS repo cannot read it across repos). Red-X-only without it: the
 #      api call 401s and the step fails, which is still a visible alarm.
-#   2. SLACK_WEBHOOK_URL — an incoming-webhook URL to page Josh. Without it
+#   2. SLACK_WEBHOOK_URL — an incoming-webhook URL to page the operator. Without it
 #      the workflow only turns red on GitHub; nobody gets pinged.
 #
 # This file is scaffold: the red X works on merge, the page does not until

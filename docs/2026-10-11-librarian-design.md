@@ -1,6 +1,6 @@
 # Spec: The Librarian agent
 
-Date: 2026-10-11. Approved by Josh in-session (brainstorming + grill-gate,
+Date: 2026-10-11. Approved by the operator in-session (brainstorming + grill-gate,
 all four directional calls settled by recommendation-accept).
 
 ## Goal
@@ -9,13 +9,13 @@ Add a librarian/technical-writer agent to the fleet: organize the KB
 corpus, write novel documentation, and procure external content — the
 first agent whose output is new written content rather than a report.
 
-## Directional rulings (Josh, 2026-10-11)
+## Directional rulings (the operator, 2026-10-11)
 
 1. **Standalone agent** (not a gardener extension). Gardener audits;
    librarian produces; gardener audits librarian output.
 2. **Write authority: additive=direct, edits=branch.** New files → main
    with INDEX line in same commit. Consolidations/rewrites of existing
-   files and position pieces → `librarian/YYYY-MM-DD` branch for Josh.
+   files and position pieces → `librarian/YYYY-MM-DD` branch for the operator.
    Never delete/rewrite existing content on main. Git-safety procedure
    (stash-never-force, post-2026-10-11-incident) mandatory.
 3. **Procurement: consume + targeted beats.** Four weekly AI-news skills
@@ -48,20 +48,20 @@ first agent whose output is new written content rather than a report.
 |---|---|---|
 | Procured external synthesis | library/<topic>.md | additive → main |
 | Novel internal docs | domains/ or projects/ | additive → main |
-| Position pieces | positions/ | branch until Josh |
-| Consolidations of existing files | librarian/* branch | Josh merges |
+| Position pieces | positions/ | branch until the operator |
+| Consolidations of existing files | librarian/* branch | the operator merges |
 
 ## Hard rules
 
 Additive-only on main; git safety before any checkout; citations with
 URL + fetch date; absolute dates; brain-architecture size budgets;
-external publishing Josh-gated in josh-writing-voice (internal KB docs
+external publishing the operator-gated in writing-voice (the operator's personal voice skill) (internal KB docs
 in neutral agent prose, no em/en dashes anywhere); transcripts
 grep-and-sample; KB corpus read-only.
 
 ## Acceptance criteria
 
-- Agent file routes on Josh's natural asks ("run the librarian",
+- Agent file routes on the operator's natural asks ("run the librarian",
   "write this up", "consolidate", "procure", "position piece").
 - First smoke run produces: one library doc (additive, cited, INDEX'd),
   a report, a bus post — and either a position piece or an explicit

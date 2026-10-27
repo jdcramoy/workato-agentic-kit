@@ -97,6 +97,40 @@ if [ -f "$HOME/.zshenv" ]; then
 fi
 CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude || echo "$HOME/.local/bin/claude")}"
 
+# ---- network preflight (fleet-runjob-network-preflight-gate, 2026-10-25) -----
+# Travel/night network outages made spawned jobs die with ENOTFOUND — 14 job
+# logs share the 2026-10-23 signature (cortex/investigations/
+# watchdog-dark-enotfound-2026-10-25.md) — and each burn cost two full claude
+# spawns plus an rc=1 escalation. Before spawning anything, resolve a sentinel
+# host; retry briefly (wake-race: the network usually returns within seconds),
+# then write a skipped-no-signal row (same mechanism as the probe gate) and
+# exit 0 — the skip row keeps liveness green while the outage stays visible in
+# this log. Fail-open on tooling errors: a broken preflight must never
+# suppress a job (same rule as the probe and budget gates).
+if [ "${FLEET_NET_PREFLIGHT:-yes}" = "yes" ]; then
+  NET_HOST="${FLEET_NET_HOST:-api.anthropic.com}"
+  NET_TRIES="${FLEET_NET_TRIES:-3}"
+  NET_WAIT="${FLEET_NET_WAIT:-10}"
+  net_ok=""
+  i=0
+  while [ "$i" -lt "$NET_TRIES" ]; do
+    if python3 -c 'import socket,sys; socket.getaddrinfo(sys.argv[1], 443)' "$NET_HOST" >/dev/null 2>&1; then
+      net_ok=1
+      break
+    fi
+    i=$((i+1))
+    [ "$i" -lt "$NET_TRIES" ] && sleep "$NET_WAIT"
+  done
+  if [ -z "$net_ok" ]; then
+    off="$(date +%z)"; off="${off:0:3}:${off:3}"
+    echo "{\"ts\":\"$(date +%Y-%m-%dT%H:%M:%S)${off}\",\"job\":\"$NAME\",\"status\":\"skipped-no-signal\",\"preflight\":\"dns $NET_HOST unresolved after $NET_TRIES tries\"}" | python3 "$HOME/.claude/knowledge/scripts/atomic_io.py" "$HEARTBEAT"
+    mkdir -p "$(dirname "$VALIDATE_LEDGER")"
+    echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\",\"result\":\"skipped-network-preflight\",\"action\":\"zero-token-skip\"}" | python3 "$HOME/.claude/knowledge/scripts/atomic_io.py" "$VALIDATE_LEDGER"
+    echo "$(date '+%F %T') $NAME: network preflight — $NET_HOST unresolved after $NET_TRIES tries — skipped (zero tokens)" >> "$LOG"
+    exit 0
+  fi
+fi
+
 # ---- budget preflight (P1 PRICEBOOK, 2026-10-13) -----------------------------
 # If BUDGET_USD_CAP is set (jobs/<name>.env or the environment), fleet-cost.py
 # compares the job's trailing-7d median gateway costUSD against the cap:

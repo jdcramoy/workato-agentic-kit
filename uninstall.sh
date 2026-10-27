@@ -17,14 +17,14 @@ KIT_AGENTS="brain-gardener workato-watchdog estate-architect promotion-orchestra
 KIT_SKILLS="airo-mcp-playbook workato-development-playbook jira-story-standards squad-build platform-onboarding harness-dreamer"
 KIT_BINS="wt-prod workato-prod prod-bypass brain-mcp dream-mini harness-backup"
 # wt is kit-installed but may be customized; remove only the kit's copy
-KIT_LANES="com.josh.dream-mini com.josh.workato-docs-watch"
+KIT_LANES="com.${USER_NAME:-user}.dream-mini com.${USER_NAME:-user}.workato-docs-watch"
 
 say() { printf '  %s\n' "$1"; }
 echo "== agentic-workato-kit uninstall =="
 
 # 1. mods
 for m in workato-guardrails brain-guard; do
-  if claude plugin uninstall "${m}@josh-mods" >/dev/null 2>&1; then
+  if claude plugin uninstall "${m}@agentic-kit" >/dev/null 2>&1; then
     say "mod removed: $m"
   else
     say "mod not installed (skipped): $m"
@@ -99,7 +99,7 @@ for m in workato-guardrails brain-guard; do
 done
 [ -f "${HOME}/mods/.claude-plugin/marketplace.json" ] && {
   if [ -z "$(ls -A "${HOME}/mods" | grep -v '^.claude-plugin$' | head -1)" ]; then
-    claude plugin marketplace remove josh-mods >/dev/null 2>&1 && say "marketplace removed: josh-mods"
+    claude plugin marketplace remove agentic-kit >/dev/null 2>&1 && say "marketplace removed: agentic-kit"
     rm -rf "${HOME}/mods/.claude-plugin" && say "mods dir emptied"
   else
     say "mods dir kept (other plugins present)"

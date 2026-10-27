@@ -72,7 +72,7 @@ Every agent follows the same three rules, written into its SOP:
    references. Nothing goes on the bus without an evidence ref.
 3. **Use handoffs to route work.** The watchdog finds it, the dreamer
    proposes a guard, the gardener verifies the claim, the dissenter
-   attacks the proposal, Josh approves.
+   attacks the proposal, the operator approves.
 
 ## Corroboration is the confidence unit
 

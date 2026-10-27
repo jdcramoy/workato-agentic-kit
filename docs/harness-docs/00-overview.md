@@ -94,7 +94,7 @@ No agent mutates the estate or the knowledge base on its own authority.
 They report, propose, corroborate, and challenge each other; a human
 approves anything that touches production or the harness itself. The
 escalation path is explicit: the watchdog finds, the gardener verifies,
-the dissenter attacks, the dreamers propose, the cortex attends, Josh
+the dissenter attacks, the dreamers propose, the cortex attends, the operator
 decides, and `/proposals` is the one pass where those decisions happen.
 
 ## Why it matters
@@ -118,7 +118,7 @@ Workato development feels like when the harness is running:
 - **Self-improving, with a human in the loop at the right altitude**:
   the harness watches itself, learns from every session, and proposes
   its own improvements. How much it may do without asking is governed by
-  a trust ladder that Josh controls, and by blast radius: knowledge
+  a trust ladder that the operator controls, and by blast radius: knowledge
   updates can be automatic, dev fixes can be automatic at the top rung,
   and changes to the harness itself are proposal-only forever.
 

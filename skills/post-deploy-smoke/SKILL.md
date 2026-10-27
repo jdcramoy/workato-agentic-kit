@@ -1,6 +1,6 @@
 ---
 name: post-deploy-smoke
-description: Post-promotion smoke test — prove the deployed assets are actually running correctly in the target environment: first job observed green, connections verified, schedule confirmed, VUA re-checked. Use after any production import/promotion, or when Josh asks "verify the deploy", "smoke test prod".
+description: Post-promotion smoke test — prove the deployed assets are actually running correctly in the target environment: first job observed green, connections verified, schedule confirmed, VUA re-checked. Use after any production import/promotion, or when the operator asks "verify the deploy", "smoke test prod".
 ---
 
 # Post-deploy smoke
@@ -27,12 +27,12 @@ A promotion ends at "proven running in production", not "package imported."
 ## Output
 
 A smoke report: per asset, the six checks with evidence refs (prod job URLs,
-connection status, run state). Failures go to Josh immediately with the
+connection status, run state). Failures go to the operator immediately with the
 blast radius computed.
 
 ## Rules
 
-- Prod reads are fine; prod WRITES need Josh's explicit confirmation, always
+- Prod reads are fine; prod WRITES need the operator's explicit confirmation, always
   (hook 13 + the AIRO gate).
 - "Green import" ≠ "smoke passed". The first observed job is the bar.
 - If the first job can't be safely induced, the report says so and names

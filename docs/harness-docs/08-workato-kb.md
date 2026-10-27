@@ -59,14 +59,14 @@ One factlet schema at every scale: topic, file, section, chunk, with parent link
 - **Agent calibration**: per-agent prediction accuracy and an overconfidence gap, weekly cards. The harness's improvement is a curve, not a claim.
 - **The dissenter triad**: three critics on three model lineages; critics whose severity calls predict real rejections gain weight; the attack-class list is the dreamers' pre-empt plan (generator and discriminator training each other).
 - **The rehearsal cortex**: counterfactual replay. A recipe's historical job fixtures run against a candidate version and diff against history before a change ships.
-- **Dream math**: a Bayesian acceptance probability learned from Josh's real accept/reject ledger, expected value with a break-even sensitivity line, and an assumption registry re-checked nightly (an accepted proposal silently outliving its premise is the most dangerous object in a dreaming system).
-- **The lateral engine**: a concept co-occurrence graph over the corpus plus Josh's own knowledge tree; PMI-chance-corrected edges; vectorized Adamic-Adar to find concept pairs that share deep structure but are never discussed together. The dreamers' raw feedstock. Sundays: the full cross-domain pass.
+- **Dream math**: a Bayesian acceptance probability learned from the operator's real accept/reject ledger, expected value with a break-even sensitivity line, and an assumption registry re-checked nightly (an accepted proposal silently outliving its premise is the most dangerous object in a dreaming system).
+- **The lateral engine**: a concept co-occurrence graph over the corpus plus the operator's own knowledge tree; PMI-chance-corrected edges; vectorized Adamic-Adar to find concept pairs that share deep structure but are never discussed together. The dreamers' raw feedstock. Sundays: the full cross-domain pass.
 - **Criticality meter**: the fleet's information cascades fitted to a power law. Is the network at the critical point (maximum information transmission)? First reading: alpha 1.8, in the zone (small n).
 - **The incubation lane**: ideas file as incubating; a DIFFERENT model re-judges them cold each night; promotion requires surviving two re-looks or new evidence. First live result: a cold critic decayed a same-night proposal the original model had filed with enthusiasm. The lane works.
 - **Empirical dreams** (autonomous mode): a small budget to test an idea with a probe recipe and report a measurement instead of speculation.
 - **Board minutes**: weekly, the dreaming team's advice renders through a sanitizer and publishes as a draft page in this space for review.
 
-The division of labor is mechanical: every agent in the fleet reads its digest and posts an OPINION to the shared bus; only the dreamer files PROPOSALS; only Josh's verdicts in the proposal queue are the training data.
+The division of labor is mechanical: every agent in the fleet reads its digest and posts an OPINION to the shared bus; only the dreamer files PROPOSALS; only the operator's verdicts in the proposal queue are the training data.
 
 ## The five learning modalities (Oct 9)
 
@@ -102,7 +102,7 @@ Two structural-safety additions from the adversarial review of the harness itsel
 
 ## The five builds (Oct 9, v0.8.0)
 
-- **Chief of staff (`/today`)**: one ranked agenda from every surface (machine heartbeats first: a silent job is the headline; decisions blocking the fleet; calendar; then deep work) with each item PRE-STAGED (draft replies in Josh's voice, first commands ready). The loadout loads context; /today prioritizes the day.
+- **Chief of staff (`/today`)**: one ranked agenda from every surface (machine heartbeats first: a silent job is the headline; decisions blocking the fleet; calendar; then deep work) with each item PRE-STAGED (draft replies in the operator's voice, first commands ready). The loadout loads context; /today prioritizes the day.
 - **The benchmark** (`kb benchmark`): the "best harness" claim turned into a measurement. Same tasks, two arms (harness vs a truly-isolated bare agent via config-dir override), scored accuracy-first (per-task graded checks), turns second, cost third; latency demoted (bare wins it by construction). First scored result: on trivial docs questions the arms TIE on quality and the harness costs ~6x: the honest finding; the differentiating evidence comes from diagnosis/UAT/manifest tasks. Weekly auto-run feeds a trend ledger.
 
 ## The bench, matured (2026-10-12)
@@ -132,7 +132,7 @@ a brilliant generalist with unverified memory; the harness is the
 difference between plausible and correct on the domain where the team's
 work actually lives.
 - **Learned model routing**: which model's opinions get accepted is MEASURED (via attribution on every proposal) and future lens assignment routes by acceptance-at-lowest-cost, explore-exploit kept live.
-- **The skill forge**: the dreamer doesn't propose "there should be a skill"; it drafts the SKILL.md into staging, the forge validates it (description-as-trigger, length, TODOs), and Josh's accept installs it. The loop from idea to working artifact, reviewed.
+- **The skill forge**: the dreamer doesn't propose "there should be a skill"; it drafts the SKILL.md into staging, the forge validates it (description-as-trigger, length, TODOs), and the operator's accept installs it. The loop from idea to working artifact, reviewed.
 - **The typed bus**: finding/opinion/vote schema so corroboration (1 observation / 2 pattern / 3+ act) is arithmetic, not prose-reading.
 
 ## How agents reach it (three warm layers)
@@ -141,11 +141,11 @@ work actually lives.
 - **The `workato-kb` MCP server**: resident per session, model warm from the first query (0.16-0.18s/query vs ~9s cold); registered for every new session.
 - **The `workato-kb` skill + `/kb`**: the method (search, refine twice max, read, cite) and the human-facing command.
 
-The standing rule: platform questions get answered from the KB before guessing or asking Josh, at phase boundaries and on uncertainty, not on every tool call. Confluence content never leaves the machine.
+The standing rule: platform questions get answered from the KB before guessing or asking the operator, at phase boundaries and on uncertainty, not on every tool call. Confluence content never leaves the machine.
 
 ## The ROI study (the proof the anecdote needed)
 
-All tickets assigned to Josh and resolved since May (n=142), stratified by creation era, backlog-hygiene closures (>60d) separated:
+All tickets assigned to the operator and resolved since May (n=142), stratified by creation era, backlog-hygiene closures (>60d) separated:
 
 | Cohort | n | median created-to-resolved | same/next-day |
 | --- | --- | --- | --- |

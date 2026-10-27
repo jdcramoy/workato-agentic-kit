@@ -74,6 +74,13 @@
       "page_id": "2956034461",
       "title": "The capability catalog: agents, skills, commands, and servers",
       "version": 5
+    },
+    {
+      "file": "12-user-model.md",
+      "page_id": null,
+      "title": "User model: preference store and context compiler",
+      "version": 1,
+      "note": "new in kit 2026-10-27; Confluence page not yet published"
     }
   ],
   "last_synced_date": "2026-10-27"
