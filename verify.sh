@@ -76,19 +76,31 @@ done
 [ -f "${HOME}/.claude/agents/harness-dreamer.md" ] && row PASS "agent: harness-dreamer" "installed" || row FAIL "agent: harness-dreamer" "missing"
 
 # --- 8. MCP servers -----------------------------------------------------------
+# The MCP checks cd into PROJECT_PATH (claude mcp list is project-scoped): a
+# missing project dir must be ONE clear warning, not four lines of cd noise.
+PP="${PROJECT_PATH:-$HOME/Documents/workbench}"
+PP_OK=1
+if [ ! -d "$PP" ]; then
+  PP_OK=0
+  row WARN "project dir" "$PP missing — ./install.sh creates it, or set PROJECT_PATH in config.sh"
+fi
 # health checks are occasionally flaky right after other CLI calls: one retry
 mcp_check() { # mcp_check <server-name-substring>
   local i
   for i in 1 2; do
-    MCP=$(cd "${PROJECT_PATH:-$HOME/Documents/workbench}" && claude mcp list 2>/dev/null)
+    MCP=$(cd "$PP" 2>/dev/null && claude mcp list 2>/dev/null)
     echo "$MCP" | grep -q "$1.*Connected" && return 0
     [ "$i" = 1 ] && sleep 3
   done
   return 1
 }
-mcp_check "workato-airo-mcp-server" && row PASS "mcp: airo dev" "connected" || row WARN "mcp: airo dev" "not connected"
-mcp_check "workato-dependency-tracker" && row PASS "mcp: dependency tracker" "connected" || row WARN "mcp: dependency tracker" "not connected"
-mcp_check "workato-airo-mcp-prod" && row PASS "mcp: airo prod" "connected" || row WARN "mcp: airo prod" "not connected (only needed for prod reviews)"
+if [ "$PP_OK" = "1" ]; then
+  mcp_check "workato-airo-mcp-server" && row PASS "mcp: airo dev" "connected" || row WARN "mcp: airo dev" "not connected"
+  mcp_check "workato-dependency-tracker" && row PASS "mcp: dependency tracker" "connected" || row WARN "mcp: dependency tracker" "not connected"
+  mcp_check "workato-airo-mcp-prod" && row PASS "mcp: airo prod" "connected" || row WARN "mcp: airo prod" "not connected (only needed for prod reviews)"
+else
+  row WARN "mcp servers" "skipped — project dir missing, so 'claude mcp list' cannot run from it"
+fi
 
 # --- 9. crons -----------------------------------------------------------------
 ST="${PROJECT_PATH:-$HOME/Documents/workbench}/.claude/scheduled_tasks.json"

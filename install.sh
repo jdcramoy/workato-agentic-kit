@@ -243,6 +243,18 @@ if [ -z "${WORKSPACE_DEV:-}" ]; then
   echo "WARNING: WORKSPACE_DEV is empty — agents will reference blank workspace IDs."
   echo "         Run ./onboard.sh to fix, then re-run ./install.sh"
 fi
+# PROJECT_PATH must EXIST, not just be set: verify.sh cd's into it (the MCP +
+# cron checks), and the tagged crons live under <PROJECT_PATH>/.claude.
+# Onboarding defaults it to ~/Documents/workbench, which a fresh machine does
+# not have — create it now rather than let verify.sh spam cd errors later.
+: "${PROJECT_PATH:=${KIT_HOME}/Documents/workbench}"
+if [ ! -d "$PROJECT_PATH" ]; then
+  if mkdir -p "$PROJECT_PATH" 2>/dev/null; then
+    echo "created project dir: $PROJECT_PATH (crons + verify.sh checks live here)"
+  else
+    degraded "PROJECT_PATH '$PROJECT_PATH' missing and could not be created — set PROJECT_PATH in config.sh to an existing directory, then re-run ./install.sh"
+  fi
+fi
 
 finish_step config
 
@@ -416,24 +428,49 @@ for f in "${KIT_HOME}/mods/"*/hooks/register.js; do
   sed -i -e "s|{{HOME}}|${KIT_HOME}|g" -e "s|{{WORKSPACE_PROD}}|${WORKSPACE_PROD:-}|g" -e "s|{{PROD_TOKEN_MARK}}|${WORKATO_PROD_TOKEN_MARK:-}|g" "$f" || \
     degraded "hook sed failed for $f — '{{HOME}}'/'{{WORKSPACE_PROD}}' will be unresolved. Fix: re-run ./install.sh"
 done
-for m in workato-guardrails brain-guard; do
-  if [ "${KIT_SKIP_INSTALL:-0}" = "1" ]; then
-    echo "mod: ${m} (KIT_SKIP_INSTALL=1 — skipped claude plugin install)"
+# Marketplace registration: `add` on an already-registered name repoints it at
+# ${KIT_HOME}/mods and refreshes its plugin list. A STALE registration (added
+# from an old kit copy or zip) is the #1 cause of "Plugin ... not found in
+# marketplace" — and `marketplace update` does NOT repair it, because update
+# re-validates whatever source the registration already points at. The
+# remove + re-add below is the proven repair.
+if [ "${KIT_SKIP_INSTALL:-0}" = "1" ]; then
+  echo "mods: KIT_SKIP_INSTALL=1 — skipped claude plugin install"
+else
+  MOD_OUT="$(mktemp -t kitmod)"; TMPFILES+=("$MOD_OUT")
+  if claude plugin marketplace add "${KIT_HOME}/mods" >"$MOD_OUT" 2>&1; then
+    cat "$MOD_OUT"
   else
-    MOD_OUT="$(mktemp -t kitmod)"; TMPFILES+=("$MOD_OUT")
-    if ! claude plugin marketplace add "${KIT_HOME}/mods" >"$MOD_OUT" 2>&1; then
-      cat "$MOD_OUT"
-      degraded "plugin marketplace add failed — mods may not register. Fix: claude plugin marketplace add ${KIT_HOME}/mods"
-    fi
+    cat "$MOD_OUT"
+    degraded "plugin marketplace add failed — mods may not register. Fix: claude plugin marketplace remove agentic-kit && claude plugin marketplace add ${KIT_HOME}/mods"
+  fi
+  for m in workato-guardrails brain-guard; do
     MOD_OUT="$(mktemp -t kitmod)"; TMPFILES+=("$MOD_OUT")
     if claude plugin install "${m}@agentic-kit" >"$MOD_OUT" 2>&1; then
       echo "mod installed: ${m}"
+    elif grep -q "not found in marketplace" "$MOD_OUT"; then
+      # stale marketplace copy: force a full refresh and retry exactly once
+      echo "  stale marketplace copy detected for ${m} — repairing (remove + re-add + retry)"
+      claude plugin marketplace remove agentic-kit >/dev/null 2>&1 || true
+      if claude plugin marketplace add "${KIT_HOME}/mods" >"$MOD_OUT" 2>&1 \
+         && claude plugin install "${m}@agentic-kit" >"$MOD_OUT" 2>&1; then
+        echo "mod installed after marketplace repair: ${m}"
+      else
+        cat "$MOD_OUT"
+        degraded "mod ${m} still not installed after marketplace repair — fix: claude plugin marketplace remove agentic-kit && claude plugin marketplace add ${KIT_HOME}/mods && claude plugin install ${m}@agentic-kit, then /reload-plugins"
+      fi
     else
       cat "$MOD_OUT"
       degraded "mod ${m} not installed (claude CLI error above) — fix: claude plugin install ${m}@agentic-kit, then /reload-plugins"
     fi
-  fi
-done
+  done
+  # read-back: "install succeeded" claims are verified against the CLI itself
+  PL="$(claude plugin list 2>/dev/null || true)"
+  for m in workato-guardrails brain-guard; do
+    echo "$PL" | grep -q "${m}@agentic-kit" || \
+      degraded "mod ${m} not present in 'claude plugin list' after install — run /reload-plugins (or re-run ./install.sh) and check again"
+  done
+fi
 finish_step mods+kb
 
 # --- step: skills (playbooks + conventions) ----------------------------------
@@ -466,6 +503,61 @@ case ":$PATH:" in
 esac
 echo "wt auth: set WORKATO_API_TOKEN or store a token via workato-platform-cli (keychain)."
 
+# keychain token check + fix: a missing entry is the #1 cause of verify.sh's
+# "dev identity ... got 'none'" FAIL. Offer the fix here, not only in verify.
+# Read-only probe; the token is pasted once and stored straight to the
+# keychain, never written to a file.
+ensure_kc_token() { # ensure_kc_token <profile> <label>
+  local profile="$1" label="$2" reply
+  if security find-generic-password -s workato-platform-cli -a "$profile" >/dev/null 2>&1; then
+    echo "wt token: keychain entry present (${label}, account: ${profile})"
+  elif $INTERACTIVE; then
+    printf "  No Workato API token in the keychain for account '%s'.\n  Paste the %s API token to store it now (return to skip): " "$profile" "$label"
+    read -rs reply || reply=""
+    if [ -n "$reply" ]; then
+      if security add-generic-password -s workato-platform-cli -a "$profile" -w "$reply" -U; then
+        echo "  token stored in keychain (account: ${profile})"
+      else
+        degraded "keychain store failed for ${label} — fix: security add-generic-password -s workato-platform-cli -a ${profile} -w <token> -U"
+      fi
+      reply=""
+    else
+      degraded "no ${label} API token — identity checks fail until one is stored: security add-generic-password -s workato-platform-cli -a ${profile} -w <token> -U, then ./verify.sh"
+    fi
+  else
+    degraded "no ${label} API token in keychain (headless — run this yourself): security add-generic-password -s workato-platform-cli -a ${profile} -w <token> -U, then ./verify.sh"
+  fi
+}
+ensure_kc_token "${PROFILE_DEV:-dev}" "dev"
+[ -n "${WORKSPACE_PROD:-}" ] && ensure_kc_token "${PROFILE_PROD:-prod}" "prod"
+
+# backup repo: verify.sh warns when uninitialized — init it here when config
+# points at a directory (the origin URL, if set, is wired up in the same step)
+if [ -n "${BACKUP_REPO_LOCAL:-}" ] && [ ! -d "${BACKUP_REPO_LOCAL}/.git" ]; then
+  if mkdir -p "$BACKUP_REPO_LOCAL" && git -C "$BACKUP_REPO_LOCAL" init -q; then
+    if [ -n "${BACKUP_REPO_URL:-}" ]; then
+      git -C "$BACKUP_REPO_LOCAL" remote add origin "$BACKUP_REPO_URL" 2>/dev/null || true
+    fi
+    echo "backup repo initialized: ${BACKUP_REPO_LOCAL} (run harness-backup once for the first commit)"
+  else
+    degraded "backup repo init failed at ${BACKUP_REPO_LOCAL} — fix: git init ${BACKUP_REPO_LOCAL}"
+  fi
+fi
+
+# MCP registration check — NOT OAuth (the kit cannot authenticate for you).
+# verify.sh reports "not connected" when a server is missing OR unauthenticated;
+# here we catch only the never-registered case and hand over the exact command.
+if [ "${KIT_SKIP_INSTALL:-0}" != "1" ]; then
+  MCP_LIST="${MCP_LIST:-$(claude mcp list 2>/dev/null || true)}"
+  for s in workato-airo-mcp-server workato-airo-mcp-prod workato-dependency-tracker; do
+    if ! echo "$MCP_LIST" | grep -q "^${s}"; then
+      degraded "mcp '${s}' not registered — register YOUR workspace's MCP URL (from your Workato admin): claude mcp add --transport http ${s} <url> --scope user, then /mcp authenticate"
+    fi
+  done
+  echo "$MCP_LIST" | grep -q "^atlassian" || \
+    degraded "mcp 'atlassian' not registered — fix: claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse --scope user, then /mcp authenticate"
+fi
+
 # harness-backup (knowledge/scripts/harness-backup.sh): verify.sh and the
 # README both expect this on PATH, but nothing previously copied it there.
 cp knowledge/scripts/harness-backup.sh "${KIT_HOME}/.local/bin/harness-backup"
@@ -476,12 +568,19 @@ echo "harness-backup installed: ${KIT_HOME}/.local/bin/harness-backup (set BACKU
 cp bin/brain-mcp "${KIT_HOME}/.local/bin/brain-mcp"
 chmod +x "${KIT_HOME}/.local/bin/brain-mcp"
 if [ "${KIT_SKIP_INSTALL:-0}" != "1" ]; then
-  MCP_OUT="$(mktemp -t kitmcp)"; TMPFILES+=("$MCP_OUT")
-  if claude mcp add brain --scope user -- "${KIT_HOME}/.local/bin/brain-mcp" >"$MCP_OUT" 2>&1; then
-    echo "mcp registered: brain (read-only)"
+  # add is not idempotent (errors when the name exists) — check first, add only
+  # when missing; one list read serves this and the registration check below
+  MCP_LIST="$(claude mcp list 2>/dev/null || true)"
+  if echo "$MCP_LIST" | grep -q "^brain"; then
+    echo "mcp registered: brain (already present)"
   else
-    cat "$MCP_OUT"
-    degraded "mcp brain not registered (claude CLI error above) — fix: claude mcp add brain --scope user -- ${KIT_HOME}/.local/bin/brain-mcp"
+    MCP_OUT="$(mktemp -t kitmcp)"; TMPFILES+=("$MCP_OUT")
+    if claude mcp add brain --scope user -- "${KIT_HOME}/.local/bin/brain-mcp" >"$MCP_OUT" 2>&1; then
+      echo "mcp registered: brain (read-only)"
+    else
+      cat "$MCP_OUT"
+      degraded "mcp brain not registered (claude CLI error above) — fix: claude mcp add brain --scope user -- ${KIT_HOME}/.local/bin/brain-mcp"
+    fi
   fi
 fi
 # frontier-nightly fleet job (zero-LLM loop: twin -> calibration -> radar ->
@@ -495,7 +594,7 @@ if [ -f bin/fleet/jobs/frontier-nightly.sh ]; then
   PLIST="${KIT_HOME}/Library/LaunchAgents/${FLEET_LABEL}.plist"
   mkdir -p "${KIT_HOME}/Library/LaunchAgents"
   cat > "$PLIST" << PLISTEOF
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?><?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>Label</key><string>${FLEET_LABEL}</string>
@@ -509,8 +608,9 @@ if [ -f bin/fleet/jobs/frontier-nightly.sh ]; then
   <key>StandardErrorPath</key><string>${KIT_HOME}/.local/state/fleet/frontier-nightly.launchd.log</string>
 </dict></plist>
 PLISTEOF
-  if launchctl unload "$PLIST" 2>/dev/null; then launchctl load "$PLIST"; fi
-  if launchctl load "$PLIST" 2>/dev/null; then
+  if [ "${KIT_SKIP_LAUNCHD:-0}" = "1" ]; then
+    echo "fleet job: KIT_SKIP_LAUNCHD=1 — plist written but not loaded (no launchctl)"
+  elif launchctl unload "$PLIST" 2>/dev/null && launchctl load "$PLIST" 2>/dev/null; then
     echo "fleet job installed: frontier-nightly (04:43, zero-LLM: twin -> calibration -> radar -> skill fitness)"
   else
     degraded "frontier-nightly plist not loaded — fix: launchctl load $PLIST"
