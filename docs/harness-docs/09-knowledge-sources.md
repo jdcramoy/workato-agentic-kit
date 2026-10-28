@@ -134,7 +134,7 @@ routed by a one-line-per-file index that every session reads first.
 
 | Directory | Files | What lives there |
 |---|---|---|
-| domains/ | 47 | cross-project platform knowledge |
+| domains/ | 43 | cross-project platform knowledge |
 | projects/ | 200 | per-project state for the next session on that project |
 | scripts/ | 271 | the stdlib-only tooling fleet |
 | cortex/ | 217 | the cortex's investigations and dispatch log |
@@ -143,11 +143,11 @@ routed by a one-line-per-file index that every session reads first.
 | people/ | 62 | people files feeding the writing voice |
 | skills-telemetry/ | 25 | per-skill usage and fitness |
 | config/ | 150 | fleet job definitions and the model routing table |
-| instruction-patches/ | 23 | self-learning corrections to instruction files |
+| instruction-patches/ | 24 | self-learning corrections to instruction files |
 | library/ | 5 | the librarian's positions and consolidations |
 | claims/, integrity/, predictions/, coverage/, sagas/, policies/, twin/, now/ | small | the integrity and governance ledgers |
 
-(Table re-counted 2026-10-28, recursive file counts per directory.) The 47
+(Table re-counted 2026-10-29, recursive file counts per directory.) The 43
 domain files are the tree's top layer, and they read like a map of
 what the fleet has paid to learn: the Workato and Workday platform
 behavior files, the AIRO MCP trap-adjacent operations files, the harness's

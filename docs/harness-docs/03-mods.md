@@ -10,7 +10,13 @@ automated tests cover the guardrails pair.
 
 ## workato-guardrails: 16 hooks
 
-(v0.8.0 as of 2026-10-24; v0.7.0 through 2026-10-23 with 15 hooks.)
+(v1.1.0 as of 2026-10-28; v0.8.0 through 2026-10-24 with 16 hooks, v0.7.0
+through 2026-10-23 with 15 hooks. The 2026-10-29 sync merged two live-proven
+additions into the kit: the /prod-bypass command, a time-boxed prod-write gate
+bypass window honored by every surface gate at once (max 120 minutes, writes
+stay audit-logged), and the CLI build-ledger filter that drops all-9s
+placeholder recipe ids and marks those rows pending_id instead of recording
+the fixture id as a real recipe.)
 
 | Hook | Fires on | What it does |
 |---|---|---|
@@ -24,7 +30,7 @@ automated tests cover the guardrails pair.
 | Writeback nudge | every Jira or Confluence write | Reminds to re-read the artifact and confirm rendering before calling it done. |
 | Build ledger (platform) | every successful platform mutation | One JSON line per mutation: tool, server, session, recipe, folder, ticket. All-9s placeholder ids are build-time artifacts, never real recipes, and are recorded as null with a pending_id marker for a later resolver to backfill (added 2026-10-27). |
 | Build ledger (CLI and browser) | CLI and browser mutations | Ledgers the paths that bypass the platform tools; a CLI start triggers a read-back that verifies the start actually took. |
-| Slash commands | user | `/guardrails` status, `/builds` ledger summary, `/promotion-ready`, `/promoted`, `/cockpit`, `/snapdiff` (recipe snapshot history). |
+| Slash commands | user | `/guardrails` status, `/builds` ledger summary, `/promotion-ready`, `/promoted`, `/cockpit`, `/snapdiff` (recipe snapshot history), `/prod-bypass` (time-boxed gate bypass window). |
 | Snapshot history and cockpit | every push; on demand | After each push, pulls the fresh definition from the matching server and commits it to a local git repo, so "what changed in this recipe" is a diff. |
 | Prod-write confirm gate | any write to production through ANY surface: platform tools, CLI, API wrapper, raw HTTP, browser | Holds the write for an explicit confirm dialog and fails closed on dismissal. Reads pass through. This is what makes handing an agent production credentials safe. |
 | Remote-identity guard | git push to a non-org remote | Holds the push for explicit confirm, and denies outright when the remote's origin is misconfigured — org repos are the only sanctioned push targets (added 2026-10-13, per the mod's own guard list). |

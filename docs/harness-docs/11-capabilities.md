@@ -5,8 +5,8 @@ Parent page: The Agentic Workato Harness
 Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
-against the directories it describes. Counts current as of 2026-10-28
-(2026-10-28 sync: skills 58, fleet 45, MCP servers 19 — re-counted live).
+against the directories it describes. Counts current as of 2026-10-29
+(2026-10-29 sync: skills 58, fleet 44, MCP servers 19 — re-counted live).
 
 ## The agents: 12
 
@@ -270,6 +270,7 @@ Registered by the guardrails mod and session tools:
 | /promoted | workato-guardrails | Record a completed promotion. |
 | /cockpit | workato-guardrails | Live cockpit view of the estate and the fleet. |
 | /snapdiff | workato-guardrails | Recipe snapshot history diff. |
+| /prod-bypass | workato-guardrails | Time-boxed prod-write gate bypass window (max 120 min): /prod-bypass \<minutes\> [note], /prod-bypass off, /prod-bypass status. Writes stay audit-logged. |
 | /budget | session-budget | Session spend and context budget status. |
 | /today | today skill | The ranked daily agenda. |
 | /triage | triage skill | The findings approval queue. |

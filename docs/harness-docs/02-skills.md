@@ -150,8 +150,8 @@ repo, so every teammate's sessions load the same accumulated experience.
 When one person's session discovers a new platform bug, the fix ships to
 everyone as a skill update.
 
-The catalogue now runs to 61 skills, of which 48 are live and 13 are parked
-in the archive (2026-10-12), from the two playbooks through estate operations
+The catalogue now runs to 58 live skills (re-counted 2026-10-29) and 13
+parked in the archive (2026-10-12), from the two playbooks through estate operations
 (arch-diagram, blast-radius, manifest-hygiene, post-deploy-smoke,
 promotion-readiness, workato-browser-editor) to personal ops. A telemetry
 loop (see the memory page) measures which skills earn their load, and the
