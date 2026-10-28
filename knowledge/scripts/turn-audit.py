@@ -17,7 +17,7 @@ from pathlib import Path
 HOME = Path.home()
 KB = HOME / ".claude" / "knowledge"
 CORPUS = HOME / ".claude" / "projects"
-PROJECTS = ["-Users-YOUR-USER-Documents-workbench"]  # main working corpus
+PROJECTS = ["-Users-<user>-Documents-workbench"]  # main working corpus
 REPORT = KB / "reports" / "turn-audit-latest.md"
 TREND = KB / "reports" / "turn-audit-trend.jsonl"
 BUS = KB / "dreams" / "bus" / "turn-audit.jsonl"

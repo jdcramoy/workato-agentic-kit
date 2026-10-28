@@ -86,7 +86,7 @@ hook 13, the prod-write confirm gate for every non-AIRO surface. Hooks in one re
 13. **Prod-write confirm gate (2026-10-07)** — every surface, not just AIRO MCP.
    Detects prod-targeting Bash commands and holds WRITES for a confirm dialog,
    fail-closed on dismissal: `workato-prod`, `wt-prod`, `WORKATO_PROFILE=
-   team-prod`, `--profile team-prod`, raw http carrying the prod credential
+   josh-prod`, `--profile josh-prod`, raw http carrying the prod credential
    (matched by a stable identifier from the prod JWT, not the secret), and Orca
    interactions on prod urls. Reads pass through untouched. Classifiers
    `prodSurface` / `wtIsWrite` / `workatoIsWrite` parse the group+op token;
@@ -559,12 +559,12 @@ Gotchas learned:
   two pushes (cache); CASE3 unique-name no warning; CASE4 mcp-down push
   passes. Proposal file NOT touched (no proposal-decide.py, status unchanged).
 
-## Hook 16 user-model briefing (2026-10-23) — two NEW engine traps
+## Hook 16 josh-model briefing (2026-10-23) — two NEW engine traps
 
 - **ONE bare `on('prompt.submit', ...)` per module, validator-enforced.** A
   second registration without a matcher fails the WHOLE module at load
   ("on(...) is registered twice without a matcher") and takes all plugin tests
-  down with it. Hook 16 (user-model first-prompt briefing) lives INSIDE hook
+  down with it. Hook 16 (josh-model first-prompt briefing) lives INSIDE hook
   5's existing prompt.submit handler; never add a second bare one.
 - **A stubbed prompt.submit answer may not carry both `drop` and `context`**
   ("returned a drop that carries a context" skips the test's hook). To assert
@@ -572,7 +572,7 @@ Gotchas learned:
   return only `{ drop: 'captured' }`.
 - Positive-path proof for hooks needing `$.process` (absent from the test
   sandbox, same as `$.mcp`): self-staging node driver pattern —
-  tests/user-model-driver.mjs copies the real register.js to a temp .mjs,
+  tests/josh-model-driver.mjs copies the real register.js to a temp .mjs,
   mocks `$.process.run`, fires the real prompt.submit chain (first-prompt
   inject, once-per-session sentinel, empty-output no-op, throw = fail-open).
 - Once-per-session state needs NO /tmp sentinel: `register()` runs per
@@ -587,7 +587,7 @@ Gotchas learned:
 
 ## THE `process` GLOBAL DOES NOT EXIST in the hook runtime (live-proven 2026-10-26)
 
-- Hook 16 (user-model briefing) shipped 2026-10-23 with `process.env.HOME` in
+- Hook 16 (josh-model briefing) shipped 2026-10-23 with `process.env.HOME` in
   the prompt path. It silently never fired for 3 days — fail-open catch made a
   dead hook indistinguishable from a quiet one. Diag instrumentation caught
   `process is not defined` in ONE headless probe (`claude -p` fires the real

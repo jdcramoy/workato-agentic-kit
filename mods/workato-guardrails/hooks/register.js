@@ -368,6 +368,11 @@ export function register(on) {
       name: 'cockpit',
       description: 'Cockpit: terminal pane (bare) or full-page dashboard (/cockpit full)',
     })
+    await $.command.register({
+      name: 'prod-bypass',
+      description:
+        'Open/close the time-boxed prod-write gate bypass: /prod-bypass <minutes> [note] | /prod-bypass off | /prod-bypass status',
+    })
     // Recipe-history repo: init once, snapshot pushes forever.
     await $.process.run(['sh', '-c',
       'mkdir -p ' + RECIPE_HISTORY + ' && cd ' + RECIPE_HISTORY +
@@ -936,11 +941,19 @@ export function register(on) {
         ? 'workato-cli'
         : null
     if (kind) {
-      const ids = cmd.match(/\b\d{7,9}\b/g) ?? []
+      // All-9s ids (9999999, 99999999, 999999999) are build-time placeholders,
+      // never real Workato recipe ids. Drop them and mark the row pending so a
+      // later resolver can backfill the real id (born: 2026-10-07 plugin-test
+      // fixture id 99999999 landed as a real-looking ledger row and polluted
+      // promotion sweeps).
+      const allIds = cmd.match(/\b\d{7,9}\b/g) ?? []
+      const ids = allIds.filter((v) => !/^9{7,9}$/.test(v))
+      const hadPlaceholder = ids.length !== allIds.length
       await ledgerAppend($, {
         kind: kind,
         command: cmd.slice(0, 200),
         recipe_id: ids.length ? Number(ids[0]) : null,
+        ...(hadPlaceholder ? { pending_id: true } : {}),
         ticket: currentTicket,
       })
       // Opportunistic verification: did that start actually take?
@@ -1245,6 +1258,72 @@ export function register(on) {
         ' via ' + r.tool + (r.ticket ? ' — ' + r.ticket : ''))
     }
     return { text: lines.join('\n') }
+  })
+
+  // /prod-bypass — open, close, or inspect the time-boxed prod-write gate
+  // bypass window (~/.claude/workato-audit/prod-bypass.json). The window is
+  // honored by the Python PreToolUse gate AND every surface gate in this
+  // module (push risk, Bash, HTTP, Orca), so one window silences all of them
+  // consistently. Built for bulk import/migration jobs where per-write
+  // confirms make the batch unusable. Time-boxed by design (max 120 min);
+  // writes stay audit-logged the whole time.
+  on('command.run', { command: 'prod-bypass' }, async ($, e) => {
+    const args = String(e.args ?? '').trim()
+    const readWindow = async () => {
+      try {
+        const f = await $.fs.read(BYPASS_PATH)
+        const j = JSON.parse(String(f.text ?? f))
+        return (typeof j.until === 'number' && j.until * 1000 > Date.now()) ? j : null
+      } catch { return null }
+    }
+    // /prod-bypass or /prod-bypass status — inspect only, writes nothing.
+    if (!args || args === 'status') {
+      const w = await readWindow()
+      if (!w) {
+        return { text: 'No bypass window open.\n' +
+          'Open one: /prod-bypass <minutes> [note] (max 120)\n' +
+          'Close one: /prod-bypass off' }
+      }
+      const minsLeft = Math.max(0, Math.round((w.until * 1000 - Date.now()) / 60000))
+      return { text: '⚠️ PROD BYPASS ACTIVE — ' + minsLeft + ' min left' +
+        ' (until ' + new Date(w.until * 1000).toLocaleTimeString() + ')' +
+        (w.note ? ' — ' + w.note : '') + '\nClose early: /prod-bypass off' }
+    }
+    // /prod-bypass off — close the window immediately.
+    if (args === 'off') {
+      const payload = JSON.stringify({
+        until: 0,
+        closed_at: new Date().toISOString(),
+        closed_by: 'operator (/prod-bypass off)',
+      })
+      await $.fs.write(BYPASS_PATH, payload)
+      return { text: '✅ Prod-bypass window closed. All prod-write gates active again.' }
+    }
+    // /prod-bypass <minutes> [note...] — open the window.
+    const m = args.match(/^(\d{1,3})\b\s*(.*)$/)
+    if (!m) {
+      return { text: 'Usage: /prod-bypass <minutes> [note] (max 120)\n' +
+        'Close: /prod-bypass off · Status: /prod-bypass status' }
+    }
+    const mins = Number(m[1])
+    if (mins < 1 || mins > 120) {
+      return { text: 'Minutes must be 1–120 (time-boxed by design). Got: ' + mins }
+    }
+    const note = (m[2] || '').slice(0, 200)
+    const until = Math.floor(Date.now() / 1000) + mins * 60
+    const payload = JSON.stringify({
+      until: until,
+      set_at: Math.floor(Date.now() / 1000),
+      set_by: 'operator (/prod-bypass)',
+      note: note || 'manual prod-bypass',
+    })
+    await $.fs.write(BYPASS_PATH, payload)
+    return { text:
+      '⚠️ PROD BYPASS OPEN for ' + mins + ' min — until ' +
+      new Date(until * 1000).toLocaleTimeString() + '\n' +
+      'All prod-write gates are silent (Python PreToolUse gate + the CLI/HTTP/Orca surface gates).\n' +
+      'Writes still audit-logged to ' + AUDIT_FILE + '\n' +
+      'Close early: /prod-bypass off' + (note ? '\nNote: ' + note : '') }
   })
 
   // 6. STATUS BAND above the prompt (keeps other mods' band content)

@@ -19,7 +19,7 @@ If you need something from another block, read it — never write it.**
   - `~/.claude/knowledge/scripts/autonomy.py`
   - `~/.claude/knowledge/autonomy/**`
   - `~/.claude/knowledge/config/fleet/jobs/autonomy-nightly.script` (new)
-  - `~/Library/LaunchAgents/com.<user>.fleet.autonomy-nightly.plist` (CREATE ONLY — never
+  - `~/Library/LaunchAgents/com.josh.fleet.autonomy-nightly.plist` (CREATE ONLY — never
     `launchctl load`; the integration pass loads it)
 - **CLOSEOUT** (session auto-closeout drafts):
   - `~/.claude/knowledge/scripts/session-closeout.py`
@@ -84,7 +84,7 @@ Proposals are day-granularity — report honestly, never fabricate hour precisio
      "promotion_rule": "n>=20 AND accuracy>=0.8 AND trend not inverted",
      "since": "YYYY-MM-DD"}},
  "law": "Every class is born josh-only. Evidence can only make a class ELIGIBLE for recommend.
-   auto-close exists as a mode value but is only ever set by the operator hand-editing this file."}
+   auto-close exists as a mode value but is only ever set by Josh hand-editing this file."}
 ```
 Recommendations: `knowledge/autonomy/recommendations-latest.json` — batch-approve candidates
 for open needs-josh rows, each `{workstream, jira, age_days, matched_pattern, evidence_ref,

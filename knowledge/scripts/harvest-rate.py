@@ -16,7 +16,7 @@ import json
 import os
 import re
 
-DEFAULT_PROJECT = '-Users-YOUR-USER-Documents-workbench'
+DEFAULT_PROJECT = '-Users-<user>-Documents-workbench'
 MEMROOT = os.path.expanduser('~/.claude/projects/%s/memory' % DEFAULT_PROJECT)
 KROOT = os.path.expanduser('~/.claude/knowledge')
 

@@ -379,7 +379,7 @@ missing from the kit entirely):
   artifact is either real-path or it is not deployed. (Zero grep hits
   for "YOUR-USER" in knowledge/*.md before this planting; sources:
   gardener report garden-reports/garden-2026-10-17-late.md L1, cited
-  transcript `~/.claude/projects/-Users-YOUR-USER-Documents-workbench/
+  transcript `~/.claude/projects/-Users-<user>-Documents-workbench/
   3df5be5d-65fd-4735-871d-0d16dd1a578e.jsonl`.)
 - FALSE-STUB class, runner-side (same 2026-10-17 night chain): a job
   script that logs everything to its OWN file leaves the runner's
@@ -460,7 +460,7 @@ already existed — do not re-build the already-covered items:
 - **replay-gym.py** (`com.josh.fleet.gym`, NIGHTLY 01:07; Sundays also
   --firedrill): replays yesterday's build-ledger activity as read-only
   assertions — asset liveness across BOTH profiles (dev + --profile
-  team-prod; 404 = deleted-since-yesterday info, non-404 = canon miss),
+  josh-prod; 404 = deleted-since-yesterday info, non-404 = canon miss),
   hooks-installed invariant, canary freshness. Report:
   garden-reports/gym-<date>.md; misses -> canon entries.
 - **Fire drill** (immune drill, weekly): the drill recipe

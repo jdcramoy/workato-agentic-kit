@@ -135,14 +135,14 @@ for f in "${DENY_DOMAIN_FILES[@]}"; do rm -rf "$DST/domains/$f"; done
 # /Users/YOUR-USER/... -> ~/... (teammates' HOME differs; strips the personal
 # path identifier without touching knowledge). Also neutralizes the raw
 # account string when it appears standalone.
-grep -rl --exclude-dir=.git -e '/Users/YOUR-USER' -e 'YOUR-USER' -e '<user>' "$DST" 2>/dev/null | while read -r f; do
+grep -rl --exclude-dir=.git -e '/Users/YOUR-USER' -e '<user>' -e '<github-user>' "$DST" 2>/dev/null | while read -r f; do
   python3 -c "
 import sys
 p = sys.argv[1]
 t = open(p).read()
 t = t.replace('/Users/YOUR-USER', '~')   # slash paths
-t = t.replace('YOUR-USER', '<user>')     # slugs: -Users-YOUR-USER-Documents-...
-t = t.replace('<user>', '<user>')       # github account name
+t = t.replace('<user>', '<user>')     # slugs: -Users-<user>-Documents-...
+t = t.replace('<github-user>', '<user>')       # github account name
 open(p, 'w').write(t)
 " "$f"
 done
@@ -311,7 +311,7 @@ if [ -n "$PII_HITS" ]; then
 fi
 
 # --- sweep 3: personal identifiers -------------------------------------------
-IDENT_HITS=$(grep -IrlniE --exclude-dir=.git 'YOUR-USER|<user>' "$DST" 2>/dev/null || true)
+IDENT_HITS=$(grep -IrlniE --exclude-dir=.git '<user>|<github-user>' "$DST" 2>/dev/null || true)
 if [ -n "$IDENT_HITS" ]; then
   echo "EXPORT FAILED: personal account identifiers found:"; echo "$IDENT_HITS"; exit 1
 fi

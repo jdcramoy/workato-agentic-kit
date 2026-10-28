@@ -130,6 +130,24 @@ def md_to_adf(md_text):
         if not line.strip():
             i += 1
             continue
+        # markdown table: consecutive |-rows (header, |---| separator, body)
+        if line.lstrip().startswith("|"):
+            rows = []
+            while i < len(lines) and lines[i].lstrip().startswith("|"):
+                cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                if not all(re.fullmatch(r":?-{3,}:?", c) for c in cells):  # skip separator rows
+                    rows.append(cells)
+                i += 1
+            if rows:
+                ncols = max(len(r) for r in rows)
+                content.append({"type": "table", "content": [
+                    {"type": "tableRow", "content": [
+                        {"type": "tableHeader" if r == 0 else "tableCell",
+                         "content": [{"type": "paragraph", "content": inline(
+                             row[c] if c < len(row) else "")}]}
+                        for c in range(ncols)]}
+                    for r, row in enumerate(rows)]})
+                continue
         m = re.match(r"^(#{1,3})\s+(.*)$", line)
         if m:
             content.append({"type": "heading", "attrs": {"level": len(m.group(1))},

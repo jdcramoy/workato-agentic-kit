@@ -228,7 +228,7 @@ def replay_pass(findings):
     recipe_ids = sorted(recipe_ids)
 
     # 1. asset liveness — the ledger spans BOTH workspaces: prod recipes
-    # (readable only via --profile team-prod) read as 404 on dev.
+    # (readable only via --profile josh-prod) read as 404 on dev.
     # Run-level abort gate (2026-10-26, sweep rec #1 after the THIRD identical
     # all-false batch): if the FIRST 3 recipe reads all end fully-unreadable
     # (wt rc=1 both profiles + direct API read fails), this is a machine-level
@@ -246,8 +246,8 @@ def replay_pass(findings):
         rc, out = wt(["recipes", "get", str(rid), "--raw"])
         profile = "dev"
         if rc != 0:
-            rc, out = wt(["recipes", "get", str(rid), "--raw", "--profile", "team-prod"])
-            profile = "team-prod"
+            rc, out = wt(["recipes", "get", str(rid), "--raw", "--profile", "josh-prod"])
+            profile = "josh-prod"
         if rc != 0:
             if "404" in out or "Not found" in out:
                 findings.append(f"info: recipe {rid} deleted since yesterday (404 both profiles)")
@@ -258,7 +258,7 @@ def replay_pass(findings):
                 # read also fails (None), not on a lone wt rc=1 blip.
                 direct = direct_recipe_get(rid, "josh-us")
                 if direct is None:
-                    direct = direct_recipe_get(rid, "team-prod")
+                    direct = direct_recipe_get(rid, "josh-prod")
                 if direct is None:
                     elapsed = time.monotonic() - t0
                     if reads <= 3:

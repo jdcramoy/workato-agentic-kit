@@ -14,7 +14,7 @@ same-family ban.
 
 ## Change (add to the per-row dict in fusion-run.py's ledger loop, line ~70)
 
-After the panel completes and the operator/caller names the correct answer(s), append
+After the panel completes and Josh/caller names the correct answer(s), append
 an OUTCOME row (keeps the ledger append-only, one row per model per run):
 
 ```python

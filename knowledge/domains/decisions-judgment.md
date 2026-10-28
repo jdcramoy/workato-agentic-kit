@@ -114,7 +114,7 @@ All live wiring landed 2026-10-23/24, Josh-approved:
 
 ## Related
 
-- Memory: `~/.claude/projects/-Users-YOUR-USER-Documents-workbench/memory/jev-typesafe-system-one.md` (full spike detail)
+- Memory: `~/.claude/projects/-Users-<user>-Documents-workbench/memory/jev-typesafe-system-one.md` (full spike detail)
 - INDEX line: scripts/triage-state.py entry; decision ledgers in `knowledge/decisions/`
 - Predecessor: `domains/` decisions-engine-uat-failure memory (decisions.py banked contract)
 - Position piece: `positions/context-beats-model-class.md` (2026-10-25, dissent logged)
