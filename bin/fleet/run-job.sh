@@ -5,7 +5,7 @@
 # beyond the start/done bookends). rc=0 from a silent claude exit is a STUB,
 # not a run. Contract (Josh, 2026-10-08): if we expect jobs to run, we
 # validate that they ran, and remediate when they did not:
-#   stub 1x -> retry immediately
+#   stub 1x -> back off (FLEET_RETRY_BACKOFF, default 120s) then retry once
 #   stub 2x -> record to garden-reports/fleet-validation.jsonl (the watchdog
 #              escalates that to the bus + morning brief; never silent)
 # Success writes the heartbeat MECHANICALLY (the model's own check-in stays
@@ -48,13 +48,61 @@ LOCK="/tmp/fleet-$NAME.lock"
 # real append-only ledgers.
 HEARTBEAT="${FLEET_HEARTBEAT:-$HOME/.claude/knowledge/garden-reports/heartbeat.jsonl}"
 VALIDATE_LEDGER="${FLEET_VALIDATE_LEDGER:-$HOME/.claude/knowledge/garden-reports/fleet-validation.jsonl}"
+RECEIPT_DIR="${FLEET_RECEIPT_DIR:-$HOME/.claude/knowledge/garden-reports}"
+
+# Run-date convention + dated receipt (2026-10-27, after the gardener 10-24
+# dark run escalated twice with nothing on disk). launchd fires at 22:43, but
+# a sleeping Mac runs the missed job at next wake: the gardener's 10-24 fire
+# actually executed 10:43 on 10-25, the agent stamped its report with the
+# EXECUTION date (2026-10-25-weekly-full-pass.md), and the morning gate keyed
+# to run-date 2026-10-24 saw a silent dark run. Fix has two halves:
+#   1. FLEET_RUN_DATE: derived exactly like nightly-receipts-gate.py
+#      (now < plist fire time -> yesterday, else today) and EXPORTED to the
+#      spawned claude, so agents that read it can name artifacts by run-date
+#      instead of wall clock. Fail-open: no plist or unparseable plist -> today.
+#   2. write_receipt: ALWAYS leaves a dated receipt artifact
+#      (garden-reports/<run-date>-fleet-receipt-<name>.md), even a one-line
+#      failure receipt, so the nightly-receipts gate never sees a silent
+#      dark run again. The receipt is runner-written and mechanical (same
+#      trust tier as write_heartbeat), never model self-reported.
+# Overridables for fixtures: FLEET_LAUNCHD_DIR, FLEET_RECEIPT_DIR.
+LAUNCHD_DIR="${FLEET_LAUNCHD_DIR:-$HOME/Library/LaunchAgents}"
+FLEET_RUN_DATE="$(python3 - "$LAUNCHD_DIR/com.josh.fleet.$NAME.plist" 2>/dev/null <<'PYEOF'
+import re, sys, datetime
+try:
+    xml = open(sys.argv[1]).read()
+    m = re.search(r"<key>Hour</key><integer>(\d+)</integer>.*?<key>Minute</key><integer>(\d+)</integer>", xml, re.S)
+    if not m:
+        raise SystemExit(1)
+    h, mi = int(m.group(1)), int(m.group(2))
+    now = datetime.datetime.now()
+    d = now.date() - datetime.timedelta(days=1) if now.time() < datetime.time(h, mi) else now.date()
+    print(d.isoformat())
+except Exception:
+    raise SystemExit(1)
+PYEOF
+)"
+[ -n "$FLEET_RUN_DATE" ] || FLEET_RUN_DATE="$(date +%F)"
+export FLEET_RUN_DATE
+
+write_receipt() { # $1 = status word (ok | failed | prelaunch-death), $2 = detail
+  mkdir -p "$RECEIPT_DIR" 2>/dev/null || return 0
+  local rcpt="$RECEIPT_DIR/$FLEET_RUN_DATE-fleet-receipt-$NAME.md"
+  {
+    printf '# fleet receipt: %s, run-date %s\n' "$NAME" "$FLEET_RUN_DATE"
+    printf -- '- ts: %s | status: %s | detail: %s | log: %s\n' \
+      "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "${2:-}" "$LOG"
+  } > "$rcpt.tmp" 2>/dev/null && mv -f "$rcpt.tmp" "$rcpt" 2>/dev/null || return 0
+}
 
 # prelaunch death guard (2026-10-16): a missing jobs/<name>.env used to die
 # silently on `source` — nothing reached fleet-validation.jsonl, so the job
 # vanished from the watchdog's view. Log it and exit nonzero BEFORE locking.
+# 2026-10-27: also leaves a dated receipt so even prelaunch death is on disk.
 if [ ! -f "$JOB.env" ]; then
   mkdir -p "$(dirname "$VALIDATE_LEDGER")"
   echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\",\"result\":\"prelaunch-death:missing-env\",\"action\":\"logged\"}" >> "$VALIDATE_LEDGER"
+  write_receipt "prelaunch-death" "$JOB.env missing"
   echo "$(date '+%F %T') $NAME: PRELAUNCH DEATH — $JOB.env missing; ledger row written" >> "$LOG" 2>/dev/null || true
   exit 1
 fi
@@ -233,12 +281,31 @@ attempt() { # echoes "valid", "ran rc=N", or "stub rc=N"
 
 RESULT="$(attempt)"
 if [ "$RESULT" != "valid" ]; then
-  echo "$(date '+%F %T') $NAME: no work evidence ($RESULT) — retrying once" >> "$LOG"
+  # Retry with backoff (dream proposal fleet-night-retry-backoff, 2026-10-24;
+  # built 2026-10-27 after the gardener 10-24 dark run): the old path retried
+  # IMMEDIATELY, so one ENOTFOUND outage window stubbed three agents on two
+  # nights (10-22 and 10-24). Back off once before the single retry (default
+  # 120s; FLEET_RETRY_BACKOFF=0 restores immediate retry), then run one cheap
+  # DNS probe so the retry outcome is attributable (dissent dis-20261024
+  # asked for a probe-gated retry). Still fail-open: we attempt regardless.
+  BACKOFF="${FLEET_RETRY_BACKOFF:-120}"
+  if [ "$BACKOFF" -gt 0 ] 2>/dev/null; then
+    echo "$(date '+%F %T') $NAME: no work evidence ($RESULT) - backing off ${BACKOFF}s before retry" >> "$LOG"
+    sleep "$BACKOFF"
+    if python3 -c 'import socket,sys; socket.getaddrinfo(sys.argv[1], 443)' "${FLEET_NET_HOST:-api.anthropic.com}" >/dev/null 2>&1; then
+      echo "$(date '+%F %T') $NAME: retry preflight - DNS reachable" >> "$LOG"
+    else
+      echo "$(date '+%F %T') $NAME: retry preflight - DNS still unreachable (retrying anyway, fail-open)" >> "$LOG"
+    fi
+  else
+    echo "$(date '+%F %T') $NAME: no work evidence ($RESULT) — retrying once" >> "$LOG"
+  fi
   RESULT="$(attempt)"
 fi
 
 if [ "$RESULT" = "valid" ]; then
   write_heartbeat
+  write_receipt "ok" "validated clean"
   # success row (2026-10-20): the ledger used to record failures only, so a
   # clean run was indistinguishable from a never-ran job without raw-log
   # archaeology. One line per validated-clean run, same shape as the failure
@@ -250,6 +317,7 @@ if [ "$RESULT" = "valid" ]; then
 fi
 
 echo "$(date '+%F %T') $NAME: VALIDATION FAILED after retry ($RESULT) — job did not run; escalated" >> "$LOG"
+write_receipt "failed" "$RESULT"
 mkdir -p "$(dirname "$VALIDATE_LEDGER")"
 echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"$NAME\",\"result\":\"$RESULT\",\"action\":\"retry-exhausted\",\"note\":\"validation failed after retry; watchdog escalates to bus + brief\"}" >> "$VALIDATE_LEDGER"
 # Never die loudly: fleet jobs are never cron-critical; the ledger is the alarm.
