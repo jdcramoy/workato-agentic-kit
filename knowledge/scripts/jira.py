@@ -456,6 +456,17 @@ def cmd_page_publish(a, auth):
 def cmd_create(a, auth):
     """Create any issue (Story/Epic/Bug/Sub-task/...) per jira-story-standards:
     parent epic, labels, story points (customfield_10057), markdown description."""
+    # Story-points gate, ported 2026-10-29 from the guardrails mod (hook 3):
+    # the mod watched mcp__atlassian__createJiraIssue; with the MCP retired,
+    # the wrapper is the write path, so the rule lives here now. Points are
+    # REQUIRED unless the project's screen lacks the field (BTSUP, HROPS,
+    # PSM, MCP — known blocked, do not retry).
+    if a.points is None and a.project.upper() not in {"BTSUP", "HROPS", "PSM", "MCP"}:
+        print("FAIL: story points are REQUIRED at creation (jira-story-standards): "
+              "--points N (Fibonacci; 1pt = 1 dev-day). Projects without the field "
+              "on their screen (BTSUP, HROPS, PSM, MCP) are exempt — note once, move on.")
+        evidence("create-points-gate", 0, project=a.project)
+        return 1
     fields = {"project": {"key": a.project}, "issuetype": {"name": a.type},
               "summary": a.summary, "labels": a.labels or []}
     desc = open(a.description).read() if a.description else (a.text or "")
