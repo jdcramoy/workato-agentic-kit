@@ -18,6 +18,7 @@ Subcommands:
   transition KEY [--list | --name NAME]          list or apply a transition
   edit KEY --field FIELD --value V               set a field (raw JSON value ok)
   page-get PAGE_ID [--out FILE]                  Confluence page -> markdown-ish
+  page-create --space ID --title T [--parent ID] [--draft] FILE
   page-publish PAGE_ID FILE [--no-redact]        publish markdown, read back
 
 Every command ends with an EVIDENCE line (JSON): {cmd, http, ids, urls,
@@ -527,7 +528,8 @@ def cmd_page_create(a, auth):
     content = open(a.file).read()
     if a.redact:
         content = redact(content)
-    payload = {"spaceId": a.space, "status": "current", "title": a.title,
+    payload = {"spaceId": a.space, "status": "draft" if a.draft else "current",
+               "title": a.title,
                "parentId": a.parent or None,
                "body": {"representation": "markdown", "value": content}}
     payload = {k: v for k, v in payload.items() if v is not None}
@@ -537,8 +539,10 @@ def cmd_page_create(a, auth):
         evidence("page-create", code, title=a.title)
         return 1
     pid = res.get("id")
-    print(f"created page {pid}: {res.get('_links', {}).get('editui', res.get('_links', {}).get('base', ''))}")
-    evidence("page-create", code, page_id=pid, title=a.title, parent=a.parent)
+    state = " (draft)" if a.draft else ""
+    print(f"created page {pid}{state}: {res.get('_links', {}).get('editui', res.get('_links', {}).get('base', ''))}")
+    evidence("page-create", code, page_id=pid, title=a.title, parent=a.parent,
+             draft=a.draft)
     return 0
 
 
@@ -632,6 +636,7 @@ def main():
     s.add_argument("--title", required=True)
     s.add_argument("file")
     s.add_argument("--parent", help="parent page id")
+    s.add_argument("--draft", action="store_true", help="create as DRAFT (Josh publishes on review)")
     s.add_argument("--no-redact", dest="redact", action="store_false")
     s.set_defaults(fn=cmd_page_create, redact=True)
 
