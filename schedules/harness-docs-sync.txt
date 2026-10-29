@@ -33,12 +33,13 @@ B. DOC CONTENT DRIFT. For each docs/harness-docs/*.md page, check whether
    domain lines. Update the affected page files in the repo with dated,
    evidence-cited edits.
 
-C. PUBLISH. For each changed page file: updateConfluencePage
-   (cloudId 99bd32a1-58a6-41d6-8e61-c98194c68259, contentFormat "markdown"
-   EXPLICITLY - omitting it saves literal markdown, a confirmed trap),
-   page_id from the manifest, versionMessage describing the change.
-   Then getConfluencePage the page back and verify the rendering before
-   counting it synced.
+C. PUBLISH. For each changed page file: publish via the jira.py wrapper
+   (2026-10-29, Josh: the Atlassian MCP is uninstalled - its token expiry
+   made it unreliable; the wrapper is the only path):
+     python3 ~/.claude/knowledge/scripts/jira.py page-publish <PAGE_ID> <file.md>
+   page_id from the manifest. The wrapper converts markdown, publishes,
+   read-back-verifies the render, and prints an EVIDENCE line - read the
+   evidence line before counting the page synced.
    POLICY: updates to EXISTING pages are autonomous, provided the
    sanitizer passes. Creating a NEW page, reparenting, or deleting needs
    the operator's explicit approval first - propose it in your report instead.

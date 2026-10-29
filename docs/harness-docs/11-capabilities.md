@@ -6,7 +6,7 @@ Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
 against the directories it describes. Counts current as of 2026-10-29
-(2026-10-29 sync: skills 58, fleet 44, MCP servers 19 — re-counted live).
+(2026-10-29 sync: skills 58, fleet 44, MCP servers 18 — re-counted live; the atlassian MCP was uninstalled 2026-10-29, Josh ruling: its token expiry made it unreliable, all Jira/Confluence now go through the jira.py REST wrapper).
 
 ## The agents: 12
 
@@ -222,7 +222,7 @@ Every job checks in to a shared heartbeat ledger, and the fleet runner
 validates each attempt for evidence of work: a silent zero-output exit is a
 stub, retried once, then escalated.
 
-## The MCP servers: 19
+## The MCP servers: 18
 
 `claude mcp list` as of 2026-10-28 (was 14 on 2026-10-24; 12 on 2026-10-17:
 fireworks-websearch was removed 2026-10-18 and slack-native retired;
@@ -234,7 +234,6 @@ gslides-prod, company-brain-live, and devapi-proxy):
 |---|---|
 | workato-airo-mcp-server | The Workato platform MCP for the dev workspace: recipe builder, Genies, data tables, blueprints, MCP servers, knowledge bases, jobs, docs. |
 | workato-airo-mcp-prod | The production twin of the platform MCP: same surfaces, live production workspace, prod-gated. |
-| atlassian | Jira and Confluence: tickets, comments, pages. |
 | slack-workato | Bounded, confirmation-gated Slack operations as the authenticated identity. |
 | workato-dependency-tracker | Blast-radius queries: which recipes touch an object, field, or connection; recipe internals; connection health. |
 | google-slides | Full Google Slides authoring: decks, templates, layouts, tables, shapes, comments. |
