@@ -2,7 +2,7 @@
   "space_key": "BTI",
   "space_name": "[External] BT-Business Technology",
   "parent_page_id": "2938830860",
-  "last_synced_commit": "5f12dc7",
+  "last_synced_commit": "7f03b66",
   "sync_schedule": "nightly session-cron, daily 06:57, self-rearming (was weekly Tuesday; Josh 2026-10-15: nightly to document new functionality as it lands)",
   "policy": {
     "updates_to_existing_pages": "autonomous (sanitized content only, read-back required)",
@@ -83,5 +83,5 @@
       "note": "new in kit 2026-10-27; Confluence page not yet published"
     }
   ],
-  "last_synced_date": "2026-10-28"
+  "last_synced_date": "2026-10-29"
 }
