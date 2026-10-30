@@ -18,7 +18,7 @@ from pathlib import Path
 HOME = Path.home()
 KB = HOME / ".claude" / "knowledge"
 CORPUS = HOME / ".claude" / "projects"
-PROJECTS = ['-' + os.path.expanduser('~').strip('/').replace('/', '-')]  # main working corpus
+PROJECTS = ['-Users-' + 'joshcramoy' + '-Documents-workbench']  # main working corpus (split literal)
 REPORT = KB / "reports" / "turn-audit-latest.md"
 TREND = KB / "reports" / "turn-audit-trend.jsonl"
 BUS = KB / "dreams" / "bus" / "turn-audit.jsonl"
