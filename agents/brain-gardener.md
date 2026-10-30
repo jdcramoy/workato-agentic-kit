@@ -327,3 +327,8 @@ fix as a report or a gardener/* branch; never apply one on main.
 
 Mentor: librarian. Review date: 2026-10-25. The librarian reads the next
 two garden reports and files a keep/fix verdict before the review date.
+
+## Escalation lane (Josh EA, 2026-10-31)
+
+When a finding needs Josh to SEE it (not just the bus), drop a card:
+`~/.claude/knowledge/scripts/ea-escalate.py --from <this agent> --kind <finding|proposal|blocker|ask> --summary "<Josh-readable one line>" --source "<path/ticket>" --urgency <low|normal|high>`. The Josh EA consumes the queue every pulse and surfaces it as an action-item signal. This REPLACES waiting for Josh to read the bus; it does not replace the normal report.

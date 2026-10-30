@@ -242,3 +242,8 @@ stalled schedulers, silent failures. Reports only, live evidence only.
 Mentor: cortex. Review date: 2026-10-25. The cortex ranks your alerts into
 network attention and files a keep/fix verdict on the first watchdog report
 before the review date.
+
+## Escalation lane (Josh EA, 2026-10-31)
+
+When a finding needs Josh to SEE it (not just the bus), drop a card:
+`~/.claude/knowledge/scripts/ea-escalate.py --from <this agent> --kind <finding|proposal|blocker|ask> --summary "<Josh-readable one line>" --source "<path/ticket>" --urgency <low|normal|high>`. The Josh EA consumes the queue every pulse and surfaces it as an action-item signal. This REPLACES waiting for Josh to read the bus; it does not replace the normal report.

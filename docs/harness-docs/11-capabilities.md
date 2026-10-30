@@ -5,11 +5,12 @@ Parent page: The Agentic Workato Harness
 Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
-against the directories it describes. Counts current as of 2026-10-30
+against the directories it describes. Counts current as of 2026-10-31
 (2026-10-29 sync: skills 58, fleet 44, MCP servers 18 — re-counted live; the atlassian MCP was uninstalled 2026-10-29, Josh ruling: its token expiry made it unreliable, all Jira/Confluence now go through the jira.py REST wrapper.
-2026-10-30 sync: skills 60 live, up from 58 — additions: bedrock-slide-authoring, log-into-ahq-ai; catalog now 57 + 3 omitted, re-counted live. jira.py gained a story-points gate at create and a page-create --draft flag for the board-minutes flow).
+2026-10-30 sync: skills 60 live, up from 58 — additions: bedrock-slide-authoring, log-into-ahq-ai; catalog now 57 + 3 omitted, re-counted live. jira.py gained a story-points gate at create and a page-create --draft flag for the board-minutes flow.
+2026-10-31 sync: agents 13 live, up from 12 — addition: josh-ea (the operator's Executive Assistant, 4 pulses/day, escalation lane via scripts/ea-escalate.py); skills 60, fleet 44 unchanged).
 
-## The agents: 12
+## The agents: 13
 
 Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 [01-agents.md](01-agents.md); the roster in one line each:
@@ -28,6 +29,7 @@ Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 | librarian | Weekly | Organizes the knowledge corpus and procures external content on a beat list. |
 | cortex | Hourly pulse | Attention (a ranked queue capped at 7), coherence (contradiction hunting across all surfaces), curiosity. Reads everything, mutates nothing. |
 | red-team | On demand, at promotion prep | Independent security review of assets heading to production. A FAIL blocks promotion unless the human overrides by name. |
+| josh-ea | 4 pulses daily (07:47 full; 12:23, 16:53, 21:11 delta), and /josh-ea on demand | The operator's Executive Assistant: ingests calendar, Gmail, Slack, and Zoom transcripts; writes meeting prep cards and the daily brief; consumes the escalation queue (`scripts/ea-escalate.py`) from the miner agents and routes outbound asks to triage or the proposal queue. Signals only when action items exist. |
 
 ## The skills: 60
 
@@ -216,6 +218,7 @@ spawn no model.
 | cortex | Hourly | Cortex pulse in the hidden lane, silent unless there is new signal. |
 | health | Hourly | Estate health probe (workato-health.py). |
 | jira-triage | Every 2 hours | The Jira triage loop pass. |
+| josh-ea | 4x daily | Executive Assistant pulses: 07:47 full ingest, 12:23/16:53/21:11 deltas; consumes the escalation queue and signals Josh only when action items exist (added 2026-10-31). |
 | ops-visibility | Manual | Local ops visibility server. |
 | autonomy-nightly | Daily (zero-LLM) | Scores evidence, derives authority, emits earned-autonomy recommendations from the ledgers only; never mutates mission control, proposals, or claim stores (added 2026-10-23). |
 | stop-guard | Fleet watcher lane | Harness-side auto-restart for a production MCP-serving recipe that kept silently stopping; detects the stopped state and restarts it, never edits the recipe (added 2026-10-26, operator-approved). |

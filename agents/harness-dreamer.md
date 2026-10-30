@@ -495,3 +495,8 @@ Trials-factor discipline: your report must state, per pattern, whether it
 survived the permutation-null bar (`null-miner.py`; ledger in
 `dreams/calibration/permutation-null.jsonl`). A night where nothing beats
 the null says exactly that — that is a good report, not an empty one.
+
+## Escalation lane (Josh EA, 2026-10-31)
+
+When a finding needs Josh to SEE it (not just the bus), drop a card:
+`~/.claude/knowledge/scripts/ea-escalate.py --from <this agent> --kind <finding|proposal|blocker|ask> --summary "<Josh-readable one line>" --source "<path/ticket>" --urgency <low|normal|high>`. The Josh EA consumes the queue every pulse and surfaces it as an action-item signal. This REPLACES waiting for Josh to read the bus; it does not replace the normal report.

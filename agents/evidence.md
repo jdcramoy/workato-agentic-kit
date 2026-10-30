@@ -110,3 +110,8 @@ after ~30 closed outcomes the calibrate table tells you whether text-only
 prediction works on this surface. If accuracy is <= 0.5 by then, DROP the
 ordering (it wastes the audit) and say so in the report. The pre-screen never
 changes a verdict, never skips a check, never gates anything.
+
+## Escalation lane (Josh EA, 2026-10-31)
+
+When a finding needs Josh to SEE it (not just the bus), drop a card:
+`~/.claude/knowledge/scripts/ea-escalate.py --from <this agent> --kind <finding|proposal|blocker|ask> --summary "<Josh-readable one line>" --source "<path/ticket>" --urgency <low|normal|high>`. The Josh EA consumes the queue every pulse and surfaces it as an action-item signal. This REPLACES waiting for Josh to read the bus; it does not replace the normal report.

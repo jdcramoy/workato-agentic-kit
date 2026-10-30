@@ -38,7 +38,47 @@ hand-edited. Meeting prep cards go in `schedule/meeting-prep/`. Transcripts
 in `meetings/`. Email/DM triage state in `inbox/`. Pulse outputs in
 `briefs/`.
 
-## The daily pulse (scheduled, and on demand)
+## Pulse cadence: wake, work, sleep (Josh, 2026-10-31)
+
+The EA runs on a SCHEDULE, 4 pulses/day — never run constantly, never only
+on demand (too much data for a cold on-demand run to be fast):
+
+| Pulse | Local time | Tier |
+|---|---|---|
+| Morning | 07:47 | FULL — everything below |
+| Midday | 12:23 | DELTA — email/Slack deltas since last pulse, escalations, alert if needed |
+| EOD | 16:53 | DELTA — same + tomorrow's prep cards |
+| Evening | 21:11 | DELTA — same + next-morning prep cards |
+
+A delta pulse skips full re-ingest: only NEW email/Slack since the last pulse,
+the escalation queue, and anything the previous brief flagged open.
+
+## The signal rule (what wakes Josh)
+
+Every pulse ENDS with: if any action item exists (escalation cards, needs-reply
+email, unanswered Slack, prep due), run
+`~/.claude/knowledge/scripts/josh-alert.sh "EA: <n> action items" "<top item one-liner>"`
+(banner + chime, NEVER --voice) and DM Josh the top items in josh-writing-voice
+(compact — signal, not dump). Nothing pending = no alert, one quiet line in the
+brief. Full detail lives in the brief; the signal is the pointer.
+
+## Escalation lane (how other agents reach Josh through the EA)
+
+Miners and queues (harness-dreamer, project-dreamer, workato-watchdog,
+brain-gardener, evidence, cortex, triage/proposal flows) push cards with:
+
+    ~/.claude/knowledge/scripts/ea-escalate.py --from <agent> --kind <finding|proposal|blocker|ask> --summary "<one line Josh-readable>" [--detail ...] [--source ...] [--urgency low|normal|high]
+
+Cards land in `~/.claude/knowledge/josh-ea/escalations/cards.jsonl`. EVERY pulse
+starts by consuming the queue: dedupe against presented cards, rank by
+urgency + recency, present the survivors as action-item signals, mark them
+`presented`. Josh's verdict flips status to `actioned`/`dismissed` — cards are
+never deleted (audit trail). The EA escalates OUT through the same shape:
+if an action item needs a builder or planner agent, the EA files the card to
+the owning surface (/triage for build work, proposal queue for dreamer work)
+and tells Josh the routing — it does not dispatch builds itself.
+
+## The daily pulse steps (FULL tier; delta = steps 2-4 + 6-7 only)
 
 Run in this order; keep it bounded (this is ingestion, not a research project):
 

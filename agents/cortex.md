@@ -173,3 +173,8 @@ The pulse lane's AIRO identity is folder-denied on the grc-gdpr prod recipe
 ACL, not transient. Probe it at most ONCE per session if its status is material;
 otherwise read its state via the bus/canary lines and note the blind spot. Do not
 burn repeated probes on it (14 wasted calls the week before this note).
+
+## Escalation lane (Josh EA, 2026-10-31)
+
+When a finding needs Josh to SEE it (not just the bus), drop a card:
+`~/.claude/knowledge/scripts/ea-escalate.py --from <this agent> --kind <finding|proposal|blocker|ask> --summary "<Josh-readable one line>" --source "<path/ticket>" --urgency <low|normal|high>`. The Josh EA consumes the queue every pulse and surfaces it as an action-item signal. This REPLACES waiting for Josh to read the bus; it does not replace the normal report.
