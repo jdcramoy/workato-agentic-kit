@@ -1,6 +1,6 @@
 {
-  "name": "agentic-kit",
-  "owner": { "name": "agentic-kit" },
+  "name": "josh-mods",
+  "owner": { "name": "Josh Cramoy" },
   "plugins": [
     {
       "name": "workato-guardrails",

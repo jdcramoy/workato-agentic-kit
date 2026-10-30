@@ -24,7 +24,7 @@ Idempotent per run-date: one alarm max per night (state file).
 import json
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 HOME = Path.home()
@@ -46,7 +46,11 @@ def write_status_heartbeat(status: str, detail: str) -> bool:
     watchdog is dark; on a quiet night this script was fully silent, which
     harness-health reported as "never writes heartbeat.jsonl" (2026-10-25).
     """
-    row = {"ts": datetime.now().isoformat(), "job": "watchdog-liveness",
+    # UTC Z-stamp: heartbeat.jsonl is a UTC ledger; naive local stamps are
+    # rejected by atomic_io's validator (heartbeat-writers-atomic-io-compliance,
+    # 2026-10-29). The fire-window math in main() stays local on purpose.
+    row = {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "job": "watchdog-liveness",
            "status": status, "detail": detail}
     hb = subprocess.run(
         [sys.executable, str(ATOMIC_IO), str(HEARTBEAT)],
@@ -122,7 +126,7 @@ def main():
     # far as heartbeat liveness matching is concerned).
     write_status_heartbeat("dark", dark_reason)
     row = {
-        "ts": now.isoformat(),
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "job": "watchdog-liveness-ALARM",
         "status": "dark",
         "detail": dark_reason,

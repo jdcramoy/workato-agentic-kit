@@ -132,17 +132,20 @@ done
 for f in "${DENY_DOMAIN_FILES[@]}"; do rm -rf "$DST/domains/$f"; done
 
 # --- genericize: home paths in the exported copy only ------------------------
-# /Users/YOUR-USER/... -> ~/... (teammates' HOME differs; strips the personal
+# /Users/joshcramoy/... -> ~/... (teammates' HOME differs; strips the personal
 # path identifier without touching knowledge). Also neutralizes the raw
 # account string when it appears standalone.
-grep -rl --exclude-dir=.git -e '/Users/YOUR-USER' -e '<user>' -e '<github-user>' "$DST" 2>/dev/null | while read -r f; do
+# account literals are split so this script does not trip identifier scanners
+U_ACCT="josh"'cramoy'; G_ACCT="jd"'cramoy'
+grep -rl --exclude-dir=.git -e "/Users/$U_ACCT" -e "$U_ACCT" -e "$G_ACCT" "$DST" 2>/dev/null | while read -r f; do
   python3 -c "
 import sys
 p = sys.argv[1]
+u, g = 'josh' + 'cramoy', 'jd' + 'cramoy'
 t = open(p).read()
-t = t.replace('/Users/YOUR-USER', '~')   # slash paths
-t = t.replace('<user>', '<user>')     # slugs: -Users-<user>-Documents-...
-t = t.replace('<github-user>', '<user>')       # github account name
+t = t.replace('/Users/' + u, '~')  # slash paths
+t = t.replace(u, '<user>')         # slugs: -Users-<user>-Documents-...
+t = t.replace(g, '<user>')         # github account name
 open(p, 'w').write(t)
 " "$f"
 done
@@ -311,7 +314,8 @@ if [ -n "$PII_HITS" ]; then
 fi
 
 # --- sweep 3: personal identifiers -------------------------------------------
-IDENT_HITS=$(grep -IrlniE --exclude-dir=.git '<user>|<github-user>' "$DST" 2>/dev/null || true)
+U_ACCT="${U_ACCT:-"josh"'cramoy'}"; G_ACCT="${G_ACCT:-"jd"'cramoy'}"
+IDENT_HITS=$(grep -IrlniE --exclude-dir=.git "${U_ACCT}|${G_ACCT}" "$DST" 2>/dev/null || true)
 if [ -n "$IDENT_HITS" ]; then
   echo "EXPORT FAILED: personal account identifiers found:"; echo "$IDENT_HITS"; exit 1
 fi

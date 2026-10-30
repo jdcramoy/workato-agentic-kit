@@ -10,6 +10,7 @@ Usage: turn-audit.py [--days N] [--sample-only]
 Output: knowledge/reports/turn-audit-latest.md (+ .json), trend row appended to
 knowledge/reports/turn-audit-trend.jsonl, gossip-bus post.
 """
+import os
 import glob, json, os, re, sys, time
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -17,7 +18,7 @@ from pathlib import Path
 HOME = Path.home()
 KB = HOME / ".claude" / "knowledge"
 CORPUS = HOME / ".claude" / "projects"
-PROJECTS = ["-Users-<user>-Documents-workbench"]  # main working corpus
+PROJECTS = ['-' + os.path.expanduser('~').strip('/').replace('/', '-')]  # main working corpus
 REPORT = KB / "reports" / "turn-audit-latest.md"
 TREND = KB / "reports" / "turn-audit-trend.jsonl"
 BUS = KB / "dreams" / "bus" / "turn-audit.jsonl"

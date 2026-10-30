@@ -5,8 +5,9 @@ Parent page: The Agentic Workato Harness
 Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
-against the directories it describes. Counts current as of 2026-10-29
-(2026-10-29 sync: skills 58, fleet 44, MCP servers 18 — re-counted live; the atlassian MCP was uninstalled 2026-10-29, Josh ruling: its token expiry made it unreliable, all Jira/Confluence now go through the jira.py REST wrapper).
+against the directories it describes. Counts current as of 2026-10-30
+(2026-10-29 sync: skills 58, fleet 44, MCP servers 18 — re-counted live; the atlassian MCP was uninstalled 2026-10-29, Josh ruling: its token expiry made it unreliable, all Jira/Confluence now go through the jira.py REST wrapper.
+2026-10-30 sync: skills 60 live, up from 58 — additions: bedrock-slide-authoring, log-into-ahq-ai; catalog now 57 + 3 omitted, re-counted live. jira.py gained a story-points gate at create and a page-create --draft flag for the board-minutes flow).
 
 ## The agents: 12
 
@@ -28,10 +29,10 @@ Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 | cortex | Hourly pulse | Attention (a ranked queue capped at 7), coherence (contradiction hunting across all surfaces), curiosity. Reads everything, mutates nothing. |
 | red-team | On demand, at promotion prep | Independent security review of assets heading to production. A FAIL blocks promotion unless the human overrides by name. |
 
-## The skills: 58
+## The skills: 60
 
 Each skill is a `SKILL.md` in `~/.claude/skills/`, a loaded-on-trigger SOP.
-55 are cataloged below in five groups; 3 are private or intentionally
+57 are cataloged below in five groups; 3 are private or intentionally
 unpublished and deliberately omitted (noted at the end).
 (2026-10-17 sync: 54 skills live, up from 52 — additions: failure-close-gate,
 wt-cookbook. 2026-10-18 re-verify: still 54 live, no additions; the catalog
@@ -41,7 +42,7 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 2026-10-28 sync: 58 live, up from 57 — addition: needs-josh; catalog now
 55 + 3 omitted, re-counted live against ~/.claude/skills/.)
 
-### Playbooks: how to drive the platform (24)
+### Playbooks: how to drive the platform (26)
 
 | Skill | Purpose |
 |---|---|
@@ -69,6 +70,8 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 | fusion | Cost-gated multi-model execution: N models answer the same task, answers are cross-checked. |
 | workato-brand-2026 | The 2026 official brand system for Workato-branded UI, pages, and decks: tokens, component CSS, usage notes. |
 | workato-custom-action-schema | Resolve a custom-connector action's schema before mapping datapills; the fix for schema-not-available errors. |
+| bedrock-slide-authoring | Byte-level PPTX slide authoring discipline: brand gate, placeholder-first authoring, per-slide QA before any push (the BEDROCK pipeline). |
+| log-into-ahq-ai | Log into the Workato UI (AHQ | AI workspace) via Okta in the Orca browser whenever a UI task finds the session expired. |
 
 ### Governance and gates: rules as procedure (16)
 
