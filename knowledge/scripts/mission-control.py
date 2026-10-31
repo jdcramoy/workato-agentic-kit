@@ -223,8 +223,16 @@ def esc(s):
 
 
 def board(rows, expired=()):
+    """Lazy-load board: an instant-paint shell + a progress wheel + async data.
+
+    board.html = ~8KB shell (paints immediately); the data = registry.js
+    (DATA = {...}, a script-tag side file — file://-safe, no CORS). The wheel
+    spins until the data script lands, then the sections render client-side.
+    Replaces the 1.1MB pre-rendered blob (Josh, 2026-10-31: lazy-load behind
+    the progress wheel).
+    """
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
-    parts = ["""<!doctype html><html><head><meta charset="utf-8">
+    shell = """<!doctype html><html><head><meta charset="utf-8">
 <title>Mission Control</title><meta http-equiv="refresh" content="300">
 <style>
 body{font-family:-apple-system,Helvetica,sans-serif;margin:24px;background:#0f172a;color:#e2e8f0}
@@ -238,36 +246,59 @@ h1{font-size:22px} .ts{color:#64748b;font-size:12px;margin-bottom:16px}
 .expired-line{color:#64748b;font-size:12px;margin:4px 0;padding-left:8px;border-left:2px solid #334155}
 .expired-line b{color:#94a3b8}
 h2{font-size:14px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-top:28px}
+#wheel{position:fixed;top:12px;right:16px;width:22px;height:22px;border:3px solid #334155;
+border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style></head><body>
-<h1>Mission Control — in-flight work</h1><div class="ts">folded %s &middot; auto-refresh 5m</div>""" % now]
-    for state in STATES:
-        group = [e for e in rows if e.get("state") == state]
-        if not group:
-            continue
-        parts.append(f"<h2>{state} ({len(group)})</h2>")
-        for e in group:
-            jira = f'<span class="jira">{esc(e.get("jira"))}</span> — {esc(e.get("jira_title"))}<br>' if e.get("jira") else ""
-            needs = f'<div class="needs">&#9888; needs Josh: {esc(e.get("needs"))}</div>' if e.get("needs") else ""
-            stale = (f'<div class="needs">&#9203; STALE: no update for '
-                     f'{e.get("age_hours")}h</div>') if e.get("stale") else ""
-            parts.append(f"""<div class="card {state}">
-{jira}<div class="what">{esc(e.get("what"))}</div>
-<div class="why">why: {esc(e.get("why"))} &rarr; end: {esc(e.get("end"))}</div>
-{needs}{stale}<div class="meta">{esc(e.get("workstream"))} &middot; {esc(e.get("project", ""))} &middot; by {esc(e.get("by"))} &middot; {esc(e.get("ts"))}</div>
-</div>""")
-    if expired:
-        parts.append(f'<h2>expired ({len(expired)}) &middot; past TTL / closed on drop '
-                     f'&mdash; re-raise by appending a new mission-control event</h2>')
-        for e in expired:
-            tag = ("closed-on-drop" if e.get("closed_on_drop")
-                   else f"TTL {e.get('ttl_hours')}h")
-            needs = (f' &#9888; needs Josh: {esc(e.get("needs"))}'
-                     if e.get("needs") else "")
-            parts.append(f'<div class="expired-line">[{esc(e.get("state"))} &middot; {tag}] '
-                         f'<b>{esc(e.get("workstream"))}</b> &middot; {esc(e.get("what"))}'
-                         f'{needs} &middot; {esc(e.get("ts"))}</div>')
-    parts.append("</body></html>")
-    atomic_write(BOARD, "\n".join(parts))
+<h1>Mission Control — in-flight work</h1><div class="ts">folded {NOW} &middot; auto-refresh 5m</div>
+<div id="wheel"></div>
+<div id="content"><div class="ts" id="loading">loading registry&hellip;</div></div>
+<script>
+window.__mc_render = function(DATA) {
+  document.getElementById('wheel').style.display = 'none';
+  var el = document.getElementById('loading'); if (el) el.remove();
+  var esc = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+  var out = [], STATES = ['needs-josh','blocked','in-flight','done'];
+  var rows = DATA.workstreams || [];
+  for (var si = 0; si < STATES.length; si++) {
+    var state = STATES[si];
+    var group = rows.filter(function(e){ return e.state === state; });
+    if (!group.length) continue;
+    out.push('<h2>' + state + ' (' + group.length + ')</h2>');
+    for (var i = 0; i < group.length; i++) {
+      var e = group[i];
+      var jira = e.jira ? ('<span class="jira">' + esc(e.jira) + '</span> \u2014 ' + esc(e.jira_title) + '<br>') : '';
+      var needs = e.needs ? ('<div class="needs">&#9888; needs Josh: ' + esc(e.needs) + '</div>') : '';
+      var stale = e.stale ? ('<div class="needs">&#9203; STALE: no update for ' + esc(e.age_hours) + 'h</div>') : '';
+      out.push('<div class="card ' + state + '">' + jira +
+        '<div class="what">' + esc(e.what) + '</div>' +
+        '<div class="why">why: ' + esc(e.why) + ' \u2192 end: ' + esc(e.end) + '</div>' +
+        needs + stale +
+        '<div class="meta">' + esc(e.workstream) + ' &middot; ' + esc(e.project || '') + ' &middot; by ' + esc(e.by) + ' &middot; ' + esc(e.ts) + '</div></div>');
+    }
+  }
+  var exp = DATA.expired || [];
+  if (exp.length) {
+    out.push('<h2>expired (' + exp.length + ') &middot; past TTL / closed on drop &mdash; re-raise by appending a new mission-control event</h2>');
+    for (var j = 0; j < exp.length; j++) {
+      var x = exp[j];
+      var tag = x.closed_on_drop ? 'closed-on-drop' : ('TTL ' + (x.ttl_hours || '') + 'h');
+      out.push('<div class="expired-line">[' + esc(x.state) + ' &middot; ' + tag + '] <b>' + esc(x.workstream) +
+        '</b> &middot; ' + esc(x.what) + (x.needs ? ' &#9888; needs Josh: ' + esc(x.needs) : '') +
+        ' &middot; ' + esc(x.ts) + '</div>');
+    }
+  }
+  document.getElementById('content').innerHTML = out.join('');
+};
+document.getElementById('wheel').style.display = 'block';
+</script>
+<script src="registry.js" async></script>
+</body></html>""".replace("{NOW}", now)
+    atomic_write(BOARD, shell)
+    # the data side-file: registry.js = DATA = {...} (script-tag load, file://-safe)
+    data_rows = {"folded_at": now, "workstreams": rows, "expired": list(expired)}
+    js = "window.__mc_render(" + json.dumps(data_rows, default=str) + ");"
+    atomic_write(os.path.join(MC, "registry.js"), js)
 
 
 def needs(rows):
