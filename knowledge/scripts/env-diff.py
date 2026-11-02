@@ -495,10 +495,28 @@ def scrub_value(v, cap=80):
     if v is None:
         return None
     s = str(v)
+    s = re.sub(r"AWS[A-Za-z0-9_]*(?:ACCESS|SECRET|KEY)[A-Za-z0-9_]*", "<aws-key-name>", s, flags=re.I)
+    s = re.sub(r"(?i)(access_key_id|secret_access_key|aws_access_key_id)\s*[=:]\s*\S+", r"\1=<redacted>", s)
+    s = re.sub(r"A(?:K|S)IA[0-9A-Z]{16}", "<aws-key>", s)
+    s = re.sub(r"[A-Za-z0-9/+=]{40}", "<redacted-40>", s)  # AWS secret access key shape
     s = re.sub(r"[A-Za-z0-9_\-]{32,}", "<redacted>", s)
     if len(s) > cap:
         return s[:cap] + "...<truncated len=%d>" % len(s)
     return s
+
+
+def scrub_obj(o):
+    """Recursively scrub every string in a parsed-JSON structure (the --json
+    output path). The 2026-11-02 architect finding: the live env-diff pass
+    printed raw property payloads including AWS key material via the --json
+    print, which bypassed the md_report scrubbing."""
+    if isinstance(o, str):
+        return scrub_value(o, cap=200)
+    if isinstance(o, dict):
+        return {k: ("<redacted-key>" if re.search(r"(?i)secret|token|key_material", k) and isinstance(v, str) else scrub_obj(v)) for k, v in o.items()}
+    if isinstance(o, list):
+        return [scrub_obj(x) for x in o]
+    return o
 
 
 # ------------------------------------------------------------------ output
@@ -629,7 +647,7 @@ def main():
             print("--validate-promoted requires a live run (cache is never authoritative)", file=sys.stderr)
             return 3
         if args.json:
-            print(json.dumps(d, indent=1))
+            print(json.dumps(scrub_obj(d), indent=1))
         else:
             print(md_report(d["classes"], d["scope"], d["generated_at"]))
         return 0
