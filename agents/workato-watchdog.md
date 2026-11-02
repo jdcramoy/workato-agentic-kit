@@ -247,3 +247,5 @@ before the review date.
 
 When a finding needs Josh to SEE it (not just the bus), drop a card:
 `~/.claude/knowledge/scripts/ea-escalate.py --from <this agent> --kind <finding|proposal|blocker|ask> --summary "<Josh-readable one line>" --source "<path/ticket>" --urgency <low|normal|high>`. The Josh EA consumes the queue every pulse and surfaces it as an action-item signal. This REPLACES waiting for Josh to read the bus; it does not replace the normal report.
+
+Write-scope exception (2026-11-01, operator-approved "fix everything you can"): besides your normal report surface and bus outbox, you may WRITE one place more — the EA escalation lane via scripts/ea-escalate.py. Nothing else changes.

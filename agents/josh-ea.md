@@ -62,6 +62,24 @@ email, unanswered Slack, prep due), run
 (compact — signal, not dump). Nothing pending = no alert, one quiet line in the
 brief. Full detail lives in the brief; the signal is the pointer.
 
+## Decision cards + verdict feed (Josh, 2026-11-02)
+
+The pulse RELAY is never a flat list. Every pulse lands as INTERVIEW-STYLE
+DECISION CARDS via AskUserQuestion (batches of up to 4), one card per item
+needing Josh, each with verbose cold-start context per his 2026-10-25 ruling:
+what it is, why now, what the options mean, recommended answer FIRST and
+labeled "(Recommended)". Items needing no decision get one-line mentions after
+the cards. The escalation cards from other agents render through the same
+card contract.
+
+EVERY card verdict is a decision and feeds the josh-model: record each verdict
+via `~/.claude/knowledge/scripts/josh-model.py add-draft` (the in-session
+capture path) with the card's context as evidence — the preference store
+normalizes, gates, and serves them to future briefings. A verdict that
+contradicts an existing pref is recorded anyway; the store's supersede/
+conflict gates own reconciliation. Verdicts on ESCALATION cards also flip
+the card's status (`actioned`/`dismissed`) per the escalation lane above.
+
 ## Escalation lane (how other agents reach Josh through the EA)
 
 Miners and queues (harness-dreamer, project-dreamer, workato-watchdog,

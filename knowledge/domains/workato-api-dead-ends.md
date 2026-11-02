@@ -55,3 +55,15 @@ endpoint. Append new dead ends at the bottom; date each line.
   (no .json suffix) returns the FULL saved custom-connector source on both wt profiles (dev + josh-prod).
   Used for the Gmail hotfix port to byte-diff dev v129 vs prod v1 cheaply - no connector_builder session
   transcription needed. `/api/custom_adapters/:id` and `/versions` remain 404.
+
+## 2026-10-30 recipe raw-PUT sanitizer (BSYS-30084 session)
+- PUT /api/recipes/<id> with `code` DOES persist (contradicts the 2026-10-23 note) — but the
+  platform silently strips any step input key NOT declared in that step's `extended_input_schema`.
+  add/update_record `parameters` and openai `model` vanish without error until the connector's
+  real schema envelope (incl. the model select + toggle_field) is cloned from a proven sibling step.
+- Start-validation is the backstop: pill paths referencing fields absent from the source step's
+  declared output schema fail "Unknown data field" at start. Declare array outputs as real
+  array-of-object outputs for foreach sources; JSON strings are text-only.
+- Runtime order: a step may only reference pills from steps that execute before it (later-step
+  refs read as blank — unlike never-executed-if branches, which read blank too but are safe).
+- get_records string filters support op_default 'starts_with' server-side (connector picklist-verified).

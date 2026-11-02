@@ -59,3 +59,20 @@ last verified 2026-10-09 (live probe, confirmed).
 - airo-mcp-playbook SKILL.md trap table (2026-09-11 first canonization).
 - ~/Documents/CLAUDE.md VUA verify bullet (Josh ruling 2026-10-06).
 - Memory: bsys-26815-benefits-skill-state.md (regression history + fix sequence).
+
+## Detection rule (Josh, 2026-10-30 — visually check, never trust a read claim)
+
+Session 86126802 (google-slides project, 2026-10-29/30): the agent read the
+recipe's connection setting and claimed it was on the wrong state; Josh, looking
+at the same UI: "the UI literally was on 'Use this Recipe's Connection'. You're
+making shit up. You need to start visually checking VUA connection if there is
+ANY question." Two rules now attach to this trap:
+
+1. **Verify the connection setting VISUALLY** (orca snapshot/screenshot of the
+   recipe's Connection panel) whenever there is any question about which
+   connection a skill recipe is serving on — never from memory of an earlier
+   read, never from DSL inference alone.
+2. **The fix is one flip**: if a push reverted the end-user connection
+   personalization, the repair is flipping the recipe's connection back to the
+   end user's connection — do not spiral into build-side theories first. Josh:
+   "You're running in circles for a simple fix that you need to record."

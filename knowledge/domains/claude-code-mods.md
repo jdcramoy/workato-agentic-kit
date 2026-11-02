@@ -66,6 +66,11 @@ hook 13, the prod-write confirm gate for every non-AIRO surface. Hooks in one re
    `~/.claude/workato-audit/prod-writes.log` + `$.ui.log` band. Never blocks.
 3. Jira story-points: denies `mcp__atlassian__createJiraIssue` without
    customfield_10057 unless project in {BTSUP, HROPS, PSM, MCP}.
+   (DORMANT since 2026-10-29: the Atlassian MCP was uninstalled — token
+   expiry made it unreliable; all Jira/Confluence goes through the
+   `jira.py` REST wrapper now, whose `create` subcommand enforces the same
+   points rule (ported into the wrapper, same exemption set). The hook
+   wakes automatically if an atlassian MCP ever returns.)
 4. URL linker: annotates AIRO/tracker results containing recipe_id /
    data_table_id / folder_id with canonical app.workato.com URLs (skips if
    already linked).

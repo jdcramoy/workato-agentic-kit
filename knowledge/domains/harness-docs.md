@@ -24,10 +24,11 @@ Confluence tree in the [External] BT-Business Technology space (BTI,
   harness -> repo (agent SOPs), repo -> Confluence (published pages).
 - Publish policy: existing-page updates autonomous WITH the sanitizer
   (no workspace IDs, cloudIds, tokens, epic keys, internal identifiers)
-  and a getConfluencePage read-back to verify rendering; new pages,
-  reparenting, deletion are Josh-gated. Pass contentFormat "markdown"
-  EXPLICITLY on every Confluence write (omitting it saves literal
-  markdown — trap confirmed twice).
+  and the wrapper's built-in read-back verification; new pages,
+  reparenting, deletion are Josh-gated. Publishing goes through
+  `jira.py page-publish <PAGE_ID> <file.md>` (markdown in, read-back +
+  EVIDENCE line out) — the Atlassian MCP was uninstalled 2026-10-29
+  (Josh: token expiry too short); the wrapper is the only path.
 - When the architecture changes (new agent, renamed command, changed
   hook count, new ladder mode), update the repo doc page files in the
   same session when practical, or expect Tuesday's sync to catch it.
