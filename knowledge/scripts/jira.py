@@ -620,7 +620,7 @@ def cmd_raw(a, auth):
                 evidence("raw-dedupe-block", 0, method="POST", path=a.path, candidate=k)
                 return 1
     code, res = http(a.method, a.path, payload=body, auth=auth)
-    print(json.dumps(res, indent=2, default=str)[:4000])
+    print(json.dumps(res, indent=2, default=str)[:40000])
     evidence("raw", code, method=a.method, path=a.path)
     return 0 if code in (200, 201, 204) else 1
 

@@ -198,6 +198,15 @@ network property:
   reviews, and so on), chosen from a benchmarked roster with a ledgered
   bench script. Advisers and reviewers on different model lineages catch
   errors that a single-family fleet shares blind.
+- **Pins need liveness checks (2026-11-03 lesson).** The watchdog's pin
+  (`baseten/deepseek-v4-pro`) vanished from the gateway and the agent
+  type died silently on three consecutive nightly dispatches (4-11
+  seconds, no output, no error surfaced to the scheduler) before the
+  fleet log's `unrecognized_model` line gave it away; the same brief ran
+  clean via the general-purpose fallback. Fix applied: repin to a
+  gateway-verified model. Rule: when a scheduled agent dies silently,
+  check its frontmatter pin against a live gateway probe FIRST, and
+  re-probe pins when the gateway's model list changes.
 
 Verdict: individually each agent is a competent specialist with no memory;
 together they are a system that notices its own gaps, argues with itself

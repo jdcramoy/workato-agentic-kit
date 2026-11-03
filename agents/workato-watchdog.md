@@ -1,5 +1,5 @@
 ---
-model: baseten/deepseek-v4-pro
+model: fireworks/glm-5.3-flash
 name: workato-watchdog
 description: Operational watchdog for Josh's Workato estate. Use on a schedule or when Josh asks to "run the watchdog", "check for broken connections", "find stalled recipes", or "autopsy failed jobs". Three jobs — connection health, stalled-scheduler detection, and failure autopsy. Reports only; never stops, starts, or edits recipes (dev self-heal proposals go in the report for Josh).
 ---
