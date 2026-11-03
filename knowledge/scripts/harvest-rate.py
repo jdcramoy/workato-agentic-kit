@@ -46,8 +46,8 @@ def transcript_stats(path):
     return counts, writes
 
 
-def day_files(root, day):
-    proj = os.path.expanduser('~/.claude/projects/%s' % DEFAULT_PROJECT)
+def day_files(project_slug, day):
+    proj = os.path.expanduser('~/.claude/projects/%s' % project_slug)
     out = []
     for dirpath, _dirs, files in os.walk(proj):
         for f in files:
@@ -61,16 +61,38 @@ def day_files(root, day):
     return out
 
 
+def all_project_slugs():
+    root = os.path.expanduser('~/.claude/projects')
+    return sorted(d for d in os.listdir(root)
+                  if os.path.isdir(os.path.join(root, d)))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--date', default=None, help='YYYY-MM-DD (default: today)')
+    ap.add_argument('--project', default=None,
+                    help='project slug (the ~/.claude/projects dir name). '
+                         '"all" sweeps every project dir; default: workbench')
     args = ap.parse_args()
     import datetime
     day = args.date or datetime.datetime.now().strftime('%Y-%m-%d')
 
-    files = day_files(None, day)
+    if args.project == 'all':
+        slugs = all_project_slugs()
+    elif args.project:
+        slugs = [args.project]
+    else:
+        slugs = [DEFAULT_PROJECT]
+
+    files = []
+    used = []
+    for slug in slugs:
+        found = day_files(slug, day)
+        if found:
+            files.extend(found)
+            used.append(slug)
     if not files:
-        print(f'No transcripts with mtime on {day} under project {DEFAULT_PROJECT}.')
+        print(f'No transcripts with mtime on {day} under: {", ".join(slugs)}')
         return
 
     total = {k: 0 for k in EVENT_PATTERNS}
@@ -81,7 +103,8 @@ def main():
             total[k] += c[k]
         total_writes += w
 
-    print(f'Harvest-rate sample: {len(files)} transcript(s), {day}')
+    print(f'Harvest-rate sample: {len(files)} transcript(s), {day} '
+          f'({len(used)} project dir(s){": " + ", ".join(used[:5]) + ("…" if len(used) > 5 else "") if used else ""})')
     for k, v in total.items():
         print(f'  {k}: {v}')
     print(f'  knowledge/memory writes recorded: {total_writes}')

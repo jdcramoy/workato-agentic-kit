@@ -536,3 +536,21 @@ reference) — then verify by reading the recipe back and diffing the step trees
 never by trusting the PUT success. Also: `start` can silently no-op after a
 push — always re-fetch and assert `running: true` (caught live: v2 saved,
 start returned success but `running` stayed false due to the schema error).
+
+## Multipart-first writes (2026-10-31, Jasper-confirmed)
+
+Several Workato write endpoints accept structured fields ONLY as top-level multipart
+fields carrying JSON-encoded strings — a JSON body wrapper (or a `meta`-nested object)
+is rejected or silently ignored. Proven on the MCP Apps surface: `csp` on
+`PUT /api/mcp/mcp_servers/:handle/apps/:app_id` works as `-F 'csp={...}'` (prod
+>= v1.1278.0) and is unwritable any other way (JSON-body object 400s "Must be a
+String"; meta-wrapped ignored; create-time meta fields dropped).
+
+**Law:** when a Workato write endpoint rejects or silently drops a structured field in
+a JSON body, try the multipart form with the field as a top-level JSON-encoded string
+before concluding the field is UI-only. Verify against the SERVED artifact (the
+downstream projection), not the listing endpoint's summary (which can diverge from the
+store). The MCP Apps surface's `wt --csp` flag encodes this.
+
+**Tool hierarchy for Workato ops (Josh 2026-10-31):** devapi-workato MCP first (semantic,
+Atlassian-MCP shape), wt CLI second (mandatory for prod writes), AIRO last resort.

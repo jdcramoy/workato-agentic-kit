@@ -35,14 +35,14 @@ const $ = {
   store: { get: async () => 0, set: async () => {} },
   ui: { ask: async () => 'Cancel', log: () => {}, invalidate: () => {} },
   command: { register: async () => {} },
-  env: { get: (k) => (k === 'HOME' ? '/Users/<operator>' : '') },
+  env: { get: (k) => (k === 'HOME' ? '/Users/YOUR-USER' : '') },
 }
 
 async function firePrompt(text) {
   const chain = hooks.filter((h) => h.event === 'prompt.submit')
   const run = (i) => async (e2) =>
     i >= chain.length ? { answered: e2.text, context: e2.context ?? [] } : chain[i].fn($, e2, run(i + 1))
-  return run(0)({ text, cwd: '/Users/<operator>/Documents/workbench', session_id: 'driver-jm' })
+  return run(0)({ text, cwd: '/Users/YOUR-USER/Documents/workbench', session_id: 'driver-jm' })
 }
 
 register(on)

@@ -6,7 +6,7 @@
 const AUDIT_DIR = '$HOME/.claude/workato-audit'
 const AUDIT_FILE = AUDIT_DIR + '/prod-writes.log'
 const STANDARDS_PATH =
-  '/Users/joshcramoy/.claude/skills/jira-story-standards/SKILL.md'
+  '/Users/YOUR-USER/.claude/skills/jira-story-standards/SKILL.md'
 
 // Write-surface tools on the prod AIRO server. Read tools pass through untouched.
 const PROD_WRITE = /^mcp__workato-airo-mcp-prod__(recipe_builder_(save|push|init|init_skill|add_step|update_step|remove_step|remove_input_field|move_step|move_steps|set_input_field|set_input_field_v4_mode|set_condition|set_foreach_source|set_error_handling_config|set_block_comments|update_asset_metadata|select_connections|convert_to_skill)|blueprint_(apply|init|push|link_asset|reset)|genie_(create|update)|data_table_(create|delete|update|truncate)|knowledge_base_(create|delete|delete_documents|update|upload_file)|mcp_server_create|connector_builder_(apply_connector_code_patch|init_connector|release_connector|save_latest_connector_code))/
@@ -487,11 +487,16 @@ export function register(on) {
       }
       // Gate prod pushes that look risky; ui.ask time does not count against
       // the hook's time limit, and a dismissed dialog fails closed.
+      // Session-bound bypass: only a window opened by THIS session applies.
       let bypassOnPush = false
       try {
         const bf2 = await $.fs.read(BYPASS_PATH)
         const bj2 = JSON.parse(String(bf2.text ?? bf2))
-        bypassOnPush = typeof bj2.until === 'number' && bj2.until * 1000 > Date.now()
+        bypassOnPush =
+          typeof bj2.until === 'number' && bj2.until * 1000 > Date.now() &&
+          typeof bj2.set_at === 'number' && bj2.until <= bj2.set_at + BYPASS_MAX_WINDOW_SECS &&
+          typeof bj2.session_id === 'string' && bj2.session_id.length > 0 &&
+          bj2.session_id === String(e.session_id ?? '')
       } catch { bypassOnPush = false }
       if (isProd && risk && !risk.error && (risk.score >= 3 || risk.running) && !bypassOnPush) {
         let answer = 'Cancel push'
@@ -721,9 +726,21 @@ export function register(on) {
     return result
   })
 
-  // BYPASS flag path: explicit, time-boxed prod-gate bypass (bin/prod-bypass).
+  // BYPASS flag path: explicit, time-boxed prod-gate bypass (/prod-bypass).
   // Inline at each site ($ may not be passed to helpers — mod validator).
-  const BYPASS_PATH = '/Users/joshcramoy/.claude/workato-audit/prod-bypass.json'
+  // HARDENED 2026-11-02 (design: knowledge/cortex/investigations/
+  // prod-bypass-guardrails-safety-look.md): a window is BOUND to the opening
+  // session (session_id) plus an optional ticket key recorded for traceability;
+  // every consumer re-checks the binding so a second session never inherits
+  // it. Open and close append PROD-BYPASS-OPEN / PROD-BYPASS-CLOSE lines to
+  // prod-writes.log (UTC Z). Chaining is capped at 240 bypass minutes per
+  // session per UTC day, and every consumer re-validates until <=
+  // set_at + 120 min so a hand-edited state file cannot carry an arbitrary
+  // until. No binding or over-cap window fails closed at every gate.
+  const BYPASS_PATH = '/Users/YOUR-USER/.claude/workato-audit/prod-bypass.json'
+  const BYPASS_MAX_WINDOW_SECS = 120 * 60 // hard per-window cap, read-time re-check
+  const BYPASS_DAILY_CAP_MINS = 240       // per session per UTC day (chaining cap)
+  const BYPASS_AUDIT_LOG = '/Users/YOUR-USER/.claude/workato-audit/prod-writes.log'
 
   // 13. PROD-WRITE CONFIRM GATE — EVERY surface, not just AIRO MCP.
   //     The prod AIRO server is already gated (permissions.ask + hook 1).
@@ -804,11 +821,16 @@ export function register(on) {
     const cmd = String(e.command ?? '')
     const surface = prodSurface(cmd)
     if (surface) {
+      // Session-bound bypass: only a window opened by THIS session applies.
       let bypassOn = false
       try {
         const bf = await $.fs.read(BYPASS_PATH)
         const bj = JSON.parse(String(bf.text ?? bf))
-        bypassOn = typeof bj.until === 'number' && bj.until * 1000 > Date.now()
+        bypassOn =
+          typeof bj.until === 'number' && bj.until * 1000 > Date.now() &&
+          typeof bj.set_at === 'number' && bj.until <= bj.set_at + BYPASS_MAX_WINDOW_SECS &&
+          typeof bj.session_id === 'string' && bj.session_id.length > 0 &&
+          bj.session_id === String(e.session_id ?? '')
       } catch { bypassOn = false }
       if (bypassOn) {
         await $.process.run(['sh', '-c', 'cat >> ' + AUDIT_FILE], {
@@ -1258,15 +1280,22 @@ export function register(on) {
     return { text: lines.join('\n') }
   })
 
-  // /prod-bypass — open, close, or inspect the time-boxed prod-write gate
-  // bypass window (~/.claude/workato-audit/prod-bypass.json). The window is
-  // honored by the Python PreToolUse gate AND every surface gate in this
-  // module (push risk, Bash, HTTP, Orca), so one window silences all of them
-  // consistently. Built for bulk import/migration jobs where per-write
-  // confirms make the batch unusable. Time-boxed by design (max 120 min);
-  // writes stay audit-logged the whole time.
+  // /prod-bypass: open, close, or inspect the time-boxed prod-write gate
+  // bypass window (~/.claude/workato-audit/prod-bypass.json). HARDENED
+  // 2026-11-02: the window is bound to the OPENING session (session_id) and
+  // an optional ticket key recorded for traceability; a second session never
+  // inherits it because every gate consumer (Python PreToolUse gate, push
+  // risk gate, Bash surface gate) re-checks the binding against its own
+  // session id. Open and close append PROD-BYPASS-OPEN / PROD-BYPASS-CLOSE
+  // lines to the append-only prod-writes.log (UTC Z timestamps). Re-open
+  // chaining is capped at 240 bypass minutes per session per UTC day, and
+  // every consumer re-validates until <= set_at + 120 min so a hand-edited
+  // state file cannot carry an arbitrary until. Built for bulk import and
+  // migration jobs where per-write confirms make the batch unusable.
   on('command.run', { command: 'prod-bypass' }, async ($, e) => {
     const args = String(e.args ?? '').trim()
+    const sid =
+      String(e.session_id ?? '').trim().replace(/\s+/g, '_') || 'unknown'
     const readWindow = async () => {
       try {
         const f = await $.fs.read(BYPASS_PATH)
@@ -1274,7 +1303,11 @@ export function register(on) {
         return (typeof j.until === 'number' && j.until * 1000 > Date.now()) ? j : null
       } catch { return null }
     }
-    // /prod-bypass or /prod-bypass status — inspect only, writes nothing.
+    const audit = async (line) => {
+      await $.process.run(['sh', '-c',
+        'mkdir -p ' + AUDIT_DIR + ' && cat >> ' + AUDIT_FILE], { stdin: line })
+    }
+    // /prod-bypass or /prod-bypass status: inspect only, writes nothing.
     if (!args || args === 'status') {
       const w = await readWindow()
       if (!w) {
@@ -1283,56 +1316,121 @@ export function register(on) {
           'Close one: /prod-bypass off' }
       }
       const minsLeft = Math.max(0, Math.round((w.until * 1000 - Date.now()) / 60000))
-      return { text: '⚠️ PROD BYPASS ACTIVE — ' + minsLeft + ' min left' +
+      const mine = w.session_id === sid
+      return { text: '⚠️ PROD BYPASS ACTIVE: ' + minsLeft + ' min left' +
         ' (until ' + new Date(w.until * 1000).toLocaleTimeString() + ')' +
-        (w.note ? ' — ' + w.note : '') + '\nClose early: /prod-bypass off' }
+        (w.ticket && w.ticket !== 'none' ? ' ticket ' + w.ticket : '') +
+        (w.note ? ' | ' + w.note : '') + '\n' +
+        (mine
+          ? 'Bound to THIS session: your prod gates are silent.'
+          : 'Bound to session ' + String(w.session_id).slice(0, 12) +
+            ': NOT this session, so your prod gates stay active.') +
+        '\nClose early: /prod-bypass off' }
     }
-    // /prod-bypass off — close the window immediately.
+    // /prod-bypass off: close the window immediately and audit the close.
     if (args === 'off') {
+      const w = await readWindow()
       const payload = JSON.stringify({
         until: 0,
         closed_at: new Date().toISOString(),
-        closed_by: 'josh (/prod-bypass off)',
+        closed_by: 'session ' + sid,
+        session_id: sid,
       })
       await $.fs.write(BYPASS_PATH, payload)
-      return { text: '✅ Prod-bypass window closed. All prod-write gates active again.' }
+      const minsLeft = w
+        ? Math.max(0, Math.round((w.until * 1000 - Date.now()) / 60000))
+        : 0
+      await audit(new Date().toISOString() +
+        ' PROD-BYPASS-CLOSE session=' + sid +
+        ' had_open=' + (w ? 'yes' : 'no') +
+        ' mins_left=' + minsLeft +
+        ' ticket=' + (w && w.ticket ? w.ticket : 'none') + '\n')
+      return { text: '✅ Prod-bypass window closed. All prod-write gates active again.' +
+        ' Close appended to the prod-writes audit log.' }
     }
-    // /prod-bypass <minutes> [note...] — open the window.
+    // /prod-bypass <minutes> [note...]: open the window, bound to THIS session.
     const m = args.match(/^(\d{1,3})\b\s*(.*)$/)
     if (!m) {
       return { text: 'Usage: /prod-bypass <minutes> [note] (max 120)\n' +
-        'Close: /prod-bypass off · Status: /prod-bypass status' }
+        'A ticket key in the note (e.g. BSYS-12345) is recorded on the\n' +
+        'window and in the audit log.\n' +
+        'Close: /prod-bypass off. Status: /prod-bypass status' }
+    }
+    if (sid === 'unknown') {
+      return { text: 'Refusing to open: no session identity on this event, so ' +
+        'the window could not be bound to a session (fail closed by design). ' +
+        'All prod gates stay active.' }
     }
     const mins = Number(m[1])
     if (mins < 1 || mins > 120) {
-      return { text: 'Minutes must be 1–120 (time-boxed by design). Got: ' + mins }
+      return { text: 'Minutes must be 1 to 120 (time-boxed by design). Got: ' + mins }
     }
-    const note = (m[2] || '').slice(0, 200)
-    const until = Math.floor(Date.now() / 1000) + mins * 60
+    const noteFull = (m[2] || '').slice(0, 200)
+    const tk = noteFull.match(/[A-Z][A-Z0-9]{1,9}-\d+/)
+    const ticket = tk ? tk[0] : 'none'
+    const note = noteFull || 'manual prod-bypass'
+    // Daily chaining cap: sum the PROD-BYPASS-OPEN minutes this session
+    // already opened today (UTC) from the append-only audit log. A missing
+    // or unreadable log counts as zero here (the open/close lines still land
+    // in it, so chaining stays visible either way); the 120 min per-window
+    // cap is additionally re-validated by every consumer at read time.
+    let usedMins = 0
+    try {
+      const rawLog = await $.fs.read(BYPASS_AUDIT_LOG)
+      const today = new Date().toISOString().slice(0, 10)
+      for (const line of String(rawLog.text ?? rawLog).split('\n')) {
+        if (!line.startsWith(today)) continue
+        if (!line.includes(' PROD-BYPASS-OPEN ')) continue
+        if (!line.includes('session=' + sid + ' ')) continue
+        const mm = line.match(/mins=(\d+)/)
+        if (mm) usedMins += Number(mm[1])
+      }
+    } catch { usedMins = 0 }
+    if (usedMins + mins > BYPASS_DAILY_CAP_MINS) {
+      return { text: 'Refusing to open: daily bypass cap reached. This session ' +
+        'has opened ' + usedMins + ' of ' + BYPASS_DAILY_CAP_MINS +
+        ' bypass minutes today (UTC). Gates stay active.' }
+    }
+    const setAt = Math.floor(Date.now() / 1000)
+    const until = setAt + mins * 60
     const payload = JSON.stringify({
       until: until,
-      set_at: Math.floor(Date.now() / 1000),
-      set_by: 'josh (/prod-bypass)',
-      note: note || 'manual prod-bypass',
+      set_at: setAt,
+      set_by: 'session ' + sid,
+      session_id: sid,
+      ticket: ticket,
+      note: note,
     })
     await $.fs.write(BYPASS_PATH, payload)
+    await audit(new Date().toISOString() +
+      ' PROD-BYPASS-OPEN mins=' + mins +
+      ' session=' + sid + ' ticket=' + ticket +
+      ' note="' + note.replace(/["\\]/g, "'").replace(/\s+/g, ' ') + '"\n')
     return { text:
-      '⚠️ PROD BYPASS OPEN for ' + mins + ' min — until ' +
-      new Date(until * 1000).toLocaleTimeString() + '\n' +
-      'All prod-write gates are silent (Python PreToolUse gate + the CLI/HTTP/Orca surface gates).\n' +
-      'Writes still audit-logged to ' + AUDIT_FILE + '\n' +
-      'Close early: /prod-bypass off' + (note ? '\nNote: ' + note : '') }
+      '⚠️ PROD BYPASS OPEN for ' + mins + ' min, until ' +
+      new Date(until * 1000).toLocaleTimeString() +
+      ' (ticket ' + ticket + ')\n' +
+      'Bound to THIS session: other sessions keep their prod gates.\n' +
+      'Open/close appended to ' + AUDIT_FILE +
+      ' (daily cap ' + BYPASS_DAILY_CAP_MINS + ' min, used ' + (usedMins + mins) + ')\n' +
+      'Close early: /prod-bypass off' + (noteFull ? '\nNote: ' + note : '') }
   })
 
   // 6. STATUS BAND above the prompt (keeps other mods' band content)
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const prior = await next(e)
     const { Box, Text } = $.ui.resolve(e)
+    // Display only: light the band when a VALID window is bound to THIS
+    // session (other sessions' windows stay invisible here).
     let bypass = false
     try {
       const bf3 = await $.fs.read(BYPASS_PATH)
       const bj3 = JSON.parse(String(bf3.text ?? bf3))
-      bypass = typeof bj3.until === 'number' && bj3.until * 1000 > Date.now()
+      bypass =
+        typeof bj3.until === 'number' && bj3.until * 1000 > Date.now() &&
+        typeof bj3.set_at === 'number' && bj3.until <= bj3.set_at + BYPASS_MAX_WINDOW_SECS &&
+        typeof bj3.session_id === 'string' && bj3.session_id.length > 0 &&
+        bj3.session_id === String(e.session_id ?? '')
     } catch { bypass = false }
     const label =
       (bypass ? '⚠️ PROD BYPASS ACTIVE · ' : '') +

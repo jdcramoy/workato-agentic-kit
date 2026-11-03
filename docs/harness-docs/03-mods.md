@@ -129,6 +129,15 @@ visible in the status band while active, every write during the window
 logged as bypassed. Trust the gate, then make the exceptions explicit and
 temporary rather than training anyone to click through dialogs.
 
+Hardened 2026-11-02 (after the hook-allow-vs-ask-rule precedence finding): a
+bypass window is now BOUND to the session that opened it — a second session
+never inherits one — and every gate consumer re-checks the binding and the
+window expiry at read time, so a hand-edited state file cannot carry an
+arbitrary deadline. Re-opening is capped at 240 bypass minutes per session
+per UTC day, and open and close both append audit lines to an append-only
+prod-writes log (UTC timestamps). No binding or over-cap window fails
+closed at every gate.
+
 Verdict: the hooks are small and boring, which is the point. Governance
 that requires an agent to be in a good mood is not governance; these rules
 run the same way at 3 in the afternoon and 3 in the morning.

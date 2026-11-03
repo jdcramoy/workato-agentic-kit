@@ -453,6 +453,49 @@ def cmd_page_publish(a, auth):
     return 0 if verified else 1
 
 
+def dedupe_guard(auth, project, summary, force_ok=False, lookback_days=7):
+    """Create-time dedupe guard (born from the BSYS-30128/29/30 raw-POST
+    triplicate, 2026-10-30): ANY issue create — the named `create` command
+    OR the `raw` escape hatch POSTing /rest/api/3/issue — must pass here
+    first. Returns (blocked, message). Blocked on a same-project
+    near-identical summary (exact or similarity >= 0.9) created within the
+    lookback window and still unresolved, unless force_ok.
+
+    Fail-CLOSED: if the dedupe search itself errors (429/500/...), the
+    create is refused — the pre-2026-11-02 block silently skipped the
+    check on search failure, which was hole #2.
+    """
+    import difflib
+    norm = lambda s: " ".join(s.lower().split())
+    want = norm(summary)
+    jql = (f'project = {project} AND created >= -{lookback_days}d '
+           f'AND resolution = Unresolved')
+    code, res = http("POST", "/rest/api/3/search/jql", auth=auth, payload={
+        "jql": jql, "maxResults": 100, "fields": ["summary"]})
+    if code not in (200, 201):
+        # fail closed: a broken dedupe search must not wave the create through
+        if force_ok:
+            print(f"DEDUPE SEARCH FAILED (HTTP {code}) but --force-dedupe-ok "
+                  f"passed — proceeding without the check.")
+            return False, None
+        print(f"DEDUPE BLOCK (fail-closed): summary check could not run — "
+              f"search returned HTTP {code}: {json.dumps(res)[:200]}")
+        print(f"  Fix the search or re-run with --force-dedupe-ok to create anyway.")
+        return True, None
+    for issue in (res.get("issues") or []):
+        s = norm(issue.get("fields", {}).get("summary", ""))
+        if not s:
+            continue
+        ratio = difflib.SequenceMatcher(None, want, s).ratio()
+        if s == want or ratio >= 0.9:
+            k = issue.get("key")
+            print(f"DEDUPE BLOCK: {k} has a near-identical open summary "
+                  f"(similarity {ratio:.2f}): {issue.get('fields', {}).get('summary')!r}")
+            print(f"  Link it instead, or re-run with --force-dedupe-ok to create anyway.")
+            return True, k
+    return False, None
+
+
 def cmd_create(a, auth):
     """Create any issue (Story/Epic/Bug/Sub-task/...) per jira-story-standards:
     parent epic, labels, story points (customfield_10057), markdown description."""
@@ -487,29 +530,12 @@ def cmd_create(a, auth):
             evidence("create", code, assignee=a.assignee)
             return 1
         fields["assignee"] = {"id": ids[0]}
-    # Dedupe pre-check (born from the 2026-10-26 triplicate filing: five
-    # same-day clusters filed 2-3x byte-identical). Block on a same-project
-    # near-identical open summary unless --force-dedupe-ok.
-    if not a.force_dedupe_ok:
-        norm = lambda s: " ".join(s.lower().split())
-        want = norm(a.summary)
-        import difflib
-        jql = f'project = {a.project} AND created >= -7d AND resolution = Unresolved'
-        code, res = http("POST", "/rest/api/3/search/jql", auth=auth, payload={
-            "jql": jql, "maxResults": 100, "fields": ["summary"]})
-        if code in (200, 201):
-            for issue in (res.get("issues") or []):
-                s = norm(issue.get("fields", {}).get("summary", ""))
-                if not s:
-                    continue
-                ratio = difflib.SequenceMatcher(None, want, s).ratio()
-                if s == want or ratio >= 0.9:
-                    k = issue.get("key")
-                    print(f"DEDUPE BLOCK: {k} has a near-identical open summary "
-                          f"(similarity {ratio:.2f}): {issue.get('fields', {}).get('summary')!r}")
-                    print(f"  Link it instead, or re-run with --force-dedupe-ok to create anyway.")
-                    evidence("create-dedupe-block", code, candidate=k, similarity=round(ratio, 2))
-                    return 1
+    # Dedupe pre-check (shared guard; also enforced on the `raw` escape hatch
+    # since 2026-11-02). Fail-closed on search error.
+    blocked, k = dedupe_guard(auth, a.project, a.summary, force_ok=a.force_dedupe_ok)
+    if blocked:
+        evidence("create-dedupe-block", 0, candidate=k)
+        return 1
     code, res = http("POST", "/rest/api/3/issue", auth=auth, payload={"fields": fields})
     if code not in (200, 201):
         print(f"FAIL: create HTTP {code}: {json.dumps(res)[:500]}")
@@ -574,8 +600,25 @@ def cmd_cql(a, auth):
 
 def cmd_raw(a, auth):
     """Escape hatch: any REST operation the wrapper does not name yet.
-    jira.py raw POST /rest/api/3/... '{"json":"body"}'"""
+    jira.py raw POST /rest/api/3/... '{"json":"body"}'
+
+    Dedupe gate (2026-11-02): a POST to the issue-create endpoint goes
+    through dedupe_guard first. Hole evidence: BSYS-30128/29/30 — the
+    org-chart DR filing hit 400s on `create` (Deployment-Request-only
+    fields) and pivoted to `raw POST /rest/api/3/issue`, which had NO
+    dedupe pre-check; the triplicate landed 08:04:15-19Z.
+    """
     body = json.loads(a.data) if a.data else None
+    if a.method.upper() == "POST" and a.path.rstrip("/").endswith("/rest/api/3/issue") and body:
+        flds = body.get("fields") or {}
+        proj = ((flds.get("project") or {}).get("key")
+                or (flds.get("project") or {}).get("id") or "")
+        summ = flds.get("summary") or ""
+        if proj and summ:
+            blocked, k = dedupe_guard(auth, proj, summ, force_ok=a.force_dedupe_ok)
+            if blocked:
+                evidence("raw-dedupe-block", 0, method="POST", path=a.path, candidate=k)
+                return 1
     code, res = http(a.method, a.path, payload=body, auth=auth)
     print(json.dumps(res, indent=2, default=str)[:4000])
     evidence("raw", code, method=a.method, path=a.path)
@@ -660,6 +703,8 @@ def main():
     s.add_argument("method", help="GET/POST/PUT/DELETE")
     s.add_argument("path", help="/rest/api/3/... or /wiki/...")
     s.add_argument("data", nargs="?", help="JSON body (optional)")
+    s.add_argument("--force-dedupe-ok", action="store_true",
+                   help="skip the issue-create dedupe pre-check (POST /rest/api/3/issue only)")
     s.set_defaults(fn=cmd_raw)
 
     s = sub.add_parser("page-publish")

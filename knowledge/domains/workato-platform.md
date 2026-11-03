@@ -2519,3 +2519,114 @@ Never hardcode recipe ids, folder ids, or env-specific ids in recipe code — no
 - Slack identity rebind pattern: swap the recipe `config` entry (provider/name `slack`→`slack_bot`,
   account_id) + replace the step node with the `post_bot_message` shape (channel/text only) in one
   PUT; Slack's job-trace response carries `bot_id`/`app_id` — the authoritative proof of bot identity.
+
+## Connection re-auth for workato_api_connector (BSYS-29498, 2026-11-02)
+
+- The `workato_api_connector` connection's credential field is `input.api_token`;
+  PUT /api/connections/:id stores it and runs a live credential test. **But test AND
+  runtime both 401 with tokens that curl 200 on the same endpoints** — the UI connect
+  flow stores federated-identity state beyond the token that no API path reproduces.
+  Re-auth of this connector class is UI-ONLY. (3-strike proven on BSYS-29498; dev
+  probes + prod swap both 401, job j-AcCgPWtD-kogcws-CD.)
+- Developer API clients (`/api/developer_api_clients`, org-level, env-bound at issue
+  time) carry a `token.value` view-once at create/regenerate; POST needs
+  name + api_privilege_group_id + environment_id + environment_name + all_folders.
+  Regenerate: POST /api/developer_api_clients/:id/regenerate. **Regeneration
+  invalidates the old token INSTANTLY — check which connection holds it first**
+  (BSYS-29498 incident: regen of the "unused-looking" client 446372 killed the live
+  credential of prod connection 22284446; timing-created-at ↔ authorized-at matched
+  to the minute and was taken as proof of "unused" — it was the binding).
+- API-platform clients (`/api/api_clients`, is_legacy=true in v2 list) have NO
+  headless token-generation route (create returns no token, /api_keys 404) — tokens
+  for that class are UI-view-once only.
+- BSYS-29283 precedent (2026-10-10) "Identity IAM API refuses all prod-scoped client
+  tokens" is STALE as of 2026-11-02: prod-issued client tokens authenticate (the
+  prod token lists prod genies on /api/agentic/genies).
+- Timing-correlation is NOT ownership proof: two clients matched two connections by
+  created-at/authorized-at minute-pairs, and only ONE was the live binding.
+
+## Zoom S2S self-serve via Okta + marketplace (2026-11-02 — access-track pattern that works)
+
+Josh grants Okta-based self-service for access items instead of filing tickets when the grantor
+console is reachable with his Okta session (his ruling: the agent drives the UI end-to-end, learns
+the traps, documents them — never hands UI work back). Proven on the Zoom S2S app:
+
+- **App:** "Workato BTG 2.0 Integrations" (S2S OAuth, app id `9cfT95UeQsuHux6rBNEpyQ`, client
+  `plG4JZbbT5CfWnUheWq2Mg`, account `C1v0GhzBSc2kzVlMiz4fQw`) — 6 least-privilege scopes (recording
+  list/view/by-meeting reads + file/meeting deletes + user:read:user:admin for owner-binding),
+  activated, token verified, live reads proven (user lookup + 10 real meetings). Secret in macOS
+  keychain `zoom-s2s-btg20` (never in files/chat).
+- **Login path:** `gb.py okta` → Zoom tile (`/home/zoomus/0oa2mxhjhqsnuAwo1697/1835`) → SSO to
+  app.zoom.us; marketplace shares the session. Reauth = the orca-browser skill's Okta section
+  (one password attempt max, push preferred, josh-alert.sh on challenge).
+- **Marketplace automation traps** (viewport-per-goto mobile flip, invisible `.page-loading-pop`
+  click-eater, off-screen clicks, clipboard monkey-patch for Copy buttons, eye-toggle pairs,
+  a11y-tree > JS-eval value reads, S2S creds dead until Activation): full catalog in the
+  orca-browser skill's "Working with Zoom" section — read it BEFORE any marketplace flow.
+- **Workato-connection landing:** Wave-1 Zoom actions authenticate per-call via the S2S token
+  endpoint (Basic client_id:secret); the token TTL is 1h — build a token-refresh pattern (fetch on
+  demand per job, not stored) when wiring the Zoom fetch/delete actions. Client secret stays in the
+  connection/property layer, never in recipe code.
+- **Same pattern queued:** Google Workspace domain-wide delegation — grant scopes to the EXISTING
+  `integrations.ai@workato.com` service identity (Josh's dedicated path; no new SAs), Groups
+  membership write first, Drive permissions later. Gong admin via Okta admin access; Coupa key
+  from an existing AHQ | AI connection or Amazon Secrets via CLI; Snowflake READ via an existing
+  BT connection (Josh guidance 2026-11-01).
+- **Multi-workspace Slack estate (learned same round):** the VUA slack-workato MCP is bound to
+  workato.slack.com; the BT AI pilot channel (ask-bt-2-pilot, C0CC16E91GR) lives in
+  bt-ai-workspace.slack.com — MCP posts there = channel_not_found. UAT posts go through the
+  browser (app.slack.com via Okta). Identify a channel's true workspace from the permalink domain
+  in router job traces.
+
+## Deploy-completion watcher + post-deploy smoke runner LIVE (BSYS-30022, 2026-11-02)
+
+Closes the Holiday Sync day-zero gap (deployed 10-20, watchdog caught 10-24): the FTR team
+imports at an unobserved time, so nothing watched the first prod job. Built per Josh's
+3-point plan (ticket comment 2026-10-27).
+
+- `~/.claude/knowledge/scripts/deploy-watch.py` — one script, four subcommands:
+  `watch` (hourly, launchd `com.josh.deploy-watch`, StartInterval 3600 = same cadence as
+  the workato-health sweep), `smoke` (explicit run for one batch), `backstop` (deployed
+  >24h with zero succeeded jobs, cadence-aware), `report` (latest readable report).
+- **Trigger signal (validated at build step 0, live):** BSYS Deployment Request tickets
+  transition to status **Deployed (id 10199)** — proven on BSYS-29780's changelog
+  (FTR → Waiting to deploy → Deployed, twice). Fallback: `wt recipes versions <id>
+  --profile josh-prod` version poll for tracked recipes (validated on 82120574).
+- **Automated vs gated split:** placement/connections/schedule/first-green-job/VUA
+  surface/masking-flag run read-only. Canary induce, linkage-remap fix, state restore are
+  NEVER executed by the runner; the report lists the exact command and waits for Josh's go.
+- Evidence: `workato-health/deploy-smoke/ledger.jsonl` (one row per check) + readable
+  reports in `deploy-smoke/reports/`. Verdicts (pass/pending/fail) post to the gossip bus
+  and the governing ticket either way.
+- **Day-zero adoption guard (bug paid for in build):** the first sweep must adopt EXISTING
+  Deployed transitions as `pre-launch` WITHOUT firing, and the fire filter must skip both
+  `done` AND `pre-launch` keys. First version skipped only `done` → the second sweep fired
+  17 empty smokes and spammed 17 bus findings. Cleaning: bus rows, ledger rows, and empty
+  reports all removed; dedup re-proven at 0 fires on the third sweep.
+- wt gotcha confirmed again: `--raw` output can carry a PRODUCTION warning banner line
+  BEFORE the JSON — parse from the first `{` or `[`, never json.loads the whole stdout.
+- Doctrine wired: deployment-request SKILL.md carries the deploy-completion-signal row
+  (the FTR handoff tells the watcher how it learns the deploy landed); promotion-readiness
+  row 8 carries the smoke-scheduled sub-check; post-deploy-smoke SKILL.md documents the runner.
+- Unverified by design: the prod-facing trigger only truly fires on the first real
+  deployment after this lands; the full TEST-project broken-promotion negative test is
+  scoped, not staged (the pending-verdict path is verified instead).
+
+## Platform claims require platform evidence (STANDING ORDER, Josh 2026-11-02)
+
+Full text: ~/.claude/CLAUDE.md (authoritative). Essence: a claim that an asset
+exists in / runs on Workato carries, in the same breath, the asset id + full
+clickable URL + a FRESH job id (job_list trace, never last_run_at/counters) or a
+read-back (GET-back/table read/tools list). Local scripts/launchd/cron doing work
+is NOT platform deployment — it is a DEBT row until a platform asset replaces it
+with job evidence. Born: the devapi build described local launchd twins as
+platform recipes. Any violation is a P1 triage finding.
+
+### Data-table write wire shape — `parameters` object (2026-11-02)
+`workato_db_table` add_record/upsert_record carry column values ONLY at
+`input.parameters = {"<field_uuid>": <value>}` (underscored uuids). Column keys
+at the input top level are silently dropped at save — no error anywhere. AIRO's
+`set_input_field` with `parameters.<uuid>` paths is the reliable way to write
+them; a first bare-uuid attempt refreshes the step schema and gets rejected, then
+the prefixed retry lands; remove top-level twins after. `ruby(...)` values inside
+`parameters` fail to compile ("INVALID RUBY FORMULA") — use datapill or plaintext.
