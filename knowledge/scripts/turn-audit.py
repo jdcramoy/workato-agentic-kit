@@ -324,7 +324,14 @@ if reg.exists() and time.time() - reg.stat().st_mtime < DAYS * 86400:
 n_turns = sum(tot[k] for k in ("productive", "verification", "waste", "poll"))
 waste_rate = (tot["waste"] / n_turns * 100) if n_turns else 0
 verif_rate = (tot["verification"] / n_turns * 100) if n_turns else 0
-rep = [f"# Turn-discipline audit — last {DAYS} days ({sessions} sessions)", ""]
+rep = [f"# Turn-discipline audit — last {DAYS} days ({sessions} sessions)", "",
+       # sig-version stamp (triage turn-audit-sig-version-pinning, 2026-11-04):
+       # the trend ledger carries `sig` per row, but the report never said
+       # which signature produced its numbers — a recalibration silently
+       # changed the series mid-history. Stamp the report so series breaks
+       # are visible to the reader.
+       f"_Signature: {SIG_VERSION} — trend rows before the signature change "
+       f"are a different series; do not compare across sigs._", ""]
 rep.append(f"| Metric | Value |\n|---|---|")
 rep.append(f"| Assistant turns (classified) | {n_turns:,} |")
 rep.append(f"| Productive | {tot['productive']:,} ({tot['productive']/max(n_turns,1)*100:.0f}%) |")
