@@ -142,6 +142,91 @@ def plist_cadence_hours(d):
     return None, "no schedule key"
 
 
+def sleep_seconds_since(ts):
+    """Seconds the Mac spent ASLEEP since ts, from the pmset log.
+
+    launchd coalesces missed StartCalendarInterval fires and runs them on
+    wake, so a healthy daily job legitimately shows a multi-day WALL-CLOCK
+    heartbeat age when the Mac slept through its fire times (2026-11-06..08:
+    ~40 false 'stale' findings in one report — every job was green, the Mac
+    just wasn't awake). Staleness is judged on AWAKE time, not wall clock.
+
+    Fail-open in every error path: returns 0.0 (pure wall-clock, the old
+    behavior) if pmset is unavailable, times out, or the log carries no
+    event at/after ts (rotated away) — a broken sleep probe must never mask
+    a genuinely dead job.
+    """
+    try:
+        r = subprocess.run(["pmset", "-g", "log"], capture_output=True,
+                           text=True, timeout=90)
+        if r.returncode != 0:
+            return 0.0
+    except Exception:  # noqa: BLE001
+        return 0.0
+    slept = 0.0
+    sleep_start = None
+    saw_event_after_ts = False
+    for line in r.stdout.splitlines():
+        m = re.match(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) ([+-]\d{4})\s+"
+                     r"(Sleep|Wake|DarkWake)\b", line)
+        if not m:
+            continue
+        t = parse_ts(m.group(1) + " " + m.group(2))
+        if t is None:
+            continue
+        if t < ts:
+            continue
+        saw_event_after_ts = True
+        ev = m.group(3)
+        if ev == "Sleep":
+            if sleep_start is None:  # consecutive Sleep lines: keep the first
+                sleep_start = t
+        elif sleep_start is not None:  # Wake or DarkWake closes the interval
+            slept += max((t - sleep_start).total_seconds(), 0.0)
+            sleep_start = None
+    if sleep_start is not None:  # still asleep right now
+        slept += max((now_utc() - sleep_start).total_seconds(), 0.0)
+    if not saw_event_after_ts:
+        return 0.0  # log rotated past ts — cannot discount, fail open
+    return slept
+
+
+def job_in_flight(suffix, grace_h=4.0):
+    """True when the job's runner log shows a start with no completion yet and
+    the log was touched recently — i.e. the launchd coalesced-on-wake run is
+    IN FLIGHT and a heartbeat is minutes away.
+
+    Born 2026-11-09: the Mac slept through the 11-06..08 nightly fire windows
+    (zero heartbeat writes in the gap); launchd coalesced every missed
+    StartCalendarInterval fire and ran the whole fleet on wake at 21:58.
+    harness-health, coalesced onto the same wake, flagged all ~40 jobs stale
+    before a single coalesced run could finish — a false-alarm cluster that
+    flooded the harness-fix queue. A job mid-run is not a dead job.
+
+    Fail-open: missing/unreadable log, or stale log mtime beyond the grace
+    window (default 4h — two 20-min attempts plus backoff, with headroom)
+    return False, so a hung or silently-dying job still flags on the next run.
+    """
+    p = HOME / ".local" / "state" / "fleet" / f"{suffix}.log"
+    try:
+        if not p.exists():
+            return False
+        mtime = dt.datetime.fromtimestamp(p.stat().st_mtime, dt.timezone.utc)
+        if (now_utc() - mtime).total_seconds() / 3600.0 > grace_h:
+            return False
+        lines = p.read_text(errors="replace").splitlines()[-5:]
+    except OSError:
+        return False
+    started = False
+    for ln in lines:
+        s = ln.strip()
+        if ": start" in s:
+            started = True
+        elif ": done validated" in s or "VALIDATION FAILED" in s:
+            started = False
+    return started
+
+
 def check_fleet(findings):
     hb = heartbeat_last()
     now = now_utc()
@@ -189,15 +274,29 @@ def check_fleet(findings):
                                  "source": "harness-health"})
         else:
             age = (now - seen).total_seconds() / 3600.0
-            if age > threshold:
-                jobs.append((suffix, age))
+            # awake-time, not wall clock: launchd coalesces missed calendar
+            # fires across sleep and runs them on wake, so a long wall-clock
+            # age with most of it asleep is a healthy job, not a dead one
+            # (2026-11-06..08 false-alarm cluster). Fail-open: probe errors
+            # discount nothing.
+            asleep_h = sleep_seconds_since(seen) / 3600.0
+            awake_h = max(age - asleep_h, 0.0)
+            if job_in_flight(suffix):
+                # coalesced-on-wake run in flight: wall age looks stale but the
+                # runner log shows an unclosed start with a fresh mtime — a
+                # heartbeat lands when it finishes. Not a finding.
+                jobs.append((suffix, f"{age:.1f}h ago wall clock — in-flight (run started on wake)"))
+                continue
+            if awake_h > threshold:
+                jobs.append((suffix, f"{age:.1f}h ago (wall clock; {awake_h:.1f}h awake)"))
                 findings.append({"slug": f"harness-health-stale-{suffix}", "kind": "hygiene",
-                                 "title": f"fleet job '{suffix}' stale: last heartbeat {age:.0f}h ago",
-                                 "evidence": f"threshold {threshold:.0f}h ({note}); last {seen.isoformat()}",
+                                 "title": f"fleet job '{suffix}' stale: last heartbeat {awake_h:.0f}h awake ago",
+                                 "evidence": f"threshold {threshold:.0f}h ({note}); last {seen.isoformat()}; "
+                                             f"wall age {age:.1f}h, asleep {asleep_h:.1f}h discounted",
                                  "work": "check the launchd job ran (log in ~/.local/state/fleet)",
                                  "source": "harness-health"})
             else:
-                jobs.append((suffix, f"{age:.1f}h ago (ok, {note})"))
+                jobs.append((suffix, f"{age:.1f}h ago wall clock / {awake_h:.1f}h awake (ok, {note})"))
     return jobs
 
 
@@ -262,12 +361,20 @@ def check_artifacts(findings):
         newest = paths[-1]
         age = now_utc() - dt.datetime.fromtimestamp(newest.stat().st_mtime, dt.timezone.utc)
         age_h = age.total_seconds() / 3600.0
+        # awake-time window (same rationale as check_fleet): a sleeping Mac
+        # cannot produce artifacts, so sleep time does not count against max_h
+        asleep_h = sleep_seconds_since(
+            dt.datetime.fromtimestamp(newest.stat().st_mtime, dt.timezone.utc)) / 3600.0
+        awake_h = max(age_h - asleep_h, 0.0)
         checked += 1
-        if age_h > max_h:
+        if job_in_flight(job):
+            continue  # coalesced run in flight — fresh artifact is imminent
+        if awake_h > max_h:
             findings.append({"slug": f"harness-health-silent-noop-{job}", "kind": "hygiene",
                              "title": f"fleet job '{job}': SILENT NO-OP class - heartbeat may be green "
-                                      f"but its consumer artifact is {age_h:.0f}h stale",
-                             "evidence": f"knowledge/{rel} newest = {newest.name} (window {max_h}h); "
+                                      f"but its consumer artifact is {awake_h:.0f}h stale (awake time)",
+                             "evidence": f"knowledge/{rel} newest = {newest.name} (window {max_h}h awake; "
+                                         f"wall age {age_h:.1f}h, asleep {asleep_h:.1f}h discounted); "
                                          f"rc-based validation alone cannot see this",
                              "work": "run the job manually and diff its output; check ~/.local/state/fleet logs",
                              "source": "harness-health"})
