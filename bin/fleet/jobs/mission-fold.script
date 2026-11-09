@@ -1,0 +1,11 @@
+#!/bin/bash
+# mission-fold: hourly rebuild of the mission-control board fold
+# (mission-control.py board). Previously invoked directly from launchd with
+# no run-job.sh runner and no heartbeat write — the board rebuilt fine but
+# the job was invisible to fleet liveness (findings
+# harness-health-no-heartbeat-mission-fold / -no-runner-mission-fold).
+# Fixed 2026-11-04: routed through run-job.sh (CLAUDE_JOB=no script job,
+# same shape as queue-drift); the runner writes the heartbeat mechanically,
+# and the explicit write below matches queue-drift.script precedent.
+python3 "$HOME/.claude/knowledge/scripts/mission-control.py" board
+echo "{\"ts\":\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\",\"job\":\"mission-fold\"}" | python3 /Users/joshcramoy/.claude/knowledge/scripts/atomic_io.py /Users/joshcramoy/.claude/knowledge/garden-reports/heartbeat.jsonl

@@ -213,6 +213,11 @@ ARTIFACTS = {
     "decision-inbox": ("now/decision-inbox.md", 30),
     "dreamer":        ("dreams/2*.md", 30),
     "project-dreamer": ("dreams/project/*.md", 30),
+    # 2026-11-05 (harness-fix): map the two jobs whose consumer artifacts are
+    # verified-daily; only add entries whose artifact freshness was checked
+    # against the job's real cadence first (a wrong max_h manufactures alarms).
+    "harness-health": ("garden-reports/harness-health-*.md", 30),
+    "brief":          ("morning-brief/2*.md", 30),
 }
 
 

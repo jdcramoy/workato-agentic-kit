@@ -5,12 +5,13 @@ Parent page: The Agentic Workato Harness
 Everything the harness can do, in one page: the agents, the skills, the CLI,
 the scheduled fleet, the MCP servers, the slash commands, and the zero-LLM
 script stack. Each section states its live count so the page can be verified
-against the directories it describes. Counts current as of 2026-10-31
+against the directories it describes. Counts current as of 2026-11-09
 (2026-10-29 sync: skills 58, fleet 44, MCP servers 18 — re-counted live; the atlassian MCP was uninstalled 2026-10-29, Josh ruling: its token expiry made it unreliable, all Jira/Confluence now go through the jira.py REST wrapper.
 2026-10-30 sync: skills 60 live, up from 58 — additions: bedrock-slide-authoring, log-into-ahq-ai; catalog now 57 + 3 omitted, re-counted live. jira.py gained a story-points gate at create and a page-create --draft flag for the board-minutes flow.
 2026-10-31 sync: agents 13 live, up from 12 — addition: josh-ea (the operator's Executive Assistant, 4 pulses/day, escalation lane via scripts/ea-escalate.py); skills 60, fleet 44 unchanged.
 2026-11-02 sync: no count changes (agents 13, skills 60, fleet 44) — the 2026-11-01 "fix everything" pass gave six agents (brain-gardener, cortex, evidence, harness-dreamer, project-dreamer, workato-watchdog) one extra write surface each: the EA escalation lane via scripts/ea-escalate.py, on top of their normal report surface and bus outbox. josh-ea pulses now land as interview-style decision cards (batches of up to 4, recommended answer first) and every card verdict feeds the preference store via josh-model.py add-draft).
 2026-11-05 sync: fleet 45 live job definitions, up from 44 (counted: ls of config/fleet/jobs/*.env) — addition: mission-fold, routed through run-job.sh on 2026-11-04 (CLAUDE_JOB=no, hourly) so the mission-control board rebuild now writes a fleet heartbeat mechanically; fixes the harness-health findings no-heartbeat-mission-fold and no-runner-mission-fold. turn-audit's weekly report now stamps its signature version so a trend recalibration is visible as a series break (2026-11-04). Agents 13, skills 60 unchanged.
+2026-11-09 sync: skills 67 live, up from 60 (counted: ls of ~/.claude/skills/; covers the Nov 6-8 machine-sleep gap) — 7 cataloged additions: backup-pipeline-playbook, build-workato-connector, builder-stack, mcp-app-lint, mcp-app-playbook, stop-slop, workato-design-system; the omitted writing-voice entry is now named josh-writing-voice (rename, still omitted as personal-class). MCP servers 21 distinct configured, up from 18 (re-counted from user + project scopes) — additions: atlassian-semantic, hr-intel-dash-prod, zoom-mcp (OAuth attach pending); company-brain, company-brain-live, and workato-dependency-tracker moved from user scope to project scope. Fleet 45, agents 13 unchanged. Script fixes ported to the repo this run: harness-health.py max_h mappings (harness-health and brief artifacts now freshness-checked against real cadence, killing manufactured false alarms) and triage-decide.py no-op parity backfill (idempotent re-decides now log an outcome row so queue-vs-outcomes parity is repairable; the 2026-11-05 triage-parity stall class).
 2026-11-03 sync: no count changes (agents 13, skills 60, fleet 44). jira.py gained a create-time dedupe guard (2026-11-02): every issue create now passes a same-project near-identical-summary check (exact match or 0.9+ similarity within a 7-day lookback of unresolved issues) and is blocked with a link-the-instead hint; the check fails CLOSED, so a broken dedupe search refuses the create rather than waving it through. Escape hatch: --force-dedupe-ok. The prod-bypass gate window in the workato-guardrails mod is now session-bound with a 240-min/UTC-day cap (see the mods page for the detail).
 
 ## The agents: 13
@@ -34,10 +35,10 @@ Every agent is a markdown SOP in `~/.claude/agents/`. Details in
 | red-team | On demand, at promotion prep | Independent security review of assets heading to production. A FAIL blocks promotion unless the human overrides by name. |
 | josh-ea | 4 pulses daily (07:47 full; 12:23, 16:53, 21:11 delta), and /josh-ea on demand | The operator's Executive Assistant: ingests calendar, Gmail, Slack, and Zoom transcripts; writes meeting prep cards and the daily brief; consumes the escalation queue (`scripts/ea-escalate.py`) from the miner agents and routes outbound asks to triage or the proposal queue. Since 2026-11-02 every pulse renders as interview-style decision cards (batches of up to 4, recommended answer first, verbose cold-start context) and each card verdict is recorded into the preference store via `josh-model.py add-draft`. Signals only when action items exist. |
 
-## The skills: 60
+## The skills: 67
 
 Each skill is a `SKILL.md` in `~/.claude/skills/`, a loaded-on-trigger SOP.
-57 are cataloged below in five groups; 3 are private or intentionally
+64 are cataloged below in five groups; 3 are private or intentionally
 unpublished and deliberately omitted (noted at the end).
 (2026-10-17 sync: 54 skills live, up from 52 — additions: failure-close-gate,
 wt-cookbook. 2026-10-18 re-verify: still 54 live, no additions; the catalog
@@ -45,9 +46,12 @@ arithmetic was corrected to 51 cataloged + 3 omitted. 2026-10-24 sync: 57
 live, up from 54 — additions: workato-brand-2026, workato-custom-action-schema,
 extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 2026-10-28 sync: 58 live, up from 57 — addition: needs-josh; catalog now
-55 + 3 omitted, re-counted live against ~/.claude/skills/.)
+55 + 3 omitted, re-counted live against ~/.claude/skills/. 2026-11-09 sync: 67 live, up from 60 —
+cataloged additions: backup-pipeline-playbook, build-workato-connector,
+builder-stack, mcp-app-lint, mcp-app-playbook, stop-slop,
+workato-design-system; catalog now 64 + 3 omitted, re-counted live.)
 
-### Playbooks: how to drive the platform (26)
+### Playbooks: how to drive the platform (30)
 
 | Skill | Purpose |
 |---|---|
@@ -77,8 +81,12 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 | workato-custom-action-schema | Resolve a custom-connector action's schema before mapping datapills; the fix for schema-not-available errors. |
 | bedrock-slide-authoring | Byte-level PPTX slide authoring discipline: brand gate, placeholder-first authoring, per-slide QA before any push (the BEDROCK pipeline). |
 | log-into-ahq-ai | Log into the Workato UI (AHQ | AI workspace) via Okta in the Orca browser whenever a UI task finds the session expired. |
+| build-workato-connector | Build an SDK custom connector from a docs URL or OpenAPI spec. |
+| backup-pipeline-playbook | Turnkey three-layer backup plus data pipeline for a semantic-gateway estate's data tables (folder mirrors, DynamoDB, S3). |
+| mcp-app-playbook | Gotcha catalog for building and pushing MCP Apps: widget authoring, bindings, failure modes. |
+| workato-design-system | Brand tokens and component CSS for Workato-branded UI and pages. |
 
-### Governance and gates: rules as procedure (16)
+### Governance and gates: rules as procedure (17)
 
 | Skill | Purpose |
 |---|---|
@@ -98,8 +106,9 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 | grill-gate | Planning gate: pin requirements before designing; batch the real judgment calls to one round. |
 | run-to-completion | Turn discipline: no ending a multi-step task until done and verified, or genuinely blocked. |
 | extend-not-replace | Guard before overwriting a data file with a transformed version: compare schemas, name every dropped column. |
+| mcp-app-lint | Pre-push lint and review gate for MCP Apps: static checks plus the real-browser render gate and binding contract checks. |
 
-### Estate operations (6)
+### Estate operations (7)
 
 | Skill | Purpose |
 |---|---|
@@ -109,8 +118,9 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 | testcase-authoring | Author a test case that reproduces a failure class and proves the fix. |
 | jira-autotriage | The autonomous Jira identify-triage-investigate-plan loop; development stays human-gated. Opens with a workspace-access precheck (`workspace_access_check.py`, added 2026-10-27) so a dead token or workspace is diagnosed before triage runs. |
 | failure-close-gate | A run may mark a finding resolved only if it updates the durable record (canon row, triage card, ledger) in the same run. |
+| builder-stack | Register each project's builder-tool priority ranking (platform MCP, CLI, browser) and resolve conflicts between them. |
 
-### Human interface (7)
+### Human interface (8)
 
 | Skill | Purpose |
 |---|---|
@@ -121,6 +131,7 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 | handoff | Write a resumable handoff: state, verified vs claimed, blockers, exact next command. |
 | jira-slack-formatting | Formatting standard for every outbound tracker comment and message: verdict first, strong whitespace. |
 | jira-story-standards | Required sections and conventions for epics and stories. |
+| stop-slop | Remove AI writing patterns from prose and copy; fires alongside the voice skill on everything written. |
 
 ### Builder lifecycle (2)
 
@@ -131,8 +142,9 @@ extend-not-replace; catalog now 54 + 3 omitted, re-counted live.
 
 ### Deliberately omitted (3)
 
-`claude-ai-web` (no description in frontmatter), `writing-voice (the operator's personal voice skill)` (a
-private prose-voice skill), and `otto-house-style` (house rules for one
+`claude-ai-web` (no description in frontmatter), `josh-writing-voice` (the
+operator's personal prose-voice skill; renamed from writing-voice, seen
+2026-11-09), and `otto-house-style` (house rules for one
 specific internal repo). They load locally; they do not belong in a published
 catalog.
 
@@ -232,20 +244,22 @@ Every job checks in to a shared heartbeat ledger, and the fleet runner
 validates each attempt for evidence of work: a silent zero-output exit is a
 stub, retried once, then escalated.
 
-## The MCP servers: 18
+## The MCP servers: 21
 
-`claude mcp list` as of 2026-10-28 (was 14 on 2026-10-24; 12 on 2026-10-17:
-fireworks-websearch was removed 2026-10-18 and slack-native retired;
-ai-directory-dev, workato-airo-mcp-prod, devapi-workato, and company-brain
-were added; 2026-10-28 sync added frontify-mcp-dev, gslides-dev,
-gslides-prod, company-brain-live, and devapi-proxy):
+Re-counted 2026-11-09 across user and project scopes (was 18 on 2026-10-28;
+14 on 2026-10-24; 12 on 2026-10-17). 17 user-scope servers, 4 project-scoped
+(company-brain, company-brain-live, workato-dependency-tracker, zoom-mcp).
+Additions since 2026-10-28: atlassian-semantic, hr-intel-dash-prod,
+zoom-mcp (OAuth attach pending). The atlassian MCP proper stays uninstalled
+(2026-10-29 ruling: token expiry made it unreliable; all Jira/Confluence go
+through the jira.py wrapper):
 
 | Server | Provides |
 |---|---|
 | workato-airo-mcp-server | The Workato platform MCP for the dev workspace: recipe builder, Genies, data tables, blueprints, MCP servers, knowledge bases, jobs, docs. |
 | workato-airo-mcp-prod | The production twin of the platform MCP: same surfaces, live production workspace, prod-gated. |
 | slack-workato | Bounded, confirmation-gated Slack operations as the authenticated identity. |
-| workato-dependency-tracker | Blast-radius queries: which recipes touch an object, field, or connection; recipe internals; connection health. |
+| workato-dependency-tracker | Blast-radius queries: which recipes touch an object, field, or connection; recipe internals; connection health (project-scoped as of 2026-11-09). |
 | google-slides | Full Google Slides authoring: decks, templates, layouts, tables, shapes, comments. |
 | org-chart | Read-only org-chart lookups (manager, reports, chains) from a materialized snapshot. |
 | google-workspace-semantic | The semantic layer for Gmail, Drive, Calendar, People, Docs, Sheets: reviewed capabilities, mutation plans, explicit confirmation. |
@@ -254,12 +268,15 @@ gslides-prod, company-brain-live, and devapi-proxy):
 | workato-kb | The local RAG++ knowledge base server over roughly 25k documents with hybrid retrieval and citations. |
 | brain | The harness's own gossip bus, claim ledger, dream reports, and knowledge-tree read APIs. |
 | seismic-dev | Seismic MCP (installed; requires OAuth). |
-| company-brain | Internal company-knowledge MCP (installed; requires OAuth). |
+| company-brain | Internal company-knowledge MCP (installed; requires OAuth; project-scoped as of 2026-11-09). |
 | frontify-mcp-dev | Read-only access to the internal Frontify tenant: brands, guidelines, guidelines content search, assets, libraries, creative templates (21 tools). |
 | gslides-dev | Google Slides authoring, dev-scoped server (62 tools); pairs with the google-slides server. |
 | gslides-prod | The production-scoped twin of the Google Slides authoring server. |
-| company-brain-live | The authenticated variant of the company-brain server. |
+| company-brain-live | The authenticated variant of the company-brain server (project-scoped as of 2026-11-09). |
 | devapi-proxy | Workato-hosted devapi endpoint proxy (installed; purpose not yet documented). |
+| atlassian-semantic | Semantic Atlassian access, user-scope configured (2026-11-09 count); the retired atlassian MCP token path stays retired. |
+| hr-intel-dash-prod | HR intelligence dashboards endpoint, user-scope configured (2026-11-09 count). |
+| zoom-mcp | Zoom meetings and transcripts, project-scoped (workbench); OAuth attach pending as of 2026-11-09. |
 
 Platform note for in-platform MCP servers: a served tool exists only while
 its backing recipe is running — stopping a recipe silently removes its tool

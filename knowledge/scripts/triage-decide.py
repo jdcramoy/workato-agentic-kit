@@ -320,8 +320,17 @@ def main():
         changed += 1
     if changed == 0 and skipped > 0:
         # Idempotent re-record: every matching row already sits in the exact
-        # target state — nothing to do, not an error.
-        print(f"no-op: {slug} already {FM[action]} on all {skipped} matching rows")
+        # target state — nothing to do, not an error. Still append the
+        # outcome row: the outcomes ledger is the parity mirror of the queue,
+        # and rows decided before an outcomes-ledger gap (or restored from an
+        # old snapshot) otherwise have NO sanctioned path back to parity.
+        # 2026-11-05 fix (harness-health-triage-parity): the no-op used to
+        # return without logging, so queue=rejected vs outcomes=MISSING could
+        # never be repaired through the recorder.
+        row = hits[0]
+        log_outcome(row, FM[action], note or "(idempotent re-record; outcome backfilled for queue/outcomes parity)", jira)
+        print(f"no-op: {slug} already {FM[action]} on all {skipped} matching rows "
+              f"(outcome row backfilled for parity)")
         return 0
     row = hits[0]
     if jira:

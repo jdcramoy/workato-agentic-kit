@@ -134,20 +134,21 @@ routed by a one-line-per-file index that every session reads first.
 
 | Directory | Files | What lives there |
 |---|---|---|
-| domains/ | 43 | cross-project platform knowledge |
-| projects/ | 200 | per-project state for the next session on that project |
-| scripts/ | 271 | the stdlib-only tooling fleet |
-| cortex/ | 217 | the cortex's investigations and dispatch log |
-| dreams/ | 353 | dream reports, proposal queue, trust-ladder config |
-| garden-reports/ | 365 | every agent run's report |
-| people/ | 62 | people files feeding the writing voice |
-| skills-telemetry/ | 25 | per-skill usage and fitness |
-| config/ | 150 | fleet job definitions and the model routing table |
-| instruction-patches/ | 24 | self-learning corrections to instruction files |
-| library/ | 5 | the librarian's positions and consolidations |
+| domains/ | 51 | cross-project platform knowledge |
+| projects/ | 243 | per-project state for the next session on that project |
+| scripts/ | 283 | the stdlib-only tooling fleet |
+| cortex/ | 298 | the cortex's investigations and dispatch log |
+| dreams/ | 482 | dream reports, proposal queue, trust-ladder config |
+| garden-reports/ | 868 | every agent run's report |
+| people/ | 63 | people files feeding the writing voice |
+| skills-telemetry/ | 35 | per-skill usage and fitness |
+| config/ | 152 | fleet job definitions and the model routing table |
+| instruction-patches/ | 33 | self-learning corrections to instruction files |
+| library/ | 6 | the librarian's positions and consolidations |
 | claims/, integrity/, predictions/, coverage/, sagas/, policies/, twin/, now/ | small | the integrity and governance ledgers |
 
-(Table re-counted 2026-10-29, recursive file counts per directory.) The 43
+(Table re-counted 2026-11-09, recursive file counts per directory. Previous
+re-count 2026-10-29.) The 51
 domain files are the tree's top layer, and they read like a map of
 what the fleet has paid to learn: the Workato and Workday platform
 behavior files, the AIRO MCP trap-adjacent operations files, the harness's
