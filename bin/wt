@@ -566,6 +566,90 @@ def cmd_api(a):
     emit(result, a.raw)
 
 
+# --------------------------------------------------------------- mcp-apps ---
+
+def _multipart(fields=None, file_field=None, file_path=None, file_ct="text/html"):
+    """Build a multipart/form-data body for the MCP Apps create/update API
+    (it rejects JSON: 'file must be an uploaded file')."""
+    b = "----wtMultipartBoundary7f3d9a2c"
+    parts = []
+    for k, v in (fields or {}).items():
+        parts.append(f'--{b}\r\nContent-Disposition: form-data; name="{k}"'
+                     f"\r\n\r\n{v}\r\n".encode())
+    if file_field:
+        with open(file_path, "rb") as f:
+            content = f.read()
+        fname = os.path.basename(file_path)
+        parts.append(
+            f'--{b}\r\nContent-Disposition: form-data; name="{file_field}"; '
+            f'filename="{fname}"\r\nContent-Type: {file_ct}\r\n\r\n'.encode()
+            + content + b"\r\n")
+    parts.append(f"--{b}--\r\n".encode())
+    body = b"".join(parts)
+    return body, f"multipart/form-data; boundary={b}"
+
+
+def cmd_mcp_apps(a):
+    host, token = client(a)
+    base = f"/api/mcp/mcp_servers/{a.server_handle}"
+    if a.op == "list":
+        status, result = request(host, token, "GET", f"{base}/apps")
+        emit(result, a.raw)
+    elif a.op == "count":
+        # Sweep every server's mcp_apps_count (field the list endpoint already
+        # carries) — no per-server app fetches needed.
+        page = 1
+        rows = []
+        while True:
+            _, resp = request(host, token, "GET", "/api/mcp/mcp_servers",
+                              query={"page": page, "per_page": 50})
+            data = resp.get("data", [])
+            for s in data:
+                if a.nonzero and not s.get("mcp_apps_count"):
+                    continue
+                rows.append({"handle": s.get("id"), "name": s.get("name"),
+                             "apps": s.get("mcp_apps_count", 0)})
+            page_meta = resp.get("page")
+            if isinstance(page_meta, dict):
+                total_pages = page_meta.get("totalPages")
+            else:  # int page number
+                total_pages = None
+            if not data or (total_pages and page >= total_pages) \
+                    or len(data) < 50:
+                break
+            page += 1
+        total = sum(r["apps"] for r in rows)
+        emit({"total_apps": total, "servers": rows}, a.raw)
+    elif a.op in ("create", "update"):
+        fields = {}
+        if a.body:
+            fields.update(json.loads(a.body))
+        if a.name:
+            fields["name"] = a.name
+        if getattr(a, "csp", None):
+            fields["csp"] = a.csp
+        if a.op == "create":
+            if not fields.get("name"):
+                die("create requires --name (or name in --data)")
+            if not a.file:
+                die("create requires --file <app HTML> — the API rejects "
+                    "creation without an uploaded file")
+        elif not fields and not a.file:
+            die("update needs --name, --file, or --data")
+        body, ct = _multipart(fields, "file", a.file) if a.file else \
+            _multipart(fields)
+        method = "POST" if a.op == "create" else "PUT"
+        path = f"{base}/apps" if a.op == "create" \
+            else f"{base}/apps/{a.app_id}"
+        status, result = request(host, token, method, path,
+                                 raw_body=body, content_type=ct)
+        emit(result, a.raw)
+    elif a.op == "delete":
+        status, result = request(host, token, "DELETE",
+                                 f"{base}/apps/{a.app_id}")
+        emit(result, a.raw)
+
+
 # ------------------------------------------------------------------ parser ---
 
 def add_common(p):
@@ -971,6 +1055,23 @@ def main():
     p.add_argument("--collection", type=int)
     add_json_body(p)
     p.set_defaults(fn=cmd_apic)
+
+    p = sub.add_parser("mcp-apps", help="MCP Apps CRUD on an MCP server (list/count/create/update/delete)")
+    add_common(p)
+    p.add_argument("op", choices=["list", "count", "create", "update", "delete"])
+    p.add_argument("server_handle", nargs="?", default=None,
+                   help="MCP server handle (mcps-...); not needed for count")
+    p.add_argument("app_id", nargs="?", help="app id (mcpapp-...), for update/delete")
+    p.add_argument("--name", help="app name (create/update)")
+    p.add_argument("--file", help="path to the app's HTML source (create; "
+                                 "optional on update)")
+    p.add_argument("--tool", dest="tool", help="tool id to link (create)")
+    p.add_argument("--csp", dest="csp", help="CSP as a JSON-encoded string (multipart top-level field: "
+                                             "csp={\"connectDomains\":[...]}; per Jasper, spec-tested v1.1278.0+)")
+    p.add_argument("--nonzero", action="store_true",
+                   help="count: only servers with >=1 app")
+    add_json_body(p)
+    p.set_defaults(fn=cmd_mcp_apps)
 
     p = sub.add_parser("discover", help="self-discover the Developer API surface; coverage + gap report")
     p.add_argument("--refresh", action="store_true",
